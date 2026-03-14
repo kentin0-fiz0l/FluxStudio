@@ -6,6 +6,7 @@ import { RootProviders } from './components/providers';
 import { ToastContainer } from './components/notifications/ToastContainer';
 import { PushPermissionPrompt } from './components/notifications/PushPermissionPrompt';
 import { UpdateBanner } from './components/common/UpdateBanner';
+import { AnnouncementBanner } from './components/common/AnnouncementBanner';
 import { ProjectContextBar } from './components/projects/ProjectContextBar';
 import { MomentumCapture } from './components/momentum/MomentumCapture';
 import { QuickActions, useQuickActions } from './components/pulse/QuickActions';
@@ -29,6 +30,7 @@ import { CommandPalette, useCommandPalette } from './components/CommandPalette';
 import { HelmetProvider } from 'react-helmet-async';
 import { CookieConsent } from './components/ui/CookieConsent';
 import { FeedbackWidget } from './components/ui/FeedbackWidget';
+import { SupportWidget } from './components/ui/SupportWidget';
 import { ProgressiveProfileCapture } from './components/onboarding/ProgressiveProfileCapture';
 
 import { useAuth, useAuthInit } from '@/store/slices/authSlice';
@@ -108,6 +110,9 @@ const { Component: QuickOnboarding } = lazyLoadWithRetry(() => import('./compone
 // Legal pages
 const { Component: Terms } = lazyLoadWithRetry(() => import('./pages/Terms'));
 const { Component: Privacy } = lazyLoadWithRetry(() => import('./pages/Privacy'));
+
+// Changelog
+const { Component: Changelog } = lazyLoadWithRetry(() => import('./pages/Changelog'));
 
 // Help & Support pages - Phase 4 User Adoption
 const { Component: HelpCenter } = lazyLoadWithRetry(() => import('./pages/HelpCenter'));
@@ -245,6 +250,7 @@ function AuthenticatedRoutes() {
         </Suspense>
       </AuthOnly>
       {/* Global Quick Actions - Cmd/Ctrl+K to open */}
+      <AnnouncementBanner />
       <GlobalQuickActions>
         <Suspense fallback={<DefaultLoadingFallback />}>
           <Routes>
@@ -280,6 +286,7 @@ function AuthenticatedRoutes() {
                   <Route path="/embed/:formationId" element={<EmbedFormation />} />
                   <Route path="/formations/:category" element={<FormationCategory />} />
                   <Route path="/templates" element={<TemplateLibrary />} />
+                  <Route path="/changelog" element={<Changelog />} />
 
                   {/* Help & Support pages - public but with optional auth */}
                   <Route path="/help" element={<HelpCenter />} />
@@ -395,6 +402,7 @@ function AuthenticatedRoutes() {
       <AuthOnly>
         <PushPermissionPrompt />
         <FeedbackWidget />
+        <SupportWidget />
         <ProgressiveProfileCapture />
       </AuthOnly>
       {/* SW Update Banner */}

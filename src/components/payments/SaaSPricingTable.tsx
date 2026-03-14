@@ -15,7 +15,7 @@ interface SaaSPricingTableProps {
 }
 
 export function SaaSPricingTable({ currentPlan }: SaaSPricingTableProps) {
-  const [interval, setInterval] = useState<'month' | 'year'>('month');
+  const [interval, setInterval] = useState<'month' | 'year'>('year');
   const navigate = useNavigate();
 
   const handleSelectPlan = (planId: PlanId) => {
@@ -89,11 +89,23 @@ export function SaaSPricingTable({ currentPlan }: SaaSPricingTableProps) {
               {/* Price */}
               <div className="mt-4 mb-6">
                 <span className="text-3xl font-bold text-neutral-900 dark:text-white">
-                  {formatPrice(price, interval)}
+                  {interval === 'year' && price > 0
+                    ? `$${(price / 100 / 12).toFixed(0)}/mo`
+                    : formatPrice(price, interval)}
                 </span>
+                {interval === 'year' && price > 0 && (
+                  <span className="text-sm text-neutral-500 dark:text-neutral-400 ml-1">
+                    billed yearly
+                  </span>
+                )}
                 {planId === 'team' && price > 0 && (
                   <span className="text-sm text-neutral-500 dark:text-neutral-400 ml-1">
                     per seat
+                  </span>
+                )}
+                {interval === 'year' && price > 0 && (
+                  <span className="mt-1 block text-xs font-medium text-green-600 dark:text-green-400">
+                    Save ${((plan.priceMonthly * 12 - plan.priceYearly) / 100).toFixed(0)}/year
                   </span>
                 )}
               </div>

@@ -11,24 +11,11 @@
  */
 
 const { query, generateCuid } = require('../database/config');
-const Anthropic = require('@anthropic-ai/sdk');
+const { requireClient } = require('../lib/ai/client');
+const { buildApiParams } = require('../lib/ai/config');
 
-// Lazy-init Anthropic client
-let anthropic = null;
-const DEFAULT_MODEL = 'claude-sonnet-4-20250514';
 const MAX_RETRIES = 2;
 const TOKEN_BUDGET_DEFAULT = 100000;
-
-function getAnthropicClient() {
-  if (!anthropic) {
-    const apiKey = process.env.ANTHROPIC_API_KEY;
-    if (!apiKey) {
-      throw new Error('ANTHROPIC_API_KEY is not configured');
-    }
-    anthropic = new Anthropic({ apiKey });
-  }
-  return anthropic;
-}
 
 // ============================================================================
 // System Prompt
@@ -305,13 +292,13 @@ function createFallbackSections(durationMs, bpm = 120) {
  */
 async function callClaude(conversationHistory, retryCount = 0) {
   try {
-    const response = await getAnthropicClient().messages.create({
-      model: DEFAULT_MODEL,
-      max_tokens: 4096,
+    const params = buildApiParams('formation-draft', {
       system: FORMATION_SYSTEM_PROMPT,
       tools: FORMATION_TOOLS,
       messages: conversationHistory,
     });
+
+    const response = await requireClient().messages.create(params);
 
     return response;
   } catch (error) {

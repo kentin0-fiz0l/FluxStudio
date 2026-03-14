@@ -138,6 +138,9 @@ interface CanvasToolbarProps {
   // Section Leader Dashboard toggle
   showSectionDashboard?: boolean;
   setShowSectionDashboard?: (show: boolean) => void;
+  // Collaborator activity panel toggle
+  showCollabActivity?: boolean;
+  setShowCollabActivity?: (show: boolean) => void;
 }
 
 export const CanvasToolbar: React.FC<CanvasToolbarProps> = React.memo(({
@@ -178,6 +181,7 @@ export const CanvasToolbar: React.FC<CanvasToolbarProps> = React.memo(({
   showLibraryPanel, setShowLibraryPanel,
   onShowImportPanel,
   showSectionDashboard, setShowSectionDashboard,
+  showCollabActivity, setShowCollabActivity,
 }) => {
   const { t } = useTranslation('common');
   const navigate = useNavigate();
@@ -225,29 +229,29 @@ export const CanvasToolbar: React.FC<CanvasToolbarProps> = React.memo(({
 
         {/* Drawing Tools */}
         <div className="flex items-center bg-gray-100 dark:bg-gray-700 rounded-lg p-0.5">
-          <button onClick={() => setActiveTool('select')} className={`p-1.5 min-w-[32px] min-h-[32px] sm:min-w-0 sm:min-h-0 rounded focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-1 outline-none ${activeTool === 'select' ? 'bg-white dark:bg-gray-600 shadow' : 'hover:bg-gray-200 dark:hover:bg-gray-600'}`} title="Select (V)" aria-label="Select tool" aria-pressed={activeTool === 'select'}>
+          <button onClick={() => setActiveTool('select')} className={`p-1.5 min-w-[44px] min-h-[44px] lg:min-w-0 lg:min-h-0 rounded focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-1 outline-none ${activeTool === 'select' ? 'bg-white dark:bg-gray-600 shadow' : 'hover:bg-gray-200 dark:hover:bg-gray-600'}`} title="Select (V)" aria-label="Select tool" aria-pressed={activeTool === 'select'}>
             <MousePointer className="w-4 h-4" aria-hidden="true" />
           </button>
-          <button onClick={() => setActiveTool('pan')} className={`p-1.5 min-w-[32px] min-h-[32px] sm:min-w-0 sm:min-h-0 rounded focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-1 outline-none ${activeTool === 'pan' ? 'bg-white dark:bg-gray-600 shadow' : 'hover:bg-gray-200 dark:hover:bg-gray-600'}`} title="Pan (H)" aria-label="Pan tool" aria-pressed={activeTool === 'pan'}>
+          <button onClick={() => setActiveTool('pan')} className={`p-1.5 min-w-[44px] min-h-[44px] lg:min-w-0 lg:min-h-0 rounded focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-1 outline-none ${activeTool === 'pan' ? 'bg-white dark:bg-gray-600 shadow' : 'hover:bg-gray-200 dark:hover:bg-gray-600'}`} title="Pan (H)" aria-label="Pan tool" aria-pressed={activeTool === 'pan'}>
             <Move className="w-4 h-4" aria-hidden="true" />
           </button>
           {viewRole === 'designer' && (
             <>
-              <button onClick={() => setActiveTool('add')} className={`p-1.5 min-w-[32px] min-h-[32px] sm:min-w-0 sm:min-h-0 rounded focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-1 outline-none ${activeTool === 'add' ? 'bg-white dark:bg-gray-600 shadow' : 'hover:bg-gray-200 dark:hover:bg-gray-600'}`} title="Add Performer" aria-label="Add performer tool" aria-pressed={activeTool === 'add'}>
+              <button onClick={() => setActiveTool('add')} className={`p-1.5 min-w-[44px] min-h-[44px] lg:min-w-0 lg:min-h-0 rounded focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-1 outline-none ${activeTool === 'add' ? 'bg-white dark:bg-gray-600 shadow' : 'hover:bg-gray-200 dark:hover:bg-gray-600'}`} title="Add Performer" aria-label="Add performer tool" aria-pressed={activeTool === 'add'}>
                 <Plus className="w-4 h-4" aria-hidden="true" />
               </button>
               <div className="w-px h-4 bg-gray-300 dark:bg-gray-500 mx-0.5 hidden sm:block" aria-hidden="true" />
-              <button onClick={() => setActiveTool('line')} className={`p-1.5 min-w-[32px] min-h-[32px] sm:min-w-0 sm:min-h-0 rounded hidden sm:block focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-1 outline-none ${activeTool === 'line' ? 'bg-white dark:bg-gray-600 shadow' : 'hover:bg-gray-200 dark:hover:bg-gray-600'}`} title="Line Tool" aria-label="Line tool" aria-pressed={activeTool === 'line'}>
+              <button onClick={() => setActiveTool('line')} className={`p-1.5 min-w-[44px] min-h-[44px] lg:min-w-0 lg:min-h-0 rounded hidden sm:block focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-1 outline-none ${activeTool === 'line' ? 'bg-white dark:bg-gray-600 shadow' : 'hover:bg-gray-200 dark:hover:bg-gray-600'}`} title="Line Tool" aria-label="Line tool" aria-pressed={activeTool === 'line'}>
                 <Minus className="w-4 h-4" aria-hidden="true" />
               </button>
-              <button onClick={() => setActiveTool('arc')} className={`p-1.5 min-w-[32px] min-h-[32px] sm:min-w-0 sm:min-h-0 rounded hidden sm:block focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-1 outline-none ${activeTool === 'arc' ? 'bg-white dark:bg-gray-600 shadow' : 'hover:bg-gray-200 dark:hover:bg-gray-600'}`} title="Arc Tool" aria-label="Arc tool" aria-pressed={activeTool === 'arc'}>
+              <button onClick={() => setActiveTool('arc')} className={`p-1.5 min-w-[44px] min-h-[44px] lg:min-w-0 lg:min-h-0 rounded hidden sm:block focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-1 outline-none ${activeTool === 'arc' ? 'bg-white dark:bg-gray-600 shadow' : 'hover:bg-gray-200 dark:hover:bg-gray-600'}`} title="Arc Tool" aria-label="Arc tool" aria-pressed={activeTool === 'arc'}>
                 <CircleDot className="w-4 h-4" aria-hidden="true" />
               </button>
-              <button onClick={() => setActiveTool('block')} className={`p-1.5 min-w-[32px] min-h-[32px] sm:min-w-0 sm:min-h-0 rounded hidden sm:block focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-1 outline-none ${activeTool === 'block' ? 'bg-white dark:bg-gray-600 shadow' : 'hover:bg-gray-200 dark:hover:bg-gray-600'}`} title="Block Tool" aria-label="Block tool" aria-pressed={activeTool === 'block'}>
+              <button onClick={() => setActiveTool('block')} className={`p-1.5 min-w-[44px] min-h-[44px] lg:min-w-0 lg:min-h-0 rounded hidden sm:block focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-1 outline-none ${activeTool === 'block' ? 'bg-white dark:bg-gray-600 shadow' : 'hover:bg-gray-200 dark:hover:bg-gray-600'}`} title="Block Tool" aria-label="Block tool" aria-pressed={activeTool === 'block'}>
                 <Grid3x3 className="w-4 h-4" aria-hidden="true" />
               </button>
               <div className="w-px h-4 bg-gray-300 dark:bg-gray-500 mx-0.5 hidden sm:block" aria-hidden="true" />
-              <button onClick={() => setActiveTool('comment')} className={`p-1.5 min-w-[32px] min-h-[32px] sm:min-w-0 sm:min-h-0 rounded hidden sm:block focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-1 outline-none ${activeTool === 'comment' ? 'bg-white dark:bg-gray-600 shadow' : 'hover:bg-gray-200 dark:hover:bg-gray-600'}`} title="Comment Tool (C)" aria-label="Comment tool" aria-pressed={activeTool === 'comment'}>
+              <button onClick={() => setActiveTool('comment')} className={`p-1.5 min-w-[44px] min-h-[44px] lg:min-w-0 lg:min-h-0 rounded hidden sm:block focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-1 outline-none ${activeTool === 'comment' ? 'bg-white dark:bg-gray-600 shadow' : 'hover:bg-gray-200 dark:hover:bg-gray-600'}`} title="Comment Tool (C)" aria-label="Comment tool" aria-pressed={activeTool === 'comment'}>
                 <MessageCircle className="w-4 h-4" aria-hidden="true" />
               </button>
             </>
@@ -258,7 +262,7 @@ export const CanvasToolbar: React.FC<CanvasToolbarProps> = React.memo(({
         {setFingerMode && (
           <button
             onClick={() => setFingerMode(fingerMode === 'select' ? 'pan' : 'select')}
-            className={`p-1.5 min-w-[32px] min-h-[32px] rounded md:hidden focus-visible:ring-2 focus-visible:ring-blue-500 outline-none ${fingerMode === 'pan' ? 'bg-blue-100 dark:bg-blue-900 text-blue-500' : 'text-gray-400 hover:text-gray-600'}`}
+            className={`p-1.5 min-w-[44px] min-h-[44px] rounded md:hidden focus-visible:ring-2 focus-visible:ring-blue-500 outline-none ${fingerMode === 'pan' ? 'bg-blue-100 dark:bg-blue-900 text-blue-500' : 'text-gray-400 hover:text-gray-600'}`}
             title={fingerMode === 'select' ? 'Switch to pan mode' : 'Switch to select mode'}
             aria-label={fingerMode === 'select' ? 'Switch to pan mode' : 'Switch to select mode'}
           >
@@ -273,7 +277,7 @@ export const CanvasToolbar: React.FC<CanvasToolbarProps> = React.memo(({
           <button
             onClick={onUndo}
             disabled={!canUndo}
-            className={`p-1.5 min-w-[32px] min-h-[32px] sm:min-w-0 sm:min-h-0 rounded focus-visible:ring-2 focus-visible:ring-blue-500 outline-none ${canUndo ? 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700' : 'text-gray-300 dark:text-gray-600 cursor-not-allowed'}`}
+            className={`p-1.5 min-w-[44px] min-h-[44px] lg:min-w-0 lg:min-h-0 rounded focus-visible:ring-2 focus-visible:ring-blue-500 outline-none ${canUndo ? 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700' : 'text-gray-300 dark:text-gray-600 cursor-not-allowed'}`}
             title="Undo (Ctrl+Z)"
             aria-label="Undo"
           >
@@ -282,7 +286,7 @@ export const CanvasToolbar: React.FC<CanvasToolbarProps> = React.memo(({
           <button
             onClick={onRedo}
             disabled={!canRedo}
-            className={`p-1.5 min-w-[32px] min-h-[32px] sm:min-w-0 sm:min-h-0 rounded focus-visible:ring-2 focus-visible:ring-blue-500 outline-none ${canRedo ? 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700' : 'text-gray-300 dark:text-gray-600 cursor-not-allowed'}`}
+            className={`p-1.5 min-w-[44px] min-h-[44px] lg:min-w-0 lg:min-h-0 rounded focus-visible:ring-2 focus-visible:ring-blue-500 outline-none ${canRedo ? 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700' : 'text-gray-300 dark:text-gray-600 cursor-not-allowed'}`}
             title="Redo (Ctrl+Y)"
             aria-label="Redo"
           >
@@ -294,11 +298,11 @@ export const CanvasToolbar: React.FC<CanvasToolbarProps> = React.memo(({
 
         {/* Zoom */}
         <div className="flex items-center gap-0.5">
-          <button onClick={onZoomOut} className="p-1.5 min-w-[32px] min-h-[32px] sm:min-w-0 sm:min-h-0 rounded text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white focus-visible:ring-2 focus-visible:ring-blue-500 outline-none" aria-label="Zoom out">
+          <button onClick={onZoomOut} className="p-1.5 min-w-[44px] min-h-[44px] lg:min-w-0 lg:min-h-0 rounded text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white focus-visible:ring-2 focus-visible:ring-blue-500 outline-none" aria-label="Zoom out">
             <ZoomOut className="w-4 h-4" aria-hidden="true" />
           </button>
           <span className="text-xs text-gray-500 dark:text-gray-400 min-w-[40px] text-center tabular-nums hidden sm:inline" aria-live="polite">{Math.round(zoom * 100)}%</span>
-          <button onClick={onZoomIn} className="p-1.5 min-w-[32px] min-h-[32px] sm:min-w-0 sm:min-h-0 rounded text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white focus-visible:ring-2 focus-visible:ring-blue-500 outline-none" aria-label="Zoom in">
+          <button onClick={onZoomIn} className="p-1.5 min-w-[44px] min-h-[44px] lg:min-w-0 lg:min-h-0 rounded text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white focus-visible:ring-2 focus-visible:ring-blue-500 outline-none" aria-label="Zoom in">
             <ZoomIn className="w-4 h-4" aria-hidden="true" />
           </button>
         </div>
@@ -319,6 +323,7 @@ export const CanvasToolbar: React.FC<CanvasToolbarProps> = React.memo(({
             isConnected={collab.isConnected}
             isSyncing={collab.isSyncing}
             currentUser={currentUser || undefined}
+            onCollabActivityToggle={setShowCollabActivity ? () => setShowCollabActivity(!showCollabActivity) : undefined}
           />
         )}
       </div>
@@ -329,7 +334,7 @@ export const CanvasToolbar: React.FC<CanvasToolbarProps> = React.memo(({
         <div className="relative" ref={viewOptionsRef}>
           <button
             onClick={() => setShowViewOptions(!showViewOptions)}
-            className={`flex items-center gap-1 p-1.5 min-w-[32px] min-h-[32px] sm:min-w-0 sm:min-h-0 rounded text-sm focus-visible:ring-2 focus-visible:ring-blue-500 outline-none ${showViewOptions ? 'bg-gray-100 dark:bg-gray-700 text-blue-500' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'}`}
+            className={`flex items-center gap-1 p-1.5 min-w-[44px] min-h-[44px] lg:min-w-0 lg:min-h-0 rounded text-sm focus-visible:ring-2 focus-visible:ring-blue-500 outline-none ${showViewOptions ? 'bg-gray-100 dark:bg-gray-700 text-blue-500' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'}`}
             title="View Options"
             aria-expanded={showViewOptions}
             aria-haspopup="true"
@@ -357,19 +362,19 @@ export const CanvasToolbar: React.FC<CanvasToolbarProps> = React.memo(({
         <div className="w-px h-5 bg-gray-300 dark:bg-gray-600" />
 
         {/* Panel toggles */}
-        <button onClick={() => setShowPerformerPanel(!showPerformerPanel)} className={`p-1.5 min-w-[32px] min-h-[32px] sm:min-w-0 sm:min-h-0 rounded focus-visible:ring-2 focus-visible:ring-blue-500 outline-none ${showPerformerPanel ? 'text-blue-500' : 'text-gray-400 hover:text-gray-600'}`} title="Performers Panel" aria-label="Performers panel" aria-pressed={showPerformerPanel}>
+        <button onClick={() => setShowPerformerPanel(!showPerformerPanel)} className={`p-1.5 min-w-[44px] min-h-[44px] lg:min-w-0 lg:min-h-0 rounded focus-visible:ring-2 focus-visible:ring-blue-500 outline-none ${showPerformerPanel ? 'text-blue-500' : 'text-gray-400 hover:text-gray-600'}`} title="Performers Panel" aria-label="Performers panel" aria-pressed={showPerformerPanel}>
           <Users className="w-4 h-4" aria-hidden="true" />
         </button>
-        <button onClick={() => setShowAudioPanel(!showAudioPanel)} className={`p-1.5 min-w-[32px] min-h-[32px] sm:min-w-0 sm:min-h-0 rounded focus-visible:ring-2 focus-visible:ring-blue-500 outline-none ${hasAudioTrack ? 'text-green-500' : showAudioPanel ? 'text-blue-500' : 'text-gray-400 hover:text-gray-600'}`} title={hasAudioTrack ? 'Audio attached' : 'Add Audio'} aria-label={hasAudioTrack ? 'Audio attached' : 'Audio panel'} aria-pressed={showAudioPanel}>
+        <button onClick={() => setShowAudioPanel(!showAudioPanel)} className={`p-1.5 min-w-[44px] min-h-[44px] lg:min-w-0 lg:min-h-0 rounded focus-visible:ring-2 focus-visible:ring-blue-500 outline-none ${hasAudioTrack ? 'text-green-500' : showAudioPanel ? 'text-blue-500' : 'text-gray-400 hover:text-gray-600'}`} title={hasAudioTrack ? 'Audio attached' : 'Add Audio'} aria-label={hasAudioTrack ? 'Audio attached' : 'Audio panel'} aria-pressed={showAudioPanel}>
           <Music className="w-4 h-4" aria-hidden="true" />
         </button>
-        <button onClick={() => setShowTemplatePicker(true)} className="p-1.5 min-w-[32px] min-h-[32px] sm:min-w-0 sm:min-h-0 rounded text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 focus-visible:ring-2 focus-visible:ring-blue-500 outline-none" title="Formation Templates" aria-label="Formation templates">
+        <button onClick={() => setShowTemplatePicker(true)} className="p-1.5 min-w-[44px] min-h-[44px] lg:min-w-0 lg:min-h-0 rounded text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 focus-visible:ring-2 focus-visible:ring-blue-500 outline-none" title="Formation Templates" aria-label="Formation templates">
           <LayoutGrid className="w-4 h-4" aria-hidden="true" />
         </button>
         {setShowLibraryPanel && (
           <button
             onClick={() => setShowLibraryPanel(!showLibraryPanel)}
-            className={`p-1.5 min-w-[32px] min-h-[32px] sm:min-w-0 sm:min-h-0 rounded focus-visible:ring-2 focus-visible:ring-blue-500 outline-none ${showLibraryPanel ? 'text-blue-500' : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'}`}
+            className={`p-1.5 min-w-[44px] min-h-[44px] lg:min-w-0 lg:min-h-0 rounded focus-visible:ring-2 focus-visible:ring-blue-500 outline-none ${showLibraryPanel ? 'text-blue-500' : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'}`}
             title="Formation Library"
             aria-label="Formation library panel"
             aria-pressed={!!showLibraryPanel}
@@ -380,7 +385,7 @@ export const CanvasToolbar: React.FC<CanvasToolbarProps> = React.memo(({
         {setShowDraftPanel && (
           <button
             onClick={() => setShowDraftPanel(!showDraftPanel)}
-            className={`p-1.5 min-w-[32px] min-h-[32px] sm:min-w-0 sm:min-h-0 rounded focus-visible:ring-2 focus-visible:ring-blue-500 outline-none ${showDraftPanel ? 'text-amber-500' : draftStatus && draftStatus !== 'idle' ? 'text-amber-400 animate-pulse' : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'}`}
+            className={`p-1.5 min-w-[44px] min-h-[44px] lg:min-w-0 lg:min-h-0 rounded focus-visible:ring-2 focus-visible:ring-blue-500 outline-none ${showDraftPanel ? 'text-amber-500' : draftStatus && draftStatus !== 'idle' ? 'text-amber-400 animate-pulse' : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'}`}
             title="AI Draft Agent"
             aria-label="AI draft agent"
             aria-pressed={showDraftPanel}
@@ -394,7 +399,7 @@ export const CanvasToolbar: React.FC<CanvasToolbarProps> = React.memo(({
           <button
             onClick={onGenerateFromMusic}
             disabled={isGeneratingFromMusic}
-            className={`p-1.5 min-w-[32px] min-h-[32px] sm:min-w-0 sm:min-h-0 rounded focus-visible:ring-2 focus-visible:ring-blue-500 outline-none ${isGeneratingFromMusic ? 'text-purple-500 animate-pulse cursor-wait' : 'text-gray-400 hover:text-purple-500 dark:hover:text-purple-400'}`}
+            className={`p-1.5 min-w-[44px] min-h-[44px] lg:min-w-0 lg:min-h-0 rounded focus-visible:ring-2 focus-visible:ring-blue-500 outline-none ${isGeneratingFromMusic ? 'text-purple-500 animate-pulse cursor-wait' : 'text-gray-400 hover:text-purple-500 dark:hover:text-purple-400'}`}
             title="Generate Show from Music"
             aria-label="Generate show from music"
             aria-busy={isGeneratingFromMusic}
@@ -410,7 +415,7 @@ export const CanvasToolbar: React.FC<CanvasToolbarProps> = React.memo(({
         {setShowStepSizes && (
           <button
             onClick={() => setShowStepSizes(!showStepSizes)}
-            className={`p-1.5 min-w-[32px] min-h-[32px] sm:min-w-0 sm:min-h-0 rounded focus-visible:ring-2 focus-visible:ring-blue-500 outline-none ${showStepSizes ? 'text-blue-500' : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'}`}
+            className={`p-1.5 min-w-[44px] min-h-[44px] lg:min-w-0 lg:min-h-0 rounded focus-visible:ring-2 focus-visible:ring-blue-500 outline-none ${showStepSizes ? 'text-blue-500' : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'}`}
             title="Step Sizes"
             aria-label="Step sizes overlay"
             aria-pressed={showStepSizes}
@@ -421,7 +426,7 @@ export const CanvasToolbar: React.FC<CanvasToolbarProps> = React.memo(({
         {setShowCoordinatePanel && (
           <button
             onClick={() => setShowCoordinatePanel(!showCoordinatePanel)}
-            className={`p-1.5 min-w-[32px] min-h-[32px] sm:min-w-0 sm:min-h-0 rounded focus-visible:ring-2 focus-visible:ring-blue-500 outline-none ${showCoordinatePanel ? 'text-blue-500' : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'}`}
+            className={`p-1.5 min-w-[44px] min-h-[44px] lg:min-w-0 lg:min-h-0 rounded focus-visible:ring-2 focus-visible:ring-blue-500 outline-none ${showCoordinatePanel ? 'text-blue-500' : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'}`}
             title="Coordinates"
             aria-label="Coordinate panel"
             aria-pressed={showCoordinatePanel}
@@ -432,7 +437,7 @@ export const CanvasToolbar: React.FC<CanvasToolbarProps> = React.memo(({
         {setShowMovementTools && (
           <button
             onClick={() => setShowMovementTools(!showMovementTools)}
-            className={`p-1.5 min-w-[32px] min-h-[32px] sm:min-w-0 sm:min-h-0 rounded focus-visible:ring-2 focus-visible:ring-blue-500 outline-none ${showMovementTools ? 'text-blue-500' : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'}`}
+            className={`p-1.5 min-w-[44px] min-h-[44px] lg:min-w-0 lg:min-h-0 rounded focus-visible:ring-2 focus-visible:ring-blue-500 outline-none ${showMovementTools ? 'text-blue-500' : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'}`}
             title="Movement Tools"
             aria-label="Movement tools panel"
             aria-pressed={showMovementTools}
@@ -443,7 +448,7 @@ export const CanvasToolbar: React.FC<CanvasToolbarProps> = React.memo(({
         {setShowAnalysisPanel && (
           <button
             onClick={() => setShowAnalysisPanel(!showAnalysisPanel)}
-            className={`p-1.5 min-w-[32px] min-h-[32px] sm:min-w-0 sm:min-h-0 rounded focus-visible:ring-2 focus-visible:ring-blue-500 outline-none ${showAnalysisPanel ? 'text-blue-500' : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'}`}
+            className={`p-1.5 min-w-[44px] min-h-[44px] lg:min-w-0 lg:min-h-0 rounded focus-visible:ring-2 focus-visible:ring-blue-500 outline-none ${showAnalysisPanel ? 'text-blue-500' : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'}`}
             title="Drill Analysis"
             aria-label="Drill analysis panel"
             aria-pressed={showAnalysisPanel}
@@ -469,7 +474,7 @@ export const CanvasToolbar: React.FC<CanvasToolbarProps> = React.memo(({
         {setShowPacingGraph && (
           <button
             onClick={() => setShowPacingGraph(!showPacingGraph)}
-            className={`p-1.5 min-w-[32px] min-h-[32px] sm:min-w-0 sm:min-h-0 rounded focus-visible:ring-2 focus-visible:ring-blue-500 outline-none ${showPacingGraph ? 'text-blue-500' : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'}`}
+            className={`p-1.5 min-w-[44px] min-h-[44px] lg:min-w-0 lg:min-h-0 rounded focus-visible:ring-2 focus-visible:ring-blue-500 outline-none ${showPacingGraph ? 'text-blue-500' : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'}`}
             title="Show Pacing Graph"
             aria-label="Show pacing graph"
             aria-pressed={showPacingGraph}
@@ -480,7 +485,7 @@ export const CanvasToolbar: React.FC<CanvasToolbarProps> = React.memo(({
         {setShowAudienceHeatmap && (
           <button
             onClick={() => setShowAudienceHeatmap(!showAudienceHeatmap)}
-            className={`p-1.5 min-w-[32px] min-h-[32px] sm:min-w-0 sm:min-h-0 rounded focus-visible:ring-2 focus-visible:ring-blue-500 outline-none ${showAudienceHeatmap ? 'text-blue-500' : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'}`}
+            className={`p-1.5 min-w-[44px] min-h-[44px] lg:min-w-0 lg:min-h-0 rounded focus-visible:ring-2 focus-visible:ring-blue-500 outline-none ${showAudienceHeatmap ? 'text-blue-500' : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'}`}
             title="Audience View Heatmap"
             aria-label="Toggle audience view heatmap"
             aria-pressed={showAudienceHeatmap}
@@ -491,7 +496,7 @@ export const CanvasToolbar: React.FC<CanvasToolbarProps> = React.memo(({
         {setShowMeasurements && (
           <button
             onClick={() => setShowMeasurements(!showMeasurements)}
-            className={`p-1.5 min-w-[32px] min-h-[32px] sm:min-w-0 sm:min-h-0 rounded focus-visible:ring-2 focus-visible:ring-blue-500 outline-none ${showMeasurements ? 'text-blue-500' : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'}`}
+            className={`p-1.5 min-w-[44px] min-h-[44px] lg:min-w-0 lg:min-h-0 rounded focus-visible:ring-2 focus-visible:ring-blue-500 outline-none ${showMeasurements ? 'text-blue-500' : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'}`}
             title="Measurements"
             aria-label="Measurement overlay"
             aria-pressed={showMeasurements}
@@ -502,7 +507,7 @@ export const CanvasToolbar: React.FC<CanvasToolbarProps> = React.memo(({
         {setShowGroupPanel && (
           <button
             onClick={() => setShowGroupPanel(!showGroupPanel)}
-            className={`p-1.5 min-w-[32px] min-h-[32px] sm:min-w-0 sm:min-h-0 rounded focus-visible:ring-2 focus-visible:ring-blue-500 outline-none ${showGroupPanel ? 'text-blue-500' : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'}`}
+            className={`p-1.5 min-w-[44px] min-h-[44px] lg:min-w-0 lg:min-h-0 rounded focus-visible:ring-2 focus-visible:ring-blue-500 outline-none ${showGroupPanel ? 'text-blue-500' : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'}`}
             title="Performer Groups"
             aria-label="Performer groups panel"
             aria-pressed={showGroupPanel}
@@ -513,7 +518,7 @@ export const CanvasToolbar: React.FC<CanvasToolbarProps> = React.memo(({
         {setCurveEditMode && (
           <button
             onClick={() => setCurveEditMode(!curveEditMode)}
-            className={`p-1.5 min-w-[32px] min-h-[32px] sm:min-w-0 sm:min-h-0 rounded focus-visible:ring-2 focus-visible:ring-blue-500 outline-none ${curveEditMode ? 'text-blue-500' : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'}`}
+            className={`p-1.5 min-w-[44px] min-h-[44px] lg:min-w-0 lg:min-h-0 rounded focus-visible:ring-2 focus-visible:ring-blue-500 outline-none ${curveEditMode ? 'text-blue-500' : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'}`}
             title="Curve Edit Mode"
             aria-label="Curve editing mode"
             aria-pressed={curveEditMode}
@@ -524,7 +529,7 @@ export const CanvasToolbar: React.FC<CanvasToolbarProps> = React.memo(({
         {setShowTransitionSuggester && keyframeCount >= 2 && (
           <button
             onClick={() => setShowTransitionSuggester(!showTransitionSuggester)}
-            className={`p-1.5 min-w-[32px] min-h-[32px] sm:min-w-0 sm:min-h-0 rounded focus-visible:ring-2 focus-visible:ring-blue-500 outline-none ${showTransitionSuggester ? 'text-purple-500' : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'}`}
+            className={`p-1.5 min-w-[44px] min-h-[44px] lg:min-w-0 lg:min-h-0 rounded focus-visible:ring-2 focus-visible:ring-blue-500 outline-none ${showTransitionSuggester ? 'text-purple-500' : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'}`}
             title="Suggest Transitions"
             aria-label="Suggest transitions between keyframes"
             aria-pressed={!!showTransitionSuggester}
@@ -535,7 +540,7 @@ export const CanvasToolbar: React.FC<CanvasToolbarProps> = React.memo(({
         {setShowVersionHistory && (
           <button
             onClick={() => setShowVersionHistory(!showVersionHistory)}
-            className={`p-1.5 min-w-[32px] min-h-[32px] sm:min-w-0 sm:min-h-0 rounded focus-visible:ring-2 focus-visible:ring-blue-500 outline-none ${showVersionHistory ? 'text-blue-500' : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'}`}
+            className={`p-1.5 min-w-[44px] min-h-[44px] lg:min-w-0 lg:min-h-0 rounded focus-visible:ring-2 focus-visible:ring-blue-500 outline-none ${showVersionHistory ? 'text-blue-500' : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'}`}
             title="Version History"
             aria-label="Version history panel"
             aria-pressed={showVersionHistory}
@@ -546,7 +551,7 @@ export const CanvasToolbar: React.FC<CanvasToolbarProps> = React.memo(({
         {setShowSectionDashboard && (
           <button
             onClick={() => setShowSectionDashboard(!showSectionDashboard)}
-            className={`p-1.5 min-w-[32px] min-h-[32px] sm:min-w-0 sm:min-h-0 rounded focus-visible:ring-2 focus-visible:ring-blue-500 outline-none ${showSectionDashboard ? 'text-blue-500' : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'}`}
+            className={`p-1.5 min-w-[44px] min-h-[44px] lg:min-w-0 lg:min-h-0 rounded focus-visible:ring-2 focus-visible:ring-blue-500 outline-none ${showSectionDashboard ? 'text-blue-500' : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'}`}
             title="Section Dashboard"
             aria-label="Section leader dashboard"
             aria-pressed={showSectionDashboard}
@@ -559,7 +564,7 @@ export const CanvasToolbar: React.FC<CanvasToolbarProps> = React.memo(({
         {is3DMode && setShowFlyThrough && (
           <button
             onClick={() => setShowFlyThrough(!showFlyThrough)}
-            className={`p-1.5 min-w-[32px] min-h-[32px] sm:min-w-0 sm:min-h-0 rounded focus-visible:ring-2 focus-visible:ring-blue-500 outline-none ${showFlyThrough ? 'text-blue-500' : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'}`}
+            className={`p-1.5 min-w-[44px] min-h-[44px] lg:min-w-0 lg:min-h-0 rounded focus-visible:ring-2 focus-visible:ring-blue-500 outline-none ${showFlyThrough ? 'text-blue-500' : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'}`}
             title="Fly-Through Camera"
             aria-label="Toggle fly-through camera mode"
             aria-pressed={showFlyThrough}
@@ -571,7 +576,7 @@ export const CanvasToolbar: React.FC<CanvasToolbarProps> = React.memo(({
         {setShowRehearsalMode && (
           <button
             onClick={() => setShowRehearsalMode(!showRehearsalMode)}
-            className={`p-1.5 min-w-[32px] min-h-[32px] sm:min-w-0 sm:min-h-0 rounded focus-visible:ring-2 focus-visible:ring-blue-500 outline-none ${showRehearsalMode ? 'text-blue-500' : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'}`}
+            className={`p-1.5 min-w-[44px] min-h-[44px] lg:min-w-0 lg:min-h-0 rounded focus-visible:ring-2 focus-visible:ring-blue-500 outline-none ${showRehearsalMode ? 'text-blue-500' : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'}`}
             title="Rehearsal Mode"
             aria-label="Toggle rehearsal mode panel"
             aria-pressed={showRehearsalMode}
@@ -586,7 +591,7 @@ export const CanvasToolbar: React.FC<CanvasToolbarProps> = React.memo(({
             <div className="w-px h-5 bg-gray-300 dark:bg-gray-600" aria-hidden="true" />
             <button
               onClick={onToggleValidationMode}
-              className={`p-1.5 min-w-[32px] min-h-[32px] sm:min-w-0 sm:min-h-0 rounded focus-visible:ring-2 focus-visible:ring-blue-500 outline-none ${validationMode ? 'bg-blue-100 dark:bg-blue-900 text-blue-600 dark:text-blue-400' : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'}`}
+              className={`p-1.5 min-w-[44px] min-h-[44px] lg:min-w-0 lg:min-h-0 rounded focus-visible:ring-2 focus-visible:ring-blue-500 outline-none ${validationMode ? 'bg-blue-100 dark:bg-blue-900 text-blue-600 dark:text-blue-400' : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'}`}
               title="Validation Mode"
               aria-label="Toggle validation mode"
               aria-pressed={!!validationMode}

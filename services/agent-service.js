@@ -10,24 +10,10 @@
  */
 
 const { query, generateCuid } = require('../database/config');
-const Anthropic = require('@anthropic-ai/sdk');
 const { createLogger } = require('../lib/logger');
 const log = createLogger('AgentService');
-
-// Initialize Anthropic client (lazy - only if API key is available)
-let anthropic = null;
-const DEFAULT_MODEL = 'claude-sonnet-4-20250514';
-
-function getAnthropicClient() {
-  if (!anthropic) {
-    const apiKey = process.env.ANTHROPIC_API_KEY;
-    if (!apiKey) {
-      throw new Error('ANTHROPIC_API_KEY is not configured. Please add it to your environment variables.');
-    }
-    anthropic = new Anthropic({ apiKey });
-  }
-  return anthropic;
-}
+const { requireClient } = require('../lib/ai/client');
+const { getModelForTask, getMaxTokensForTask } = require('../lib/ai/config');
 
 /**
  * Search projects by query
@@ -287,9 +273,9 @@ Recent activity:
 
 Focus on what's most important today. Be encouraging and actionable.`;
 
-    const response = await getAnthropicClient().messages.create({
-      model: DEFAULT_MODEL,
-      max_tokens: 200,
+    const response = await requireClient().messages.create({
+      model: getModelForTask('daily-brief'),
+      max_tokens: getMaxTokensForTask('daily-brief'),
       messages: [{ role: 'user', content: prompt }],
     });
 
@@ -379,9 +365,9 @@ Be concise, friendly, and actionable in your responses.
 ${projectId ? `Current project context: ${projectId}` : ''}`;
 
   try {
-    const response = await getAnthropicClient().messages.create({
-      model: DEFAULT_MODEL,
-      max_tokens: 1024,
+    const response = await requireClient().messages.create({
+      model: getModelForTask('agent-chat'),
+      max_tokens: getMaxTokensForTask('agent-chat'),
       system: systemPrompt,
       tools,
       messages: [{ role: 'user', content: message }],
@@ -420,9 +406,9 @@ ${projectId ? `Current project context: ${projectId}` : ''}`;
         }
 
         // Continue conversation with tool result
-        const followUp = await getAnthropicClient().messages.create({
-          model: DEFAULT_MODEL,
-          max_tokens: 1024,
+        const followUp = await requireClient().messages.create({
+          model: getModelForTask('agent-chat'),
+          max_tokens: getMaxTokensForTask('agent-chat'),
           system: systemPrompt,
           messages: [
             { role: 'user', content: message },

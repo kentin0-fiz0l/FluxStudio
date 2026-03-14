@@ -36,6 +36,8 @@ interface FormationPresencePanelProps {
   };
   /** Optional class name */
   className?: string;
+  /** Callback to toggle the collaborator activity panel */
+  onCollabActivityToggle?: () => void;
 }
 
 // ============================================================================
@@ -48,6 +50,7 @@ export function FormationPresencePanel({
   isSyncing = false,
   currentUser,
   className = '',
+  onCollabActivityToggle,
 }: FormationPresencePanelProps) {
   // Sort collaborators by activity (most recent first)
   const sortedCollaborators = useMemo(() => {
@@ -148,7 +151,12 @@ export function FormationPresencePanel({
         <TooltipProvider>
           <Tooltip>
             <TooltipTrigger asChild>
-              <Badge variant="outline" className="gap-1 px-2 py-1 cursor-default" aria-label={`${collaborators.length + 1} collaborators in session`}>
+              <Badge
+                variant="outline"
+                className={`gap-1 px-2 py-1 ${onCollabActivityToggle ? 'cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700' : 'cursor-default'}`}
+                aria-label={`${collaborators.length + 1} collaborators in session`}
+                onClick={onCollabActivityToggle}
+              >
                 <Users className="w-3 h-3" aria-hidden="true" />
                 <span className="text-xs">{collaborators.length + 1}</span>
               </Badge>

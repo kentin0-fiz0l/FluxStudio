@@ -130,6 +130,62 @@ export default function Referrals() {
           </p>
         </div>
 
+        {/* What You Get — Rewards Info */}
+        <div className="bg-neutral-900 border border-neutral-800 rounded-xl p-6 space-y-4">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-amber-500/10 rounded-lg">
+              <Gift className="w-5 h-5 text-amber-400" aria-hidden="true" />
+            </div>
+            <div>
+              <h2 className="text-lg font-semibold text-neutral-100">What You Get</h2>
+              <p className="text-sm text-neutral-500">
+                Both you and your friend earn <span className="text-amber-400 font-medium">1 free month of Pro</span> when they create their first project.
+              </p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+            <div className="bg-neutral-950 border border-neutral-800 rounded-lg p-4">
+              <div className="text-sm font-medium text-neutral-300 mb-2">You get</div>
+              <div className="text-amber-400 font-semibold">1 month of Pro free</div>
+            </div>
+            <div className="bg-neutral-950 border border-neutral-800 rounded-lg p-4">
+              <div className="text-sm font-medium text-neutral-300 mb-2">Your friend gets</div>
+              <div className="text-amber-400 font-semibold">1 month of Pro free</div>
+            </div>
+          </div>
+
+          <div className="pt-2">
+            <div className="text-xs font-medium text-neutral-400 uppercase tracking-wider mb-2">Pro features you'll unlock</div>
+            <ul className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 text-sm text-neutral-300">
+              <li className="flex items-center gap-2">
+                <Check className="w-3.5 h-3.5 text-green-400 shrink-0" aria-hidden="true" />
+                Unlimited projects
+              </li>
+              <li className="flex items-center gap-2">
+                <Check className="w-3.5 h-3.5 text-green-400 shrink-0" aria-hidden="true" />
+                Advanced collaboration
+              </li>
+              <li className="flex items-center gap-2">
+                <Check className="w-3.5 h-3.5 text-green-400 shrink-0" aria-hidden="true" />
+                AI design assistant
+              </li>
+              <li className="flex items-center gap-2">
+                <Check className="w-3.5 h-3.5 text-green-400 shrink-0" aria-hidden="true" />
+                Priority support
+              </li>
+              <li className="flex items-center gap-2">
+                <Check className="w-3.5 h-3.5 text-green-400 shrink-0" aria-hidden="true" />
+                Custom export formats
+              </li>
+              <li className="flex items-center gap-2">
+                <Check className="w-3.5 h-3.5 text-green-400 shrink-0" aria-hidden="true" />
+                Version history
+              </li>
+            </ul>
+          </div>
+        </div>
+
         {/* Referral Link Card */}
         <div className="bg-neutral-900 border border-neutral-800 rounded-xl p-6 space-y-4">
           <div className="flex items-center gap-3">

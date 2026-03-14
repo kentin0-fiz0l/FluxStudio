@@ -9,23 +9,14 @@
  */
 
 const express = require('express');
-const Anthropic = require('@anthropic-ai/sdk');
 const { authenticateToken, rateLimitByUser } = require('../lib/auth/middleware');
 const { logAiUsage, sanitizeApiError } = require('../services/ai-summary-service');
 const { createLogger } = require('../lib/logger');
+const { getClient } = require('../lib/ai/client');
+const { getModelForTask, getMaxTokensForTask } = require('../lib/ai/config');
 const log = createLogger('AISearch');
 
 const router = express.Router();
-
-const MODEL = process.env.AI_SEARCH_MODEL || 'claude-sonnet-4-5-20250929';
-
-// Initialize Anthropic client
-let anthropic = null;
-if (process.env.ANTHROPIC_API_KEY) {
-  anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
-} else {
-  log.warn('ANTHROPIC_API_KEY not configured. AI search endpoints will return errors.');
-}
 
 // ============================================================================
 // POST /interpret — Interpret natural language query
@@ -39,11 +30,13 @@ router.post('/interpret', authenticateToken, rateLimitByUser(20, 60000), async (
     return res.status(400).json({ error: 'query is required' });
   }
 
+  const anthropic = getClient();
   if (!anthropic) {
     return res.status(503).json({ error: 'AI service not configured' });
   }
 
   try {
+    const model = getModelForTask('search');
     const systemPrompt = `You are a search query interpreter for FluxStudio, a creative collaboration platform.
 Given a natural language query, extract structured search parameters.
 
@@ -73,8 +66,8 @@ Rules:
 - Respond ONLY with the JSON object, no other text`;
 
     const response = await anthropic.messages.create({
-      model: MODEL,
-      max_tokens: 1024,
+      model,
+      max_tokens: getMaxTokensForTask('search'),
       system: systemPrompt,
       messages: [{ role: 'user', content: query }],
     });
@@ -93,7 +86,7 @@ Rules:
     // Log usage
     logAiUsage({
       userId,
-      model: MODEL,
+      model,
       inputTokens: response.usage?.input_tokens || 0,
       outputTokens: response.usage?.output_tokens || 0,
       endpoint: 'ai-search-interpret',
@@ -128,6 +121,7 @@ router.post('/summarize', authenticateToken, rateLimitByUser(10, 60000), async (
   res.setHeader('X-Accel-Buffering', 'no');
   res.flushHeaders();
 
+  const anthropic = getClient();
   if (!anthropic) {
     res.write(`data: ${JSON.stringify({ type: 'error', error: 'AI service not configured' })}\n\n`);
     res.end();
@@ -139,6 +133,8 @@ router.post('/summarize', authenticateToken, rateLimitByUser(10, 60000), async (
   const timeoutId = setTimeout(() => controller.abort(), 60_000);
 
   try {
+    const model = getModelForTask('summarize');
+
     // Build a compact summary of results for the AI
     const resultSummary = results.slice(0, 20).map((r, i) => ({
       index: i + 1,
@@ -167,8 +163,8 @@ Provide a brief, helpful summary of these results.`;
     res.write(`data: ${JSON.stringify({ type: 'status', message: 'Generating summary...' })}\n\n`);
 
     const stream = await anthropic.messages.stream({
-      model: MODEL,
-      max_tokens: 512,
+      model,
+      max_tokens: getMaxTokensForTask('summarize'),
       system: systemPrompt,
       messages: [{ role: 'user', content: userMessage }],
     });
@@ -196,7 +192,7 @@ Provide a brief, helpful summary of these results.`;
       res.write(`data: ${JSON.stringify({ type: 'done', length: fullContent.length })}\n\n`);
       logAiUsage({
         userId,
-        model: MODEL,
+        model,
         inputTokens,
         outputTokens,
         endpoint: 'ai-search-summarize',

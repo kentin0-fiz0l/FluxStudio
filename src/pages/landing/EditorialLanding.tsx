@@ -2,18 +2,19 @@ import { useState, useRef, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion, useScroll, useTransform } from 'framer-motion';
 import {
-  Paintbrush,
-  FolderOpen,
+  Music,
+  Grid3X3,
+  Sparkles,
   Users,
-  Zap,
-  BarChart3,
-  ShieldCheck,
+  FileSpreadsheet,
+  Smartphone,
   Menu,
   ArrowRight,
   Play,
   Check,
-  Building2,
-  Briefcase,
+  GraduationCap,
+  PenTool,
+  Wand2,
   ChevronRight,
 } from 'lucide-react';
 import { HeroDemo } from '@/components/landing/HeroDemo';
@@ -68,109 +69,109 @@ interface PricingTier {
 
 const FEATURES: Feature[] = [
   {
-    icon: Paintbrush,
-    title: 'Design Collaboration',
+    icon: Grid3X3,
+    title: 'Formation Editor',
     description:
-      'Real-time collaborative design tools that keep your creative team in sync.',
+      'Design drill sets on a real field grid with drag-and-drop performers and instant playback.',
   },
   {
-    icon: FolderOpen,
-    title: 'Smart File Management',
+    icon: Music,
+    title: 'Audio Sync',
     description:
-      'Organize and share creative assets with intelligent version control.',
+      'Sync your sets to music with beat markers, tempo changes, and count structures.',
+  },
+  {
+    icon: Sparkles,
+    title: 'AI Assistant',
+    description:
+      'Generate formations from text descriptions and get AI-powered transition suggestions.',
   },
   {
     icon: Users,
-    title: 'Team Communication',
+    title: 'Team Collaboration',
     description:
-      'Integrated messaging and feedback tools built for creative workflows.',
+      'Share formations with staff in real time. Everyone sees changes as they happen.',
   },
   {
-    icon: Zap,
-    title: 'Workflow Automation',
+    icon: FileSpreadsheet,
+    title: 'Production Sheets',
     description:
-      'Streamline repetitive tasks and focus on what matters most \u2014 creating.',
+      'Auto-generate count sheets, tempo maps, and rehearsal marks from your formations.',
   },
   {
-    icon: BarChart3,
-    title: 'Project Analytics',
+    icon: Smartphone,
+    title: 'Mobile Rehearsal',
     description:
-      'Track progress, deadlines, and team performance with visual insights.',
-  },
-  {
-    icon: ShieldCheck,
-    title: 'Enterprise Security',
-    description:
-      'Bank-level encryption and role-based access control for your peace of mind.',
+      'View formations on the field from any device. Works offline for outdoor rehearsals.',
   },
 ];
 
 const TESTIMONIALS: Testimonial[] = [
   {
-    name: 'Sarah Chen',
-    role: 'Creative Director',
-    company: 'Design Studio Co.',
+    name: 'James Moreno',
+    role: 'Band Director',
+    company: 'Lincoln High School',
     quote:
-      "FluxStudio transformed how our team collaborates. We've cut project turnaround time by 40%.",
+      'We planned our entire halftime show in FluxStudio. The AI-generated formations saved us hours of whiteboard time.',
   },
   {
-    name: 'Michael Torres',
-    role: 'Lead Designer',
-    company: 'Bright Ideas Agency',
+    name: 'Ashley Park',
+    role: 'Drill Writer',
+    company: 'Cascade Indoor Percussion',
     quote:
-      "The real-time collaboration features are game-changing. It's like having the whole team in one room.",
+      'Being able to sync sets to music and share with the staff in real time completely changed our design process.',
   },
   {
-    name: 'Emily Johnson',
-    role: 'Project Manager',
-    company: 'Creative Minds Inc.',
+    name: 'Marcus Williams',
+    role: 'Color Guard Director',
+    company: 'Westfield Marching Band',
     quote:
-      'Finally, a platform that understands creative workflows. Our clients love the seamless review process.',
+      'My guard can pull up their formations on their phones during rehearsal. No more printed coordinate sheets.',
   },
 ];
 
 const STATS: Stat[] = [
-  { value: '10K+', label: 'Active Users' },
-  { value: '50K+', label: 'Projects Created' },
-  { value: '99.9%', label: 'Uptime' },
-  { value: '24/7', label: 'Support' },
+  { value: '70+', label: 'Templates' },
+  { value: 'Real-Time', label: 'Collaboration' },
+  { value: 'AI-Powered', label: 'Formations' },
+  { value: 'Offline-Ready', label: 'Mobile PWA' },
 ];
 
 const USE_CASES: UseCase[] = [
   {
-    icon: Paintbrush,
-    title: 'For Design Teams',
-    subtitle: 'Create together, in real time',
+    icon: GraduationCap,
+    title: 'For Band Directors',
+    subtitle: 'Manage your entire show',
     description:
-      'Collaborate on projects in real-time with version control and feedback tools.',
+      'Plan formations, assign sections, and share drill with your staff — all from one platform.',
     bullets: [
-      'Live cursors and co-editing',
-      'Branch-based version control',
-      'In-context review threads',
+      'Full show planning with multi-set sequences',
+      'Share formations with staff in real time',
+      'Mobile-ready for on-field rehearsals',
     ],
   },
   {
-    icon: Building2,
-    title: 'For Agencies',
-    subtitle: 'Scale without the chaos',
+    icon: Wand2,
+    title: 'For Drill Writers',
+    subtitle: 'Design formations with AI',
     description:
-      'Manage multiple client projects with automated workflows and reporting.',
+      'Create formations faster with AI assistance, audio sync, and instant playback.',
     bullets: [
-      'Client-facing project portals',
-      'Automated status reports',
-      'Cross-project resource planning',
+      'AI-generated formations from text prompts',
+      'Sync sets to music with beat markers',
+      'Export production sheets and coordinate data',
     ],
   },
   {
-    icon: Briefcase,
-    title: 'For Freelancers',
-    subtitle: 'Look bigger than you are',
+    icon: PenTool,
+    title: 'For Color Guard & Dance',
+    subtitle: 'Choreography meets staging',
     description:
-      'Professional client portals and streamlined project delivery.',
+      'Stage choreography with precision. Visualize spacing, transitions, and timing.',
     bullets: [
-      'Branded client experience',
-      'Milestone-based delivery',
-      'Integrated invoicing',
+      'Performer-level path visualization',
+      'Staggered and offset formation tools',
+      'Section-specific views for rehearsal',
     ],
   },
 ];
@@ -181,42 +182,44 @@ const PRICING: PricingTier[] = [
     price: '$0',
     subtitle: 'Forever free',
     features: [
-      'Up to 3 projects',
-      '1 GB storage',
-      'Basic collaboration',
-      'Community support',
+      'Up to 3 formations',
+      '1 show project',
+      'Basic formation editor',
+      'Community templates',
     ],
-    cta: 'Get Started',
+    cta: 'Start Free',
     href: '/signup',
   },
   {
     name: 'Pro',
     price: '$19',
     period: '/mo',
-    subtitle: 'Per user, billed annually',
+    subtitle: 'Per user, billed monthly',
     features: [
-      'Unlimited projects',
-      '100 GB storage',
-      'Advanced collaboration',
+      'Unlimited formations',
+      'AI formation assistant',
+      'Audio sync & count sheets',
+      'Real-time collaboration',
+      'Mobile rehearsal mode',
       'Priority support',
-      'Version history',
     ],
     cta: 'Start Free Trial',
     href: '/signup',
     highlighted: true,
   },
   {
-    name: 'Enterprise',
-    price: 'Custom',
-    subtitle: 'Contact us for pricing',
+    name: 'Program',
+    price: '$49',
+    period: '/mo',
+    subtitle: 'For schools & programs',
     features: [
       'Everything in Pro',
-      'Unlimited storage',
+      'Up to 10 staff accounts',
+      'LMS integration',
       'SSO & SAML',
-      'Dedicated support',
-      'Custom integrations',
+      'Dedicated onboarding',
     ],
-    cta: 'Contact Sales',
+    cta: 'Contact Us',
     href: 'mailto:sales@fluxstudio.art',
   },
 ];
@@ -224,6 +227,7 @@ const PRICING: PricingTier[] = [
 const NAV_LINKS = [
   { label: 'Features', href: '#features' },
   { label: 'Use Cases', href: '#use-cases' },
+  { label: 'Templates', href: '/templates' },
   { label: 'Testimonials', href: '#testimonials' },
   { label: 'Pricing', href: '#pricing' },
 ];
@@ -457,7 +461,7 @@ export function Hero() {
   });
   const parallaxY = useTransform(scrollYProgress, [0, 1], ['0%', '30%']);
 
-  const heroLines = ['Design in Motion.', 'Collaboration', 'Elevated.'];
+  const heroLines = ['Drill Design.', 'Reimagined.', 'From Set to Field, Faster.'];
 
   return (
     <section
@@ -484,7 +488,7 @@ export function Hero() {
               variants={staggerContainer}
             >
               <motion.div variants={fadeUp}>
-                <Overline>Creative Collaboration Platform</Overline>
+                <Overline>Drill Design &amp; Show Planning Platform</Overline>
               </motion.div>
 
               <h1
@@ -515,9 +519,9 @@ export function Hero() {
                 variants={fadeUp}
                 className="font-sans text-lg sm:text-xl text-neutral-400 max-w-xl mb-8 leading-relaxed"
               >
-                The all-in-one creative platform for design teams to
-                collaborate, manage projects, and deliver exceptional work
-                faster than ever.
+                The all-in-one platform for marching arts directors to design
+                formations, sync to music, and share drill with staff — powered
+                by AI.
               </motion.p>
 
               <motion.div
@@ -621,15 +625,14 @@ export function Features() {
                   id="features-heading"
                   className="font-display text-3xl sm:text-4xl lg:text-5xl font-bold mt-3 mb-6 leading-tight tracking-tight"
                 >
-                  Everything You Need to Create
+                  Everything You Need to Design Your Show
                 </motion.h2>
                 <motion.p
                   variants={fadeRight}
                   className="font-sans text-lg text-neutral-500 leading-relaxed max-w-md"
                 >
-                  Powerful features designed for modern creative teams.
-                  Each tool is crafted to remove friction from your
-                  workflow.
+                  Purpose-built tools for marching arts. Design formations,
+                  sync to music, and get your drill to the field faster.
                 </motion.p>
                 {/* Thin accent line */}
                 <motion.div
@@ -718,14 +721,14 @@ export function UseCases() {
             id="use-cases-heading"
             className="font-display text-3xl sm:text-4xl lg:text-5xl font-bold mt-3 mb-6 leading-tight tracking-tight"
           >
-            Built for Every Creative
+            Built for Marching Arts
           </motion.h2>
           <motion.p
             variants={fadeUp}
             className="font-sans text-lg text-neutral-400 leading-relaxed"
           >
-            Whether you're a team, agency, or freelancer &mdash; FluxStudio
-            adapts to the way you work.
+            Whether you're directing a marching band, writing drill, or staging
+            color guard &mdash; FluxStudio adapts to your program.
           </motion.p>
         </motion.div>
 
@@ -872,7 +875,7 @@ export function Testimonials() {
             id="testimonials-heading"
             className="font-display text-3xl sm:text-4xl lg:text-5xl font-bold mt-3 tracking-tight"
           >
-            Loved by Creative Teams
+            Loved by Directors &amp; Designers
           </motion.h2>
         </motion.div>
       </div>
@@ -1116,16 +1119,16 @@ export function CTAFooter() {
               variants={fadeUp}
               className="font-display text-3xl sm:text-4xl lg:text-5xl xl:text-6xl font-bold mt-4 mb-6 leading-tight tracking-tight"
             >
-              Ready to Transform
+              Ready to Design
               <br />
-              Your Workflow?
+              Your Next Show?
             </motion.h2>
             <motion.p
               variants={fadeUp}
               className="font-sans text-lg text-neutral-400 mb-10 max-w-2xl mx-auto"
             >
-              Join thousands of creative professionals who trust FluxStudio
-              to bring their best work to life.
+              Join band directors and drill writers who are building their
+              shows faster with FluxStudio.
             </motion.p>
             <motion.div
               variants={fadeUp}
@@ -1150,7 +1153,7 @@ export function CTAFooter() {
               variants={fadeUp}
               className="font-sans text-sm text-neutral-600"
             >
-              No credit card required &middot; 14-day free trial &middot;
+              No credit card required &middot; Free plan available &middot;
               Cancel anytime
             </motion.p>
           </motion.div>
@@ -1171,9 +1174,9 @@ export function CTAFooter() {
                 FluxStudio
               </Link>
               <p className="font-sans text-sm text-neutral-500 leading-relaxed">
-                Design in Motion.
+                Drill Design. Reimagined.
                 <br />
-                Collaboration Elevated.
+                From Set to Field, Faster.
               </p>
             </div>
 

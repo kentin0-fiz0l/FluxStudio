@@ -39,6 +39,16 @@ fi
 
 echo -e "${GREEN}✓${NC} Found app: $APP_ID"
 
+# Pre-deploy: run migration tests locally
+echo ""
+echo "Running migration schema tests..."
+if npx jest tests/integration/migrations.integration.test.js --no-cache --silent 2>/dev/null; then
+    echo -e "${GREEN}✓${NC} Migration schema tests passed"
+else
+    echo -e "${RED}✗${NC} Migration schema tests failed — aborting deploy"
+    exit 1
+fi
+
 # Trigger deployment
 echo ""
 echo "Triggering deployment..."

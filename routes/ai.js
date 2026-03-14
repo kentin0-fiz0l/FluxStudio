@@ -11,13 +11,15 @@
  */
 
 const express = require('express');
-const Anthropic = require('@anthropic-ai/sdk');
 const { authenticateToken, rateLimitByUser } = require('../lib/auth/middleware');
 const { logAiUsage, getAiUsageLogs, sanitizeApiError } = require('../services/ai-summary-service');
 const { createLogger } = require('../lib/logger');
 const log = createLogger('AI');
 const { zodValidate } = require('../middleware/zodValidate');
 const { aiChatSchema, aiChatSyncSchema, aiDesignReviewSchema, aiGenerateCodeSchema, aiDesignFeedbackSchema, aiGenerateProjectStructureSchema, aiGenerateTemplateSchema, aiSuggestDrillPathsSchema, aiGenerateShowSchema, aiSuggestSetsSchema } = require('../lib/schemas');
+const { getClient } = require('../lib/ai/client');
+const { getModelForTask, getMaxTokensForTask, buildApiParams } = require('../lib/ai/config');
+const { extractTextContent } = require('../lib/ai/response-handlers');
 
 // Quota check middleware (Sprint 38)
 let checkAiQuota = (_req, _res, next) => next();
@@ -26,19 +28,57 @@ try {
   checkAiQuota = checkQuota('aiCalls');
 } catch { /* quotaCheck may not be available yet */ }
 
+// Tier-based feature gating (Phase 3)
+let checkAiTier = (_req, _res, next) => next();
+try {
+  const { requireFeature } = require('../middleware/requireTier');
+  checkAiTier = requireFeature('ai_drill_writing');
+} catch { /* requireTier may not be available yet */ }
+
 const router = express.Router();
 
-// Default model for design services (cost-effective)
-const DEFAULT_MODEL = 'claude-sonnet-4-5-20250929';
+// ============================================================================
+// IP-based rate limiting for sandbox (unauthenticated) endpoints
+// ============================================================================
+const sandboxRateLimits = new Map(); // ip -> { count, windowStart }
+const SANDBOX_MAX_CALLS = 3;
+const SANDBOX_WINDOW_MS = 24 * 60 * 60 * 1000; // 24 hours
 
-// Initialize Anthropic client (handles missing API key gracefully)
-let anthropic = null;
-if (process.env.ANTHROPIC_API_KEY) {
-  anthropic = new Anthropic({
-    apiKey: process.env.ANTHROPIC_API_KEY,
-  });
-} else {
-  log.warn('ANTHROPIC_API_KEY not configured. AI endpoints will return errors until set.');
+// Cleanup stale entries every 10 minutes
+const sandboxCleanup = setInterval(() => {
+  const now = Date.now();
+  for (const [ip, data] of sandboxRateLimits.entries()) {
+    if (now - data.windowStart > SANDBOX_WINDOW_MS) {
+      sandboxRateLimits.delete(ip);
+    }
+  }
+}, 10 * 60 * 1000);
+if (sandboxCleanup.unref) sandboxCleanup.unref();
+
+function rateLimitByIP(req, res, next) {
+  const ip = req.ip || req.connection?.remoteAddress || 'unknown';
+  const now = Date.now();
+  let entry = sandboxRateLimits.get(ip);
+
+  if (!entry || now - entry.windowStart > SANDBOX_WINDOW_MS) {
+    entry = { count: 0, windowStart: now };
+    sandboxRateLimits.set(ip, entry);
+  }
+
+  entry.count++;
+
+  if (entry.count > SANDBOX_MAX_CALLS) {
+    return res.status(429).json({
+      success: false,
+      error: 'Sandbox limit reached',
+      message: `You've used all ${SANDBOX_MAX_CALLS} free AI tries today. Create a free account to get more!`,
+      code: 'SANDBOX_RATE_LIMIT',
+      remainingCalls: 0,
+    });
+  }
+
+  req.sandboxCallsRemaining = SANDBOX_MAX_CALLS - entry.count;
+  next();
 }
 
 /**
@@ -46,7 +86,7 @@ if (process.env.ANTHROPIC_API_KEY) {
  * Returns a helpful error if the API key is not configured.
  */
 function requireAnthropicClient(req, res, next) {
-  if (!anthropic) {
+  if (!getClient()) {
     return res.status(503).json({
       success: false,
       error: 'AI service not configured',
@@ -160,7 +200,7 @@ Status: ${project.status || 'Unknown'}`;
  * Send message and stream response (SSE)
  */
 router.post('/chat', authenticateToken, requireAnthropicClient, rateLimitByUser(30, 60000), checkAiQuota, zodValidate(aiChatSchema), async (req, res) => {
-  const { message, context, conversationId, model = DEFAULT_MODEL } = req.body;
+  const { message, context, conversationId, model = getModelForTask('chat') } = req.body;
   const userId = req.user.id;
 
   // Set SSE headers
@@ -195,9 +235,9 @@ router.post('/chat', authenticateToken, requireAnthropicClient, rateLimitByUser(
     const messagesForAPI = conversation.messages.slice(-20);
 
     // Stream response from Claude
-    const stream = await anthropic.messages.stream({
+    const stream = await getClient().messages.stream({
       model,
-      max_tokens: 4096,
+      max_tokens: getMaxTokensForTask('chat'),
       system: conversation.systemPrompt,
       messages: messagesForAPI,
     });
@@ -261,15 +301,15 @@ router.post('/chat', authenticateToken, requireAnthropicClient, rateLimitByUser(
  * Non-streaming chat endpoint
  */
 router.post('/chat/sync', authenticateToken, requireAnthropicClient, rateLimitByUser(30, 60000), zodValidate(aiChatSyncSchema), async (req, res) => {
-  const { message, context, model = DEFAULT_MODEL } = req.body;
+  const { message, context, model = getModelForTask('chat-sync') } = req.body;
   const userId = req.user.id;
 
   try {
     const systemPrompt = buildSystemPrompt(context);
 
-    const response = await anthropic.messages.create({
+    const response = await getClient().messages.create({
       model,
-      max_tokens: 4096,
+      max_tokens: getMaxTokensForTask('chat-sync'),
       system: systemPrompt,
       messages: [{ role: 'user', content: message }],
     });
@@ -380,24 +420,23 @@ ${imageUrl ? `Image URL: ${imageUrl}` : ''}
 
 Provide specific, actionable feedback for each aspect. Format your response with clear headings.`;
 
-    const response = await anthropic.messages.create({
-      model: DEFAULT_MODEL,
-      max_tokens: 2048,
+    const params = buildApiParams('design-review', {
       system: 'You are an expert UI/UX designer providing constructive feedback on designs. Be specific and actionable.',
       messages: [{ role: 'user', content: prompt }],
     });
+    const response = await getClient().messages.create(params);
 
     // Log token usage for cost tracking
     logAiUsage({
       userId,
-      model: DEFAULT_MODEL,
+      model: params.model,
       inputTokens: response.usage?.input_tokens || 0,
       outputTokens: response.usage?.output_tokens || 0,
       endpoint: 'design-review',
     });
 
     res.json({
-      feedback: response.content[0]?.text || '',
+      feedback: extractTextContent(response),
       aspects,
     });
 
@@ -429,19 +468,18 @@ Requirements:
 
 Return ONLY the code, no explanations.`;
 
-    const response = await anthropic.messages.create({
-      model: DEFAULT_MODEL,
-      max_tokens: 4096,
+    const codeParams = buildApiParams('code-generate', {
       system: 'You are an expert React/TypeScript developer. Generate clean, well-typed, accessible components.',
       messages: [{ role: 'user', content: prompt }],
     });
+    const response = await getClient().messages.create(codeParams);
 
-    const code = response.content[0]?.text || '';
+    const code = extractTextContent(response);
 
     // Log token usage for cost tracking
     logAiUsage({
       userId,
-      model: DEFAULT_MODEL,
+      model: codeParams.model,
       inputTokens: response.usage?.input_tokens || 0,
       outputTokens: response.usage?.output_tokens || 0,
       endpoint: 'generate-code',
@@ -467,8 +505,8 @@ router.get('/health', (req, res) => {
     status: 'healthy',
     service: 'ai-design-assistant',
     hasApiKey: !!process.env.ANTHROPIC_API_KEY,
-    defaultModel: DEFAULT_MODEL,
-    clientInitialized: !!anthropic,
+    defaultModel: getModelForTask('chat'),
+    clientInitialized: !!getClient(),
   });
 });
 
@@ -503,7 +541,8 @@ router.get('/usage', authenticateToken, (req, res) => {
  */
 if (process.env.NODE_ENV !== 'production') {
   router.post('/test', async (req, res) => {
-    if (!anthropic) {
+    const client = getClient();
+    if (!client) {
       return res.status(503).json({
         success: false,
         error: 'AI service not configured',
@@ -520,10 +559,11 @@ if (process.env.NODE_ENV !== 'production') {
 
     try {
       const systemPrompt = buildSystemPrompt(context);
+      const testModel = getModelForTask('test');
 
-      const response = await anthropic.messages.create({
-        model: DEFAULT_MODEL,
-        max_tokens: 1024,
+      const response = await client.messages.create({
+        model: testModel,
+        max_tokens: getMaxTokensForTask('test'),
         system: systemPrompt,
         messages: [{ role: 'user', content: message }],
       });
@@ -535,7 +575,7 @@ if (process.env.NODE_ENV !== 'production') {
       // Log token usage for cost tracking
       logAiUsage({
         userId: 'dev-test',
-        model: DEFAULT_MODEL,
+        model: testModel,
         inputTokens,
         outputTokens,
         endpoint: 'test',
@@ -565,7 +605,7 @@ router.post('/design-feedback/analyze', authenticateToken, rateLimitByUser(10, 6
     const { imageUrl, context } = req.body;
     const userId = req.user.id;
 
-    if (!anthropic) {
+    if (!getClient()) {
       return res.status(200).json({ success: true, data: null, mock: true });
     }
 
@@ -601,9 +641,10 @@ Be specific, actionable, and constructive in your feedback.`;
     else if (contentType.includes('gif')) mediaType = 'image/gif';
     else if (contentType.includes('webp')) mediaType = 'image/webp';
 
-    const response = await anthropic.messages.create({
-      model: DEFAULT_MODEL,
-      max_tokens: 2000,
+    const dfModel = getModelForTask('design-feedback');
+    const response = await getClient().messages.create({
+      model: dfModel,
+      max_tokens: getMaxTokensForTask('design-feedback'),
       messages: [{
         role: 'user',
         content: [
@@ -616,7 +657,7 @@ Be specific, actionable, and constructive in your feedback.`;
     // Log token usage for cost tracking
     logAiUsage({
       userId,
-      model: DEFAULT_MODEL,
+      model: dfModel,
       inputTokens: response.usage?.input_tokens || 0,
       outputTokens: response.usage?.output_tokens || 0,
       endpoint: 'design-feedback-analyze',
@@ -648,7 +689,7 @@ router.post('/generate-project-structure', authenticateToken, rateLimitByUser(10
   const userId = req.user.id;
 
   // Fall back to local generation if AI is not configured
-  if (!anthropic) {
+  if (!getClient()) {
     const fallback = generateLocalStructure(description, category);
     return res.json({ success: true, data: fallback, fallback: true });
   }
@@ -677,9 +718,10 @@ Rules:
 - Match the complexity level: ${complexity || 'basic'}
 ${category ? `- The project category is: ${category}` : ''}`;
 
-    const response = await anthropic.messages.create({
-      model: DEFAULT_MODEL,
-      max_tokens: 1024,
+    const psModel = getModelForTask('project-structure');
+    const response = await getClient().messages.create({
+      model: psModel,
+      max_tokens: getMaxTokensForTask('project-structure'),
       system: systemPrompt,
       messages: [{ role: 'user', content: description.trim() }],
     });
@@ -687,7 +729,7 @@ ${category ? `- The project category is: ${category}` : ''}`;
     // Log token usage for cost tracking
     logAiUsage({
       userId,
-      model: DEFAULT_MODEL,
+      model: psModel,
       inputTokens: response.usage?.input_tokens || 0,
       outputTokens: response.usage?.output_tokens || 0,
       endpoint: 'generate-project-structure',
@@ -756,9 +798,10 @@ Rules:
 - Complexity: ${complexity || 'basic'}
 ${category ? `- Category: ${category}` : ''}`;
 
-    const response = await anthropic.messages.create({
-      model: DEFAULT_MODEL,
-      max_tokens: 2048,
+    const tplModel = getModelForTask('template');
+    const response = await getClient().messages.create({
+      model: tplModel,
+      max_tokens: getMaxTokensForTask('template'),
       system: systemPrompt,
       messages: [{ role: 'user', content: description.trim() }],
     });
@@ -766,7 +809,7 @@ ${category ? `- Category: ${category}` : ''}`;
     // Log token usage for cost tracking
     logAiUsage({
       userId,
-      model: DEFAULT_MODEL,
+      model: tplModel,
       inputTokens: response.usage?.input_tokens || 0,
       outputTokens: response.usage?.output_tokens || 0,
       endpoint: 'generate-template',
@@ -845,7 +888,7 @@ function generateLocalStructure(description, category) {
  * Suggest curved paths (Bezier control points) between two sets of positions.
  * Non-streaming (like /design-review).
  */
-router.post('/suggest-drill-paths', authenticateToken, requireAnthropicClient, rateLimitByUser(20, 60000), checkAiQuota, zodValidate(aiSuggestDrillPathsSchema), async (req, res) => {
+router.post('/suggest-drill-paths', authenticateToken, requireAnthropicClient, rateLimitByUser(20, 60000), checkAiTier, checkAiQuota, zodValidate(aiSuggestDrillPathsSchema), async (req, res) => {
   const { startPositions, endPositions, minSpacing = 2, maintainShape = false, style = 'smooth' } = req.body;
   const userId = req.user.id;
 
@@ -859,14 +902,15 @@ router.post('/suggest-drill-paths', authenticateToken, requireAnthropicClient, r
 
     const prompt = `Given these performer movements on a 0-100 normalized field:\n${positionSummary}\n\nGenerate cubic Bezier control points (cp1, cp2) for each performer so they follow ${style} curved paths. Ensure minimum spacing of ${minSpacing} units between performers during the transition. ${maintainShape ? 'Maintain relative formation shape during the move.' : ''}\n\nRespond with ONLY valid JSON:\n{\n  "curves": { "performerId": { "cp1": { "x": number, "y": number }, "cp2": { "x": number, "y": number } } },\n  "confidence": 0.0-1.0,\n  "description": "brief description of the suggested paths"\n}`;
 
-    const response = await anthropic.messages.create({
-      model: DEFAULT_MODEL,
-      max_tokens: 4096,
+    const dpModel = getModelForTask('drill-paths');
+    const response = await getClient().messages.create({
+      model: dpModel,
+      max_tokens: getMaxTokensForTask('drill-paths'),
       system: 'You are an expert marching band drill designer specializing in smooth transition paths. Generate cubic Bezier control points that create visually appealing, collision-free curved paths between formations. Coordinates are normalized 0-100.',
       messages: [{ role: 'user', content: prompt }],
     });
 
-    logAiUsage({ userId, model: DEFAULT_MODEL, inputTokens: response.usage?.input_tokens || 0, outputTokens: response.usage?.output_tokens || 0, endpoint: 'suggest-drill-paths' });
+    logAiUsage({ userId, model: dpModel, inputTokens: response.usage?.input_tokens || 0, outputTokens: response.usage?.output_tokens || 0, endpoint: 'suggest-drill-paths' });
 
     const textContent = response.content.find(c => c.type === 'text');
     if (!textContent || textContent.type !== 'text') {
@@ -891,7 +935,7 @@ router.post('/suggest-drill-paths', authenticateToken, requireAnthropicClient, r
  * Generate a full show of formations from music structure (SSE streaming).
  * Streams individual sets as JSON: {type: 'set', data: {name, counts, positions}}
  */
-router.post('/drill/generate-show', authenticateToken, requireAnthropicClient, rateLimitByUser(5, 60000), checkAiQuota, zodValidate(aiGenerateShowSchema), async (req, res) => {
+router.post('/drill/generate-show', authenticateToken, requireAnthropicClient, rateLimitByUser(5, 60000), checkAiTier, checkAiQuota, zodValidate(aiGenerateShowSchema), async (req, res) => {
   const { performers, sections, fieldType = 'ncaa_football', defaultCounts = 8 } = req.body;
   const userId = req.user.id;
 
@@ -907,12 +951,11 @@ router.post('/drill/generate-show', authenticateToken, requireAnthropicClient, r
 
     const prompt = `Design a marching band drill show for these performers:\n${performerSummary}\n\nMusic structure:\n${sectionSummary}\n\nField type: ${fieldType}. Default counts per set: ${defaultCounts}.\n\nFor each music section, generate 1-3 sets. Each set must include positions for ALL performers (x,y coordinates 0-100).\n\nReturn each set as a separate JSON block on its own line, formatted exactly as:\n{"type":"set","data":{"name":"Set N","counts":8,"sectionName":"section","positions":{"performerId":{"x":50,"y":50}}}}\n\nGenerate all sets sequentially. After the last set, output:\n{"type":"done","totalSets":N}`;
 
-    const stream = await anthropic.messages.stream({
-      model: DEFAULT_MODEL,
-      max_tokens: 16384,
+    const showParams = buildApiParams('show-generate', {
       system: 'You are an expert marching band drill designer. Generate formations that are visually effective, have safe spacing, and create smooth transitions. Positions are normalized 0-100 (x=left-right, y=front-back). Output each set as a separate JSON object on its own line. Do not wrap in markdown code blocks.',
       messages: [{ role: 'user', content: prompt }],
     });
+    const stream = await getClient().messages.stream(showParams);
 
     let fullContent = '';
     let inputTokens = 0;
@@ -960,7 +1003,7 @@ router.post('/drill/generate-show', authenticateToken, requireAnthropicClient, r
       } catch { /* ignore */ }
     }
 
-    logAiUsage({ userId, model: DEFAULT_MODEL, inputTokens, outputTokens, endpoint: 'drill-generate-show' });
+    logAiUsage({ userId, model: showParams.model, inputTokens, outputTokens, endpoint: 'drill-generate-show' });
 
     res.write(`data: ${JSON.stringify({ type: 'complete', tokensUsed: inputTokens + outputTokens })}\n\n`);
     res.end();
@@ -977,7 +1020,7 @@ router.post('/drill/generate-show', authenticateToken, requireAnthropicClient, r
  * POST /api/ai/drill/suggest-sets
  * Stream natural language advice about set placement for a song (SSE streaming).
  */
-router.post('/drill/suggest-sets', authenticateToken, requireAnthropicClient, rateLimitByUser(10, 60000), checkAiQuota, zodValidate(aiSuggestSetsSchema), async (req, res) => {
+router.post('/drill/suggest-sets', authenticateToken, requireAnthropicClient, rateLimitByUser(10, 60000), checkAiTier, checkAiQuota, zodValidate(aiSuggestSetsSchema), async (req, res) => {
   const { songId, formationContext } = req.body;
   const userId = req.user.id;
 
@@ -994,9 +1037,10 @@ router.post('/drill/suggest-sets', authenticateToken, requireAnthropicClient, ra
 
     const prompt = `I'm designing drill for a marching band show linked to song ${songId}.${contextStr}\n\nPlease suggest where to place sets (formation changes) in the music. Consider:\n- Musical phrases and sections\n- Tempo changes that affect step sizes\n- Dynamic contrasts (loud/soft) for visual impact\n- Rehearsal marks as natural set boundaries\n\nProvide specific, actionable advice about set placement, counts per set, and formation ideas for each section.`;
 
-    const stream = await anthropic.messages.stream({
-      model: DEFAULT_MODEL,
-      max_tokens: 4096,
+    const setsModel = getModelForTask('sets');
+    const stream = await getClient().messages.stream({
+      model: setsModel,
+      max_tokens: getMaxTokensForTask('sets'),
       system: 'You are an experienced marching band drill designer advising on set placement within music. Give practical, specific advice tied to musical structure. Be concise and use band terminology.',
       messages: [{ role: 'user', content: prompt }],
     });
@@ -1019,7 +1063,7 @@ router.post('/drill/suggest-sets', authenticateToken, requireAnthropicClient, ra
       }
     }
 
-    logAiUsage({ userId, model: DEFAULT_MODEL, inputTokens, outputTokens, endpoint: 'drill-suggest-sets' });
+    logAiUsage({ userId, model: setsModel, inputTokens, outputTokens, endpoint: 'drill-suggest-sets' });
 
     res.write(`data: ${JSON.stringify({ type: 'done', tokensUsed: inputTokens + outputTokens })}\n\n`);
     res.end();
@@ -1029,6 +1073,87 @@ router.post('/drill/suggest-sets', authenticateToken, requireAnthropicClient, ra
     log.error('Drill set suggestion error', { error: safeMessage });
     res.write(`data: ${JSON.stringify({ type: 'error', error: safeMessage })}\n\n`);
     res.end();
+  }
+});
+
+// ============================================================================
+// SANDBOX ENDPOINT (Phase 4 — unauthenticated, IP rate-limited)
+// ============================================================================
+
+/**
+ * POST /api/ai/sandbox-generate
+ * Unauthenticated AI formation generation for TryEditor.
+ * Limited to 3 calls per IP per 24 hours.
+ */
+router.post('/sandbox-generate', requireAnthropicClient, rateLimitByIP, async (req, res) => {
+  const { prompt, performers } = req.body;
+
+  if (!prompt || typeof prompt !== 'string' || prompt.length > 200) {
+    return res.status(400).json({
+      success: false,
+      error: 'Invalid prompt',
+      message: 'Prompt is required and must be under 200 characters.',
+      code: 'INVALID_INPUT',
+    });
+  }
+
+  if (!Array.isArray(performers) || performers.length === 0 || performers.length > 20) {
+    return res.status(400).json({
+      success: false,
+      error: 'Invalid performers',
+      message: 'Performers array is required (1-20 performers).',
+      code: 'INVALID_INPUT',
+    });
+  }
+
+  try {
+    const performerList = performers.map(p => `${p.id}: "${p.name}"`).join(', ');
+
+    const systemPrompt = `You are a marching band drill designer. Given a formation description and a list of performers, generate x,y positions (0-100 normalized field coordinates, x=left-right, y=front-back) for each performer.
+
+Respond with ONLY valid JSON:
+{"positions":{"performerId":{"x":number,"y":number}}}
+
+Keep positions well-spaced (minimum 3 units apart). Be creative with the formation.`;
+
+    const sandboxModel = getModelForTask('chat-sync');
+    const response = await getClient().messages.create({
+      model: sandboxModel,
+      max_tokens: 1024,
+      system: systemPrompt,
+      messages: [{
+        role: 'user',
+        content: `Formation: "${prompt}"\nPerformers: ${performerList}`,
+      }],
+    });
+
+    logAiUsage({
+      userId: 'sandbox',
+      model: sandboxModel,
+      inputTokens: response.usage?.input_tokens || 0,
+      outputTokens: response.usage?.output_tokens || 0,
+      endpoint: 'sandbox-generate',
+    });
+
+    const textContent = response.content.find(c => c.type === 'text');
+    if (!textContent || textContent.type !== 'text') {
+      return res.status(500).json({ success: false, error: 'No response from AI', code: 'AI_NO_RESPONSE' });
+    }
+
+    const jsonMatch = textContent.text.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) {
+      return res.status(500).json({ success: false, error: 'Could not parse AI response', code: 'AI_PARSE_ERROR' });
+    }
+
+    const result = JSON.parse(jsonMatch[0]);
+    res.json({
+      success: true,
+      positions: result.positions,
+      remainingCalls: req.sandboxCallsRemaining,
+    });
+
+  } catch (error) {
+    handleAnthropicError(error, res, 'Sandbox Generate');
   }
 });
 

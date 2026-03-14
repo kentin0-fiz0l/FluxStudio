@@ -25,7 +25,7 @@ describe('aiSlice', () => {
       expect(ai.conversations).toEqual([]);
       expect(ai.activeConversationId).toBeNull();
       expect(ai.isProcessing).toBe(false);
-      expect(ai.preferences.defaultModel).toBe('claude-sonnet-4-20250514');
+      expect(ai.preferences.defaultModel).toBe('claude-sonnet-4-6');
       expect(ai.usage.tokensUsed).toBe(0);
     });
   });
@@ -41,7 +41,7 @@ describe('aiSlice', () => {
 
     it('createConversation should use default model from preferences', () => {
       store.getState().ai.createConversation();
-      expect(store.getState().ai.conversations[0].model).toBe('claude-sonnet-4-20250514');
+      expect(store.getState().ai.conversations[0].model).toBe('claude-sonnet-4-6');
     });
 
     it('deleteConversation should remove and update active', () => {
@@ -113,7 +113,7 @@ describe('aiSlice', () => {
   describe('generation requests', () => {
     it('requestGeneration should add with pending status', () => {
       const id = store.getState().ai.requestGeneration({
-        type: 'image', prompt: 'A sunset', model: 'claude-sonnet-4-20250514',
+        type: 'image', prompt: 'A sunset', model: 'claude-sonnet-4-6',
       });
       expect(id).toBeTruthy();
       expect(store.getState().ai.generationRequests[0].status).toBe('pending');
@@ -121,7 +121,7 @@ describe('aiSlice', () => {
 
     it('updateGenerationStatus should update status', () => {
       const id = store.getState().ai.requestGeneration({
-        type: 'text', prompt: 'test', model: 'claude-sonnet-4-20250514',
+        type: 'text', prompt: 'test', model: 'claude-sonnet-4-6',
       });
       store.getState().ai.updateGenerationStatus(id, { status: 'completed', result: 'done' });
       expect(store.getState().ai.generationRequests[0].status).toBe('completed');
@@ -130,7 +130,7 @@ describe('aiSlice', () => {
 
     it('cancelGeneration should set failed status', () => {
       const id = store.getState().ai.requestGeneration({
-        type: 'code', prompt: 'test', model: 'claude-sonnet-4-20250514',
+        type: 'code', prompt: 'test', model: 'claude-sonnet-4-6',
       });
       store.getState().ai.cancelGeneration(id);
       expect(store.getState().ai.generationRequests[0].status).toBe('failed');
@@ -138,8 +138,8 @@ describe('aiSlice', () => {
     });
 
     it('clearCompletedGenerations should remove only completed/failed', () => {
-      store.getState().ai.requestGeneration({ type: 'text', prompt: 'a', model: 'claude-sonnet-4-20250514' });
-      const id2 = store.getState().ai.requestGeneration({ type: 'text', prompt: 'b', model: 'claude-sonnet-4-20250514' });
+      store.getState().ai.requestGeneration({ type: 'text', prompt: 'a', model: 'claude-sonnet-4-6' });
+      const id2 = store.getState().ai.requestGeneration({ type: 'text', prompt: 'b', model: 'claude-sonnet-4-6' });
       store.getState().ai.updateGenerationStatus(id2, { status: 'completed' });
 
       store.getState().ai.clearCompletedGenerations();

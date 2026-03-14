@@ -45,7 +45,7 @@ const GOOGLE_CLIENT_ID =
 /** Maximum number of featured templates to show in step 2 */
 const FEATURED_TEMPLATE_COUNT = 6;
 
-type OnboardingStep = 'auth' | 'role' | 'template' | 'launching';
+type OnboardingStep = 'auth' | 'role' | 'trial' | 'template' | 'launching';
 
 type UserRole = 'band_director' | 'design_team';
 
@@ -127,6 +127,7 @@ export function OnboardingV2() {
   const [direction, setDirection] = useState(1); // 1 = forward, -1 = back
 
   // Auth form state
+  const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [inviteCode, setInviteCode] = useState(inviteParam);
@@ -209,7 +210,7 @@ export function OnboardingV2() {
   // ------------------------------------------------------------------
 
   const goToStep = useCallback((next: OnboardingStep) => {
-    const order: OnboardingStep[] = ['auth', 'role', 'template', 'launching'];
+    const order: OnboardingStep[] = ['auth', 'role', 'trial', 'template', 'launching'];
     const currentIdx = order.indexOf(step);
     const nextIdx = order.indexOf(next);
     setDirection(nextIdx > currentIdx ? 1 : -1);
@@ -235,7 +236,7 @@ export function OnboardingV2() {
 
     setIsSubmitting(true);
     try {
-      await signup(email, password, email.split('@')[0], 'client' as UserType, referralCode, inviteCode || undefined);
+      await signup(email, password, name || email.split('@')[0], 'client' as UserType, referralCode, inviteCode || undefined);
       eventTracker.trackEvent('onboarding_v2_auth_complete', { method: 'email' });
       goToStep('role');
     } catch (err) {
@@ -253,6 +254,34 @@ export function OnboardingV2() {
     setUserRole(role);
     sessionStorage.setItem('onboarding_v2_role', role);
     eventTracker.trackEvent('onboarding_v2_role_selected', { role });
+    goToStep('trial');
+  };
+
+  // ------------------------------------------------------------------
+  // Step 1c: Start trial (Phase 4)
+  // ------------------------------------------------------------------
+
+  const [trialStarting, setTrialStarting] = useState(false);
+
+  const handleStartTrial = async () => {
+    setTrialStarting(true);
+    try {
+      const res = await fetch('/api/payments/start-trial', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${localStorage.getItem('token')}` },
+      });
+      if (res.ok) {
+        eventTracker.trackEvent('trial_started', { source: 'onboarding_v2' });
+      }
+    } catch {
+      // Trial activation failed silently — user can still proceed
+    }
+    setTrialStarting(false);
+    goToStep('template');
+  };
+
+  const handleSkipTrial = () => {
+    eventTracker.trackEvent('trial_skipped', { source: 'onboarding_v2' });
     goToStep('template');
   };
 
@@ -318,7 +347,7 @@ export function OnboardingV2() {
   // Progress indicator
   // ------------------------------------------------------------------
 
-  const stepIndex = step === 'auth' ? 0 : step === 'role' ? 0 : step === 'template' ? 1 : 2;
+  const stepIndex = step === 'auth' ? 0 : step === 'role' ? 0 : step === 'trial' ? 0 : step === 'template' ? 1 : 2;
 
   // ------------------------------------------------------------------
   // Render
@@ -342,10 +371,11 @@ export function OnboardingV2() {
       {/* Progress bar */}
       <div className="w-full max-w-md mb-8">
         <div className="flex items-center justify-between text-xs text-gray-500 mb-2">
-          <span className={cn(stepIndex >= 0 && 'text-blue-400 font-medium')}>Sign Up</span>
+          <span className={cn(stepIndex >= 0 && 'text-blue-400 font-medium')}>Create Account</span>
           <span className={cn(stepIndex >= 1 && 'text-blue-400 font-medium')}>Pick Template</span>
-          <span className={cn(stepIndex >= 2 && 'text-blue-400 font-medium')}>Create</span>
+          <span className={cn(stepIndex >= 2 && 'text-blue-400 font-medium')}>Start Creating</span>
         </div>
+        <p className="text-xs text-gray-500 text-center mb-2">Step {stepIndex + 1} of 3</p>
         <div className="h-1.5 bg-white/10 rounded-full overflow-hidden">
           <motion.div
             className="h-full bg-gradient-to-r from-blue-500 to-purple-600 rounded-full"
@@ -374,8 +404,8 @@ export function OnboardingV2() {
               className="bg-white/5 backdrop-blur-lg rounded-2xl p-8 border border-white/10"
             >
               <div className="text-center mb-6">
-                <h2 className="text-2xl font-bold mb-1">Create your account</h2>
-                <p className="text-gray-400 text-sm">Start creating in under 30 seconds</p>
+                <h2 className="text-2xl font-bold mb-1">Start Designing Your Show</h2>
+                <p className="text-gray-400 text-sm">Create your free account in seconds</p>
               </div>
 
               {/* Google OAuth */}
@@ -405,6 +435,24 @@ export function OnboardingV2() {
               {/* Email / Password form */}
               <form onSubmit={handleAuthSubmit} className="space-y-4">
                 <div>
+                  <label htmlFor="onboarding-name" className="block text-sm font-medium text-gray-300 mb-1.5">
+                    Name
+                  </label>
+                  <input
+                    id="onboarding-name"
+                    type="text"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    className="w-full px-4 py-3 rounded-lg bg-white/5 border border-white/10 text-white
+                             placeholder-gray-500 focus:outline-none focus:border-blue-500 focus:ring-1
+                             focus:ring-blue-500 transition-colors"
+                    placeholder="Your name"
+                    autoFocus
+                    autoComplete="name"
+                  />
+                </div>
+
+                <div>
                   <label htmlFor="onboarding-email" className="block text-sm font-medium text-gray-300 mb-1.5">
                     Email
                   </label>
@@ -417,7 +465,6 @@ export function OnboardingV2() {
                              placeholder-gray-500 focus:outline-none focus:border-blue-500 focus:ring-1
                              focus:ring-blue-500 transition-colors"
                     placeholder="you@example.com"
-                    autoFocus
                     autoComplete="email"
                   />
                 </div>
@@ -528,18 +575,87 @@ export function OnboardingV2() {
                 <RoleCard
                   icon={<Music className="h-5 w-5" aria-hidden="true" />}
                   title="Marching Band Director"
-                  description="Formation design, drill charts, music sync"
+                  description="Manage formations, assign sections, share with staff"
                   selected={userRole === 'band_director'}
                   onClick={() => handleRoleSelect('band_director')}
                 />
                 <RoleCard
                   icon={<Palette className="h-5 w-5" aria-hidden="true" />}
                   title="Design Team"
-                  description="Creative collaboration, asset management, client feedback"
+                  description="Create visual designs, mood boards, brand assets"
                   selected={userRole === 'design_team'}
                   onClick={() => handleRoleSelect('design_team')}
                 />
               </div>
+            </motion.div>
+          )}
+
+          {/* ---------------------------------------------------------------- */}
+          {/* STEP 1c: Start Pro Trial (Phase 4)                                */}
+          {/* ---------------------------------------------------------------- */}
+          {step === 'trial' && (
+            <motion.div
+              key="trial"
+              custom={direction}
+              variants={stepVariants}
+              initial="enter"
+              animate="center"
+              exit="exit"
+              transition={{ duration: 0.25, ease: 'easeInOut' }}
+              className="bg-white/5 backdrop-blur-lg rounded-2xl p-8 border border-white/10"
+            >
+              <div className="text-center mb-6">
+                <div className="w-14 h-14 rounded-full bg-gradient-to-r from-blue-500 to-purple-600 flex items-center justify-center mx-auto mb-4 shadow-xl shadow-purple-500/20">
+                  <Sparkles className="h-7 w-7 text-white" aria-hidden="true" />
+                </div>
+                <h2 className="text-2xl font-bold mb-1">Try Pro free for 14 days</h2>
+                <p className="text-gray-400 text-sm">No credit card required. Full access to all Pro features.</p>
+              </div>
+
+              <div className="space-y-3 mb-6">
+                {[
+                  'AI drill writing assistant (200 calls/month)',
+                  'Real-time collaboration with up to 5 users',
+                  'All export formats (PDF, Pyware, Dot Book)',
+                  'Audio sync & 3D preview',
+                ].map((feature) => (
+                  <div key={feature} className="flex items-center gap-3 text-sm text-gray-300">
+                    <div className="w-5 h-5 rounded-full bg-green-500/20 flex items-center justify-center flex-shrink-0">
+                      <svg className="w-3 h-3 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                      </svg>
+                    </div>
+                    {feature}
+                  </div>
+                ))}
+              </div>
+
+              <button
+                onClick={handleStartTrial}
+                disabled={trialStarting}
+                className="w-full py-3 rounded-lg bg-gradient-to-r from-blue-600 to-purple-600
+                         hover:from-blue-700 hover:to-purple-700 transition-all font-semibold
+                         disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              >
+                {trialStarting ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+                    Starting trial...
+                  </>
+                ) : (
+                  <>
+                    Start 14-day Pro trial
+                    <ChevronRight className="h-4 w-4" aria-hidden="true" />
+                  </>
+                )}
+              </button>
+
+              <button
+                onClick={handleSkipTrial}
+                className="mt-3 w-full text-center text-sm text-gray-500 hover:text-gray-300 transition-colors"
+              >
+                Continue with free plan
+              </button>
             </motion.div>
           )}
 
@@ -592,7 +708,7 @@ export function OnboardingV2() {
                 }}
                 className="mt-4 w-full text-center text-xs text-gray-600 hover:text-gray-400 transition-colors"
               >
-                Skip to dashboard
+                Skip to editor
               </button>
             </motion.div>
           )}
@@ -690,6 +806,9 @@ function TemplatePreviewCard({ template, onSelect }: TemplatePreviewCardProps) {
         {template.parameters.maxPerformers ? `\u2013${template.parameters.maxPerformers}` : '+'}{' '}
         performers
       </div>
+      <span className="inline-block mt-1 text-[10px] px-1.5 py-0.5 rounded bg-white/10 text-gray-400 capitalize">
+        {template.category}
+      </span>
     </button>
   );
 }

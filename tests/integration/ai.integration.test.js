@@ -128,7 +128,7 @@ describe('AI Integration Tests', () => {
       mockCreate.mockResolvedValue({
         content: [{ type: 'text', text: 'Hello from AI' }],
         usage: { input_tokens: 10, output_tokens: 20 },
-        model: 'claude-sonnet-4-5-20250929',
+        model: 'claude-sonnet-4-6',
       });
       const res = await request(app)
         .post('/api/ai/chat/sync')

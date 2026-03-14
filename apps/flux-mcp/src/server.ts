@@ -16,6 +16,8 @@ import 'dotenv/config';
 import { GitHubClient } from './github.js';
 import { CreatePreviewInputSchema, TailLogsInputSchema } from './schema.js';
 import { validateAuth, RateLimiter } from './auth.js';
+import { formationToolDefinitions, handleFormationTool } from './formation/formationTools.js';
+import { disconnectAll } from './formation/formationBridge.js';
 
 const PORT = parseInt(process.env.PORT || '8787', 10);
 const USE_WEBSOCKET = process.env.TRANSPORT !== 'stdio';
@@ -76,6 +78,8 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
           required: ['run_id'],
         },
       },
+      // Formation tools
+      ...formationToolDefinitions,
     ],
   };
 });
@@ -129,6 +133,11 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       }
 
       default:
+        // Delegate formation.* tools to the formation handler
+        if (name.startsWith('formation.')) {
+          return handleFormationTool(name, (args ?? {}) as Record<string, unknown>);
+        }
+
         throw new McpError(
           ErrorCode.MethodNotFound,
           `Unknown tool: ${name}`
@@ -273,6 +282,7 @@ async function main() {
     // Graceful shutdown
     process.on('SIGINT', () => {
       console.log('\n[MCP] Shutting down...');
+      disconnectAll();
       httpServer.close(() => {
         process.exit(0);
       });

@@ -12,8 +12,9 @@
  * - Detail level adapts to "clarity" (how focused vs uncertain the discussion is)
  */
 
-const Anthropic = require('@anthropic-ai/sdk');
 const { query } = require('../database/config');
+const { getClient } = require('../lib/ai/client');
+const { getModelForTask, getMaxTokensForTask } = require('../lib/ai/config');
 
 // =============================================================================
 // AI USAGE TRACKING & RATE LIMITING
@@ -559,15 +560,13 @@ class DisabledAIProvider {
 }
 
 class AnthropicAIProvider {
-  constructor(apiKey) {
+  constructor() {
     this.name = 'ai-anthropic';
-    this.apiKey = apiKey;
-    this.client = apiKey ? new Anthropic({ apiKey }) : null;
-    this.model = 'claude-sonnet-4-5-20250929';
+    this.model = getModelForTask('summary');
   }
 
   isEnabled() {
-    return !!this.apiKey && !!this.client && process.env.AI_SUMMARIES_ENABLED === 'true';
+    return !!getClient() && process.env.AI_SUMMARIES_ENABLED === 'true';
   }
 
   async generateSummary({ messages, projectMeta, pulseTone, clarityState, userId }) {
@@ -601,9 +600,9 @@ class AnthropicAIProvider {
       // Record the request for rate limiting
       recordSummaryRequest(userId);
 
-      const response = await this.client.messages.create({
+      const response = await getClient().messages.create({
         model: this.model,
-        max_tokens: 1024,
+        max_tokens: getMaxTokensForTask('summary'),
         system: systemPrompt,
         messages: [{ role: 'user', content: userPrompt }],
       });
@@ -707,9 +706,8 @@ function sanitizeApiError(error) {
 class AISummaryService {
   constructor() {
     // Initialize provider based on environment
-    const anthropicKey = process.env.ANTHROPIC_API_KEY;
-    if (anthropicKey && process.env.AI_SUMMARIES_ENABLED === 'true') {
-      this.provider = new AnthropicAIProvider(anthropicKey);
+    if (getClient() && process.env.AI_SUMMARIES_ENABLED === 'true') {
+      this.provider = new AnthropicAIProvider();
     } else {
       this.provider = new DisabledAIProvider();
     }

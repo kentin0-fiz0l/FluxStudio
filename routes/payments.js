@@ -191,6 +191,15 @@ router.get('/subscription', requireAuth, async (req, res) => {
   try {
     const userId = req.user.id;
 
+    // Check for active trial first
+    const trialResult = await query(
+      'SELECT plan_id, trial_ends_at FROM users WHERE id = $1',
+      [userId]
+    );
+
+    const userRow = trialResult.rows[0];
+    const hasActiveTrial = userRow?.trial_ends_at && new Date(userRow.trial_ends_at) > new Date();
+
     // Check for active subscription
     const subResult = await query(`
       SELECT s.*, u.stripe_customer_id
@@ -201,19 +210,29 @@ router.get('/subscription', requireAuth, async (req, res) => {
       LIMIT 1
     `, [userId]);
 
-    if (subResult.rows.length === 0) {
+    if (subResult.rows.length === 0 && !hasActiveTrial) {
       // Check if user has already used a free trial
-      const trialCheck = await query(
-        `SELECT trial_used_at FROM subscriptions
-         WHERE user_id = $1 AND trial_used_at IS NOT NULL
-         LIMIT 1`,
-        [userId]
-      );
+      const canTrial = !userRow?.trial_ends_at;
 
       return res.json({
         hasSubscription: false,
         subscription: null,
-        canTrial: trialCheck.rows.length === 0
+        canTrial,
+      });
+    }
+
+    // Return trial info if on active trial
+    if (hasActiveTrial && subResult.rows.length === 0) {
+      const daysRemaining = Math.ceil((new Date(userRow.trial_ends_at) - new Date()) / (1000 * 60 * 60 * 24));
+      return res.json({
+        hasSubscription: true,
+        subscription: {
+          status: 'trialing',
+          plan: 'pro',
+          trialEndsAt: userRow.trial_ends_at,
+          daysRemaining,
+        },
+        canTrial: false,
       });
     }
 
@@ -307,6 +326,96 @@ router.post('/create-payment-intent', requireAuth, async (req, res) => {
   } catch (error) {
     log.error('Create payment intent error', error);
     res.status(500).json({ success: false, error: error.message || 'Failed to create payment intent', code: 'PAYMENT_INTENT_ERROR' });
+  }
+});
+
+/**
+ * Start 14-Day Pro Trial
+ * POST /api/payments/start-trial
+ *
+ * No credit card required. Server-managed trial.
+ * Sets plan_id = 'pro' and trial_ends_at = NOW() + 14 days.
+ */
+router.post('/start-trial', requireAuth, async (req, res) => {
+  try {
+    const userId = req.user.id;
+
+    // Check if user already used a trial
+    const userResult = await query(
+      'SELECT plan_id, trial_ends_at FROM users WHERE id = $1',
+      [userId]
+    );
+
+    if (userResult.rows.length === 0) {
+      return res.status(404).json({ success: false, error: 'User not found', code: 'PAYMENT_USER_NOT_FOUND' });
+    }
+
+    const user = userResult.rows[0];
+
+    // Don't allow trial if user already has a paid plan
+    if (user.plan_id === 'pro' || user.plan_id === 'team') {
+      return res.status(400).json({ success: false, error: 'You already have an active subscription', code: 'PAYMENT_ALREADY_SUBSCRIBED' });
+    }
+
+    // Don't allow trial if user already had one
+    if (user.trial_ends_at) {
+      return res.status(400).json({ success: false, error: 'You have already used your free trial', code: 'PAYMENT_TRIAL_USED' });
+    }
+
+    // Also check subscriptions table for previous trial usage
+    const trialCheck = await query(
+      'SELECT trial_used_at FROM subscriptions WHERE user_id = $1 AND trial_used_at IS NOT NULL LIMIT 1',
+      [userId]
+    );
+
+    if (trialCheck.rows.length > 0) {
+      return res.status(400).json({ success: false, error: 'You have already used your free trial', code: 'PAYMENT_TRIAL_USED' });
+    }
+
+    // Set trial: 14 days from now
+    const trialEndsAt = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000);
+
+    await query(
+      'UPDATE users SET plan_id = $1, trial_ends_at = $2 WHERE id = $3',
+      ['pro', trialEndsAt.toISOString(), userId]
+    );
+
+    // Create subscription record for tracking
+    try {
+      await query(
+        `INSERT INTO subscriptions (user_id, plan_id, status, trial_used_at, current_period_end, created_at)
+         VALUES ($1, (SELECT id FROM subscription_plans WHERE slug = 'pro' LIMIT 1), 'trialing', NOW(), $2, NOW())
+         ON CONFLICT DO NOTHING`,
+        [userId, trialEndsAt.toISOString()]
+      );
+    } catch {
+      // subscription_plans table may not exist; trial still works via users.trial_ends_at
+    }
+
+    // Send trial-started email (non-blocking)
+    try {
+      const { emailService } = require('../lib/email/emailService');
+      const userInfo = await query('SELECT email, name FROM users WHERE id = $1', [userId]);
+      if (userInfo.rows.length > 0) {
+        emailService.sendTrialStartedEmail(userInfo.rows[0].email, userInfo.rows[0].name || 'there').catch(() => {});
+      }
+    } catch {
+      // Email service may not be available
+    }
+
+    log.info('Trial started', { userId, trialEndsAt: trialEndsAt.toISOString() });
+
+    res.json({
+      success: true,
+      trial: {
+        plan: 'pro',
+        trialEndsAt: trialEndsAt.toISOString(),
+        daysRemaining: 14,
+      },
+    });
+  } catch (error) {
+    log.error('Start trial error', error);
+    res.status(500).json({ success: false, error: 'Failed to start trial', code: 'PAYMENT_TRIAL_ERROR' });
   }
 });
 

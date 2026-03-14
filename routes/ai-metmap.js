@@ -6,7 +6,6 @@
  */
 
 const express = require('express');
-const Anthropic = require('@anthropic-ai/sdk');
 const { authenticateToken, rateLimitByUser } = require('../lib/auth/middleware');
 const metmapAdapter = require('../database/metmap-adapter');
 const { buildMetMapContext } = require('../lib/metmap-ai-context');
@@ -14,18 +13,10 @@ const { createLogger } = require('../lib/logger');
 const log = createLogger('AIMetMap');
 const { zodValidate } = require('../middleware/zodValidate');
 const { analyzeSongSchema, suggestChordsSchema, practiceInsightsSchema } = require('../lib/schemas');
+const { getClient } = require('../lib/ai/client');
+const { getModelForTask, getMaxTokensForTask } = require('../lib/ai/config');
 
 const router = express.Router();
-
-if (!process.env.ANTHROPIC_API_KEY) {
-  log.error('ANTHROPIC_API_KEY is not set — AI endpoints will return 503');
-}
-
-const anthropic = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY,
-});
-
-const MODEL = process.env.METMAP_AI_MODEL || 'claude-sonnet-4-20250514';
 
 /**
  * Load full song context from DB for a given songId + userId.
@@ -61,14 +52,22 @@ async function streamAnalysis(req, res, systemPrompt, userMessage) {
   res.setHeader('X-Accel-Buffering', 'no');
   res.flushHeaders();
 
+  const anthropic = getClient();
+  if (!anthropic) {
+    res.write(`data: ${JSON.stringify({ type: 'error', error: 'AI service not configured' })}\n\n`);
+    res.end();
+    return;
+  }
+
   const controller = new AbortController();
   req.on('close', () => controller.abort());
   const timeoutId = setTimeout(() => controller.abort(), 90_000);
 
   try {
+    const model = getModelForTask('metmap');
     const stream = await anthropic.messages.stream({
-      model: MODEL,
-      max_tokens: 4096,
+      model,
+      max_tokens: getMaxTokensForTask('metmap'),
       system: systemPrompt,
       messages: [{ role: 'user', content: userMessage }],
     });
@@ -117,7 +116,7 @@ async function streamAnalysis(req, res, systemPrompt, userMessage) {
 router.post('/analyze-song', authenticateToken, rateLimitByUser(15, 60000), zodValidate(analyzeSongSchema), async (req, res) => {
   const { songId, focus = 'all' } = req.body;
 
-  if (!process.env.ANTHROPIC_API_KEY) {
+  if (!getClient()) {
     return res.status(503).json({ success: false, error: 'AI service not configured', code: 'AI_METMAP_NOT_CONFIGURED' });
   }
 
@@ -161,7 +160,7 @@ ${focusMap[focus] || focusMap.all}`;
 router.post('/suggest-chords', authenticateToken, rateLimitByUser(15, 60000), zodValidate(suggestChordsSchema), async (req, res) => {
   const { songId, sectionId, style, request } = req.body;
 
-  if (!process.env.ANTHROPIC_API_KEY) {
+  if (!getClient()) {
     return res.status(503).json({ success: false, error: 'AI service not configured', code: 'AI_METMAP_NOT_CONFIGURED' });
   }
 
@@ -234,7 +233,7 @@ Please suggest 2-3 chord progression options for this section.`;
 router.post('/practice-insights', authenticateToken, rateLimitByUser(15, 60000), zodValidate(practiceInsightsSchema), async (req, res) => {
   const { songId } = req.body;
 
-  if (!process.env.ANTHROPIC_API_KEY) {
+  if (!getClient()) {
     return res.status(503).json({ success: false, error: 'AI service not configured', code: 'AI_METMAP_NOT_CONFIGURED' });
   }
 

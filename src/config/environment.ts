@@ -17,6 +17,7 @@ export interface EnvironmentConfig {
   SUPPORTED_FILE_TYPES: string[];
   ENABLE_FLUXPRINT: boolean;
   FLUXPRINT_URL: string;
+  CRISP_WEBSITE_ID: string;
 }
 
 // Environment detection
@@ -38,7 +39,8 @@ const baseConfig = {
   MAX_FILE_SIZE: 104857600, // 100MB
   SUPPORTED_FILE_TYPES: ['png', 'jpg', 'jpeg', 'gif', 'pdf', 'figma', 'sketch', 'svg', 'webp'],
   ENABLE_FLUXPRINT: getEnvVar('VITE_ENABLE_FLUXPRINT', 'false') === 'true',
-  FLUXPRINT_URL: getEnvVar('VITE_FLUXPRINT_URL', 'http://localhost:5001')
+  FLUXPRINT_URL: getEnvVar('VITE_FLUXPRINT_URL', 'http://localhost:5001'),
+  CRISP_WEBSITE_ID: getEnvVar('VITE_CRISP_WEBSITE_ID', '')
 };
 
 // Development configuration

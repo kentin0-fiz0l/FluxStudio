@@ -31,6 +31,55 @@ const PrimitiveBuilder = React.lazy(() =>
 import * as formationsApi from '../services/formationsApi';
 import { observability } from '@/services/observability';
 import type { ComposedPrimitive } from '../services/scene3d/types';
+import { ProductTour, type TourStep } from '@/components/onboarding/ProductTour';
+import { CollaborationStatusIndicator } from '@/components/formation/CollaborationStatusIndicator';
+import { useWebSocket } from '@/hooks/useWebSocket';
+import { Layout, Clock, Wrench, Sparkles, Play } from 'lucide-react';
+
+const FORMATION_TOUR_KEY = 'fluxstudio_formation_tour_completed';
+
+const FORMATION_TOUR_STEPS: TourStep[] = [
+  {
+    id: 'canvas',
+    title: 'The Formation Canvas',
+    description: 'This is where you place and arrange performers. Drag to move them, select multiple with a box, and use the grid for precise alignment.',
+    targetSelector: '[data-tour="formation-canvas"]',
+    icon: <Layout className="w-5 h-5" aria-hidden="true" />,
+    ctaLabel: 'Next',
+  },
+  {
+    id: 'timeline',
+    title: 'Timeline & Keyframes',
+    description: 'Add sets (keyframes) to create transitions between formations. Each set captures performer positions at a specific count.',
+    targetSelector: '[data-tour="formation-timeline"]',
+    icon: <Clock className="w-5 h-5" aria-hidden="true" />,
+    ctaLabel: 'Next',
+  },
+  {
+    id: 'toolbar',
+    title: 'Drawing Tools',
+    description: 'Use the toolbar to add performers, draw shapes, create lines, and access alignment tools. Switch between select, draw, and erase modes.',
+    targetSelector: '[data-tour="formation-toolbar"]',
+    icon: <Wrench className="w-5 h-5" aria-hidden="true" />,
+    ctaLabel: 'Next',
+  },
+  {
+    id: 'ai-prompt',
+    title: 'AI Drill Writer',
+    description: 'Describe what you want in natural language and the AI will generate formations for you. Try "Create a diagonal line moving to a block."',
+    targetSelector: '[data-tour="formation-ai-prompt"]',
+    icon: <Sparkles className="w-5 h-5" aria-hidden="true" />,
+    ctaLabel: 'Next',
+  },
+  {
+    id: 'playback',
+    title: 'Preview & Playback',
+    description: 'Press Play to animate transitions between sets. Adjust tempo to match your music, or switch to 3D view for a fly-through.',
+    targetSelector: '[data-tour="formation-timeline"]',
+    icon: <Play className="w-5 h-5" aria-hidden="true" />,
+    ctaLabel: 'Got it!',
+  },
+];
 const Formation3DViewLazy = React.lazy(
   () => import('../components/formation/Formation3DView').then((m) => ({ default: m.Formation3DView }))
 );
@@ -45,6 +94,12 @@ export default function FormationEditor() {
   const navigate = useNavigate();
   const { user: _user } = useAuth();
   const { addNotification } = useNotification();
+
+  // Check for onboarding template to auto-apply
+  const [initialTemplateId] = React.useState(() => {
+    const id = sessionStorage.getItem('onboarding_v2_template');
+    return id || undefined;
+  });
 
   // Register formation-specific shortcuts when editor is active
   useRegisterShortcuts([
@@ -92,6 +147,26 @@ export default function FormationEditor() {
   // Track current positions and performers for 3D view (from FormationCanvas internal state)
   const [currentPositions, setCurrentPositions] = React.useState<Map<string, import('../services/formationTypes').Position>>(new Map());
   const [currentPerformers, setCurrentPerformers] = React.useState<import('../services/formationTypes').Performer[]>([]);
+
+  // Collaboration connection status via Socket.IO
+  const { connected: collabConnected, socket: collabSocket } = useWebSocket('/collaboration');
+  const [collabLastSyncedAt, setCollabLastSyncedAt] = React.useState<Date | null>(null);
+  const [collabCount, setCollabCount] = React.useState(0);
+
+  // Update last-synced timestamp and collaborator count from socket events
+  React.useEffect(() => {
+    if (!collabSocket) return;
+    const handleSync = () => setCollabLastSyncedAt(new Date());
+    const handlePresence = (data: { count?: number }) => {
+      if (typeof data?.count === 'number') setCollabCount(data.count);
+    };
+    collabSocket.on('sync', handleSync);
+    collabSocket.on('presence:update', handlePresence);
+    return () => {
+      collabSocket.off('sync', handleSync);
+      collabSocket.off('presence:update', handlePresence);
+    };
+  }, [collabSocket]);
 
   // Handle save — also persist scene objects alongside formation
   const handleSave = React.useCallback(
@@ -193,6 +268,16 @@ export default function FormationEditor() {
     });
     setPrimitiveBuilderOpen(false);
   }, [addObject, objectList.length, setPrimitiveBuilderOpen]);
+
+  // Formation tour state
+  const [showTour, setShowTour] = React.useState(() => {
+    return localStorage.getItem(FORMATION_TOUR_KEY) !== 'true';
+  });
+
+  const handleTourComplete = React.useCallback(() => {
+    localStorage.setItem(FORMATION_TOUR_KEY, 'true');
+    setShowTour(false);
+  }, []);
 
   // Track formation editor open
   React.useEffect(() => {
@@ -310,7 +395,23 @@ export default function FormationEditor() {
               <option value="performer">Performer</option>
             </select>
           </div>
+          <CollaborationStatusIndicator
+            isConnected={collabConnected}
+            isSyncing={false}
+            hasPendingChanges={!collabConnected && collabLastSyncedAt !== null}
+            lastSyncedAt={collabLastSyncedAt}
+            collaboratorCount={collabCount}
+          />
           <ViewToggle mode={viewMode} onChange={setViewMode} />
+          {/* Help / Tour button */}
+          <button
+            onClick={() => setShowTour(true)}
+            className="text-xs text-neutral-500 dark:text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-200 transition-colors px-2 py-1 rounded hover:bg-neutral-100 dark:hover:bg-neutral-800"
+            title="Restart product tour"
+          >
+            <Sparkles className="w-4 h-4 inline-block mr-1" aria-hidden="true" />
+            Tour
+          </button>
         </div>
 
         {/* 3D Toolbar (only when 3D view is active and in designer mode) */}
@@ -362,6 +463,7 @@ export default function FormationEditor() {
                     collaborativeMode={true}
                     onSave={handleSave}
                     onClose={handleClose}
+                    initialTemplateId={initialTemplateId}
                   />
                 </FormationEditorErrorBoundary>
               </div>
@@ -436,6 +538,13 @@ export default function FormationEditor() {
           />
         </React.Suspense>
       )}
+
+      {/* Formation-specific Product Tour */}
+      <ProductTour
+        steps={FORMATION_TOUR_STEPS}
+        isActive={showTour}
+        onComplete={handleTourComplete}
+      />
     </DashboardLayout>
   );
 }

@@ -36,21 +36,22 @@ export const PLANS: Record<PlanId, PlanDefinition> = {
   free: {
     id: 'free',
     name: 'Free',
-    description: 'For individuals getting started',
+    description: 'Get started with formation design',
     priceMonthly: 0,
     priceYearly: 0,
     stripePriceIdMonthly: null,
     stripePriceIdYearly: null,
     limits: {
-      projects: 3,
-      storageBytes: 500 * 1024 * 1024, // 500 MB
-      aiCallsPerMonth: 10,
+      projects: 2,
+      storageBytes: 250 * 1024 * 1024, // 250 MB
+      aiCallsPerMonth: 5,
       collaborators: 1,
     },
     features: [
-      'Up to 3 projects',
-      '500 MB storage',
-      '10 AI assistant calls/month',
+      '2 projects',
+      '5 AI drill writing calls/month',
+      '250 MB storage',
+      'Basic export (PNG)',
       'Basic templates',
       'Community support',
     ],
@@ -58,50 +59,50 @@ export const PLANS: Record<PlanId, PlanDefinition> = {
   pro: {
     id: 'pro',
     name: 'Pro',
-    description: 'For professionals and power users',
-    priceMonthly: 1200,  // $12/mo
-    priceYearly: 12000,  // $120/yr ($10/mo, 2 months free)
+    description: 'For drill writers and band directors',
+    priceMonthly: 1900,  // $19/mo
+    priceYearly: 19000,  // $190/yr (~$15.83/mo, 2 months free)
     stripePriceIdMonthly: import.meta.env.VITE_STRIPE_PRICE_PRO_MONTHLY || 'price_pro_monthly',
     stripePriceIdYearly: import.meta.env.VITE_STRIPE_PRICE_PRO_YEARLY || 'price_pro_yearly',
     limits: {
       projects: -1,
       storageBytes: 10 * 1024 * 1024 * 1024, // 10 GB
-      aiCallsPerMonth: 100,
-      collaborators: 10,
+      aiCallsPerMonth: 200,
+      collaborators: 5,
     },
     features: [
-      'Unlimited projects',
-      '10 GB storage',
-      '100 AI assistant calls/month',
-      'All templates + AI generation',
-      'Plugin marketplace',
+      'Unlimited projects & formations',
+      '200 AI drill writing calls/month',
+      'Real-time collaboration (up to 5 users)',
+      'All export formats (PDF, Pyware, Dot Book)',
+      'Audio sync & playback',
+      'Advanced templates & 3D preview',
       'Priority support',
-      'Advanced analytics',
     ],
     popular: true,
   },
   team: {
     id: 'team',
     name: 'Team',
-    description: 'For teams that collaborate',
-    priceMonthly: 2900,  // $29/seat/mo
-    priceYearly: 29000,  // $290/seat/yr ($24.17/mo, 2 months free)
+    description: 'For programs and organizations',
+    priceMonthly: 4900,  // $49/mo
+    priceYearly: 49000,  // $490/yr (~$40.83/mo, 2 months free)
     stripePriceIdMonthly: import.meta.env.VITE_STRIPE_PRICE_TEAM_MONTHLY || 'price_team_monthly',
     stripePriceIdYearly: import.meta.env.VITE_STRIPE_PRICE_TEAM_YEARLY || 'price_team_yearly',
     limits: {
       projects: -1,
       storageBytes: 100 * 1024 * 1024 * 1024, // 100 GB
       aiCallsPerMonth: -1,
-      collaborators: -1,
+      collaborators: 25,
     },
     features: [
       'Everything in Pro',
-      'Unlimited collaborators',
+      'Up to 25 collaborators',
       '100 GB storage',
       'Unlimited AI calls',
-      'Team workspaces',
-      'Admin console',
-      'SSO (coming soon)',
+      'Rehearsal mode & section dashboards',
+      'API access',
+      'Admin console & SSO (coming soon)',
       'Dedicated support',
     ],
   },

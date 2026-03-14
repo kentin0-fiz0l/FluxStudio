@@ -1,5 +1,5 @@
 /**
- * Referral Routes — code generation, stats, and tracking.
+ * Referral Routes — code generation, stats, tracking, and rewards.
  *
  * Sprint 44: Phase 6.3 Growth & Engagement
  *
@@ -7,6 +7,7 @@
  * - GET  /api/referrals/code      — get or create the user's referral code
  * - GET  /api/referrals/stats     — referral stats for the current user
  * - GET  /api/referrals/validate/:code — validate a referral code (public)
+ * - POST /api/referrals/convert   — mark referred user as converted and grant rewards
  */
 
 const express = require('express');
@@ -17,6 +18,7 @@ const { createLogger } = require('../lib/logger');
 const log = createLogger('Referrals');
 const { zodValidateParams } = require('../middleware/zodValidateParams');
 const { validateReferralCodeParamsSchema } = require('../lib/schemas');
+const emailService = require('../lib/email/emailService');
 
 const router = express.Router();
 
@@ -149,6 +151,160 @@ router.get('/validate/:code', zodValidateParams(validateReferralCodeParamsSchema
   } catch (error) {
     log.error('Validate error', error);
     res.status(500).json({ success: false, error: 'Failed to validate code', code: 'REFERRAL_VALIDATE_ERROR' });
+  }
+});
+
+/**
+ * Process referral rewards for both the referrer and the referred user.
+ *
+ * Reward: both users receive 1 free month of Pro (30 days added to trial_ends_at).
+ * If a user is on the free plan, their plan is upgraded to 'pro'.
+ *
+ * @param {string} referrerUserId - The user who shared the referral code
+ * @param {string} referredUserId - The user who signed up via the referral
+ */
+async function processReferralReward(referrerUserId, referredUserId) {
+  const userIds = [referrerUserId, referredUserId];
+
+  for (const userId of userIds) {
+    // Extend or set trial_ends_at by 30 days; upgrade plan to 'pro' if currently 'free'
+    await query(
+      `UPDATE users
+       SET trial_ends_at = CASE
+             WHEN trial_ends_at IS NOT NULL AND trial_ends_at > NOW()
+               THEN trial_ends_at + INTERVAL '30 days'
+             ELSE NOW() + INTERVAL '30 days'
+           END,
+           plan_id = CASE
+             WHEN plan_id = 'free' THEN 'pro'
+             ELSE plan_id
+           END,
+           updated_at = NOW()
+       WHERE id = $1`,
+      [userId]
+    );
+  }
+
+  // Mark the referral signup row as rewarded
+  await query(
+    `UPDATE referral_signups
+     SET rewarded_at = NOW()
+     WHERE referrer_user_id = $1
+       AND referred_user_id = $2`,
+    [referrerUserId, referredUserId]
+  );
+
+  // Send notification emails (non-blocking)
+  const usersResult = await query(
+    `SELECT id, name, email FROM users WHERE id = ANY($1::uuid[])`,
+    [userIds]
+  );
+
+  const usersById = {};
+  for (const row of usersResult.rows) {
+    usersById[row.id] = row;
+  }
+
+  const referrer = usersById[referrerUserId];
+  const referred = usersById[referredUserId];
+
+  if (referrer?.email) {
+    try {
+      emailService.sendEmail({
+        to: referrer.email,
+        subject: 'You earned a free month of Pro!',
+        text: `Hi ${referrer.name || 'there'}, your referral ${referred?.name || 'a new user'} just created their first project on FluxStudio. You've been rewarded with 1 free month of Pro! Enjoy unlimited access to all Pro features.`,
+        html: `<div style="font-family: sans-serif; max-width: 480px;">
+  <h2>You earned a free month of Pro!</h2>
+  <p>Hi ${referrer.name || 'there'},</p>
+  <p>Great news! Your referral <strong>${referred?.name || 'a new user'}</strong> just created their first project on FluxStudio.</p>
+  <p>As a thank you, you've been rewarded with <strong>1 free month of Pro</strong>. Enjoy unlimited access to all Pro features including unlimited projects, advanced collaboration, and priority support.</p>
+  <p>Keep sharing your referral link to earn even more rewards!</p>
+  <p style="color: #888;">— The FluxStudio Team</p>
+</div>`,
+      });
+    } catch { /* non-blocking */ }
+  }
+
+  if (referred?.email) {
+    try {
+      emailService.sendEmail({
+        to: referred.email,
+        subject: 'You earned a free month of Pro!',
+        text: `Hi ${referred.name || 'there'}, congratulations on creating your first project on FluxStudio! Because you signed up through a referral, you've been rewarded with 1 free month of Pro. Enjoy unlimited access to all Pro features.`,
+        html: `<div style="font-family: sans-serif; max-width: 480px;">
+  <h2>Welcome to FluxStudio Pro!</h2>
+  <p>Hi ${referred.name || 'there'},</p>
+  <p>Congratulations on creating your first project! Because you signed up through a referral, you've been rewarded with <strong>1 free month of Pro</strong>.</p>
+  <p>You now have access to all Pro features including unlimited projects, advanced collaboration, and priority support.</p>
+  <p>Invite your friends with your own referral link to keep earning rewards!</p>
+  <p style="color: #888;">— The FluxStudio Team</p>
+</div>`,
+      });
+    } catch { /* non-blocking */ }
+  }
+
+  log.info('Referral reward processed', { referrerUserId, referredUserId });
+}
+
+/**
+ * POST /api/referrals/convert
+ * Mark the current user as a converted referral and grant rewards to both parties.
+ * Should be called when a referred user creates their first project.
+ */
+router.post('/convert', authenticateToken, async (req, res) => {
+  try {
+    const referredUserId = req.user.id;
+
+    // Check if this user was referred and hasn't already been converted
+    const signup = await query(
+      `SELECT id, referrer_user_id, converted, rewarded_at
+       FROM referral_signups
+       WHERE referred_user_id = $1
+       LIMIT 1`,
+      [referredUserId]
+    );
+
+    if (signup.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        error: 'No referral found for this user',
+        code: 'REFERRAL_NOT_FOUND',
+      });
+    }
+
+    const referralRow = signup.rows[0];
+
+    if (referralRow.converted) {
+      return res.status(409).json({
+        success: false,
+        error: 'Referral has already been converted',
+        code: 'REFERRAL_ALREADY_CONVERTED',
+      });
+    }
+
+    // Mark as converted
+    await query(
+      `UPDATE referral_signups
+       SET converted = TRUE, converted_at = NOW()
+       WHERE id = $1`,
+      [referralRow.id]
+    );
+
+    // Process rewards for both users
+    await processReferralReward(referralRow.referrer_user_id, referredUserId);
+
+    res.json({
+      success: true,
+      message: 'Referral converted — both you and your referrer earned 1 free month of Pro!',
+    });
+  } catch (error) {
+    log.error('Convert error', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to process referral conversion',
+      code: 'REFERRAL_CONVERT_ERROR',
+    });
   }
 });
 

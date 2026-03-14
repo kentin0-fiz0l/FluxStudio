@@ -17,7 +17,7 @@ import { useProjects, Project } from '../hooks/useProjects';
 import { useTeams } from '../hooks/useTeams';
 import { useOrganizations } from '../hooks/useOrganizations';
 import { toast } from '../lib/toast';
-import { ArrowLeft, Plus, LayoutTemplate, Sparkles } from 'lucide-react';
+import { ArrowLeft, Plus, LayoutTemplate, Sparkles, Upload } from 'lucide-react';
 import { observability } from '@/services/observability';
 import { TemplateSelector } from '../components/templates/TemplateSelector';
 import { AIProjectCreator } from '../components/projects/AIProjectCreator';
@@ -28,7 +28,7 @@ import { projectFormSchema, type ProjectFormData } from '../types/schemas';
 import type { CreateFromTemplateOptions } from '../services/templates/types';
 import type { UsageData } from '../services/usageService';
 
-type CreationMode = 'blank' | 'template' | 'ai';
+type CreationMode = 'blank' | 'template' | 'ai' | 'import';
 
 export function NewProject() {
   const { user, logout } = useAuth();
@@ -39,7 +39,8 @@ export function NewProject() {
   const { currentOrganization } = useOrganizations();
 
   // Determine initial mode from URL params
-  const initialMode: CreationMode = searchParams.get('templates') === 'true' ? 'template'
+  const initialMode: CreationMode = searchParams.get('import') === 'pyware' ? 'import'
+    : searchParams.get('templates') === 'true' ? 'template'
     : searchParams.get('ai') === 'true' ? 'ai' : 'blank';
   const [mode, setMode] = useState<CreationMode>(initialMode);
   const [aiDialogOpen, setAiDialogOpen] = useState(initialMode === 'ai');
@@ -139,6 +140,7 @@ export function NewProject() {
     { id: 'blank', label: 'Blank Project', icon: <Plus className="w-4 h-4" aria-hidden="true" /> },
     { id: 'template', label: 'From Template', icon: <LayoutTemplate className="w-4 h-4" aria-hidden="true" /> },
     { id: 'ai', label: 'AI Create', icon: <Sparkles className="w-4 h-4" aria-hidden="true" /> },
+    { id: 'import', label: 'Import Pyware', icon: <Upload className="w-4 h-4" aria-hidden="true" /> },
   ];
 
   return (
@@ -222,6 +224,38 @@ export function NewProject() {
           }}
           onProjectCreated={handleAiProjectCreated}
         />}
+
+        {/* Import from Pyware */}
+        {!atProjectLimit && mode === 'import' && (
+          <div className="bg-white dark:bg-neutral-800 rounded-xl border border-neutral-200 dark:border-neutral-700 p-6 space-y-4">
+            <div className="flex items-center gap-3 mb-2">
+              <div className="w-10 h-10 rounded-lg bg-orange-500/10 flex items-center justify-center">
+                <Upload className="w-5 h-5 text-orange-500" aria-hidden="true" />
+              </div>
+              <div>
+                <h2 className="text-lg font-semibold text-neutral-900 dark:text-white">Import from Pyware</h2>
+                <p className="text-sm text-neutral-500 dark:text-neutral-400">
+                  Import your existing .3dz drill files in seconds
+                </p>
+              </div>
+            </div>
+            <div className="bg-orange-50 dark:bg-orange-900/10 border border-orange-200 dark:border-orange-800/30 rounded-lg p-4">
+              <p className="text-sm text-orange-700 dark:text-orange-300">
+                Switching from Pyware? FluxStudio imports your .3dz archives directly — performers, positions, labels, and transitions are all preserved. No data left behind.
+              </p>
+            </div>
+            <p className="text-sm text-neutral-600 dark:text-neutral-400">
+              To import, create a blank project first, then use the <strong>Import</strong> button in the formation editor toolbar to upload your .3dz or .xml file.
+            </p>
+            <Button
+              onClick={() => setMode('blank')}
+              className="gap-2"
+            >
+              <Plus className="w-4 h-4" aria-hidden="true" />
+              Create Project to Import Into
+            </Button>
+          </div>
+        )}
 
         {/* Blank Project Form */}
         {!atProjectLimit && mode === 'blank' && (

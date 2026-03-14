@@ -9,7 +9,7 @@
  * Toolbar extracted to CanvasToolbar.tsx, PerformerPanel to PerformerPanel.tsx
  */
 
-import { useEffect, useState, useMemo, useCallback } from 'react';
+import { useEffect, useState, useMemo, useCallback, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Loader2 } from 'lucide-react';
 import { Timeline } from '../Timeline';
@@ -47,6 +47,7 @@ import { useCanvasHandlers } from './useCanvasHandlers';
 import { useCanvasKeyboardHandlers } from './useCanvasKeyboardHandlers';
 import { useCanvasAccessibility } from './useCanvasAccessibility';
 import { useBreakpoint } from '../../../hooks/useBreakpoint';
+import { CollaboratorActivity } from '../CollaboratorActivity';
 import { useMetMapSongLink } from '../../../hooks/useMetMapSongLink';
 import { NCAA_FOOTBALL_FIELD } from '../../../services/fieldConfigService';
 import { useGhostPreview } from '../../../store/slices/ghostPreviewSlice';
@@ -60,7 +61,7 @@ import type { FormationCanvasProps } from './types';
 export type { FormationCanvasProps };
 
 export function FormationCanvas(props: FormationCanvasProps) {
-  const { formationId, projectId, onSave, sandboxMode = false, onPositionsChange } = props;
+  const { formationId, projectId, onSave, sandboxMode = false, onPositionsChange, initialTemplateId } = props;
   const { t } = useTranslation('common');
   const [snapResolution, setSnapResolution] = useState<'beat' | 'half-beat' | 'measure'>('beat');
   const [showVersionHistory, setShowVersionHistory] = useState(false);
@@ -109,6 +110,7 @@ export function FormationCanvas(props: FormationCanvasProps) {
     showMeasurements, setShowMeasurements,
     measurementStepSize, setMeasurementStepSize: _setMeasurementStepSize,
     showGroupPanel, setShowGroupPanel,
+    showCollabActivity, setShowCollabActivity,
     playbackState,
     ghostTrail,
     hasUnsavedChanges, setHasUnsavedChanges,
@@ -249,8 +251,15 @@ export function FormationCanvas(props: FormationCanvasProps) {
     });
   }, [currentPositions, ghostPreview]);
 
-  const { isDesktop } = useBreakpoint();
-  const isMobileView = !isDesktop; // < 1024px
+  const { isDesktop, isTablet } = useBreakpoint();
+  const isMobileView = !isDesktop && !isTablet; // < 768px (phones only)
+
+  // Side panel CSS: inline on desktop, slide-over on tablet/mobile
+  const sidePanelClass = isMobileView
+    ? 'absolute inset-y-0 right-0 z-30 w-72 shadow-xl'
+    : isTablet
+    ? 'absolute inset-y-0 right-0 z-30 w-80 shadow-xl'
+    : '';
 
   const handlers = useCanvasHandlers({
     state,
@@ -324,6 +333,25 @@ export function FormationCanvas(props: FormationCanvasProps) {
       onPositionsChange(currentPositions);
     }
   }, [currentPositions, onPositionsChange]);
+
+  // Auto-apply formation template from onboarding (runs once when formation loads)
+  const appliedOnboardingTemplate = useRef(false);
+  useEffect(() => {
+    if (appliedOnboardingTemplate.current || !formation) return;
+    const templateId = initialTemplateId;
+    if (!templateId) return;
+
+    // Only auto-apply if the formation is empty (new formation)
+    if (formation.performers.length > 0) {
+      appliedOnboardingTemplate.current = true;
+      return;
+    }
+
+    appliedOnboardingTemplate.current = true;
+    handleApplyTemplate({ templateId });
+    // Clean up sessionStorage so it doesn't re-apply on navigation
+    sessionStorage.removeItem('onboarding_v2_template');
+  }, [formation, initialTemplateId, handleApplyTemplate]);
 
   // All keyframe positions for heat map effects
   const keyframePositions = useMemo(() => {
@@ -585,7 +613,8 @@ export function FormationCanvas(props: FormationCanvasProps) {
         </table>
       )}
 
-      {isDesktop ? (
+      {(isDesktop || isTablet) ? (
+        <div data-tour="formation-toolbar">
         <CanvasToolbar
           activeTool={activeTool} setActiveTool={setActiveTool}
           showGrid={showGrid} setShowGrid={setShowGrid}
@@ -635,7 +664,10 @@ export function FormationCanvas(props: FormationCanvasProps) {
           setShowAudienceHeatmap={setShowAudienceHeatmap}
           showRehearsalMode={showRehearsalMode}
           setShowRehearsalMode={setShowRehearsalMode}
+          showCollabActivity={showCollabActivity}
+          setShowCollabActivity={setShowCollabActivity}
         />
+        </div>
       ) : (
         <MobileSetNavigator
           keyframes={formation.keyframes}
@@ -645,7 +677,7 @@ export function FormationCanvas(props: FormationCanvasProps) {
       )}
 
       <div className={`flex-1 flex overflow-hidden ${isMobileView ? 'pb-[60px]' : ''}`}>
-        <div id="canvas-area" className={`flex-1 relative overflow-auto bg-gray-100 dark:bg-gray-900 ${isMobileView ? 'p-2' : 'p-8'}`}>
+        <div id="canvas-area" data-tour="formation-canvas" className={`flex-1 relative overflow-auto bg-gray-100 dark:bg-gray-900 ${isMobileView ? 'p-2' : isTablet ? 'p-4' : 'p-8'}`}>
           {sandboxMode && <OnboardingHints />}
           <AlignmentToolbar
             selectedCount={selectedPerformerIds.size}
@@ -708,7 +740,7 @@ export function FormationCanvas(props: FormationCanvasProps) {
         </div>
         {/* Side panels: slide-over drawers on mobile, inline on desktop */}
         {showPerformerPanel && (
-          <div className={isMobileView ? 'absolute inset-y-0 right-0 z-30 w-72 shadow-xl' : ''}>
+          <div className={sidePanelClass}>
             <PerformerPanel
               formation={formation}
               selectedPerformerIds={selectedPerformerIds}
@@ -719,7 +751,7 @@ export function FormationCanvas(props: FormationCanvasProps) {
           </div>
         )}
         {showCoordinatePanel && selectedPerformerInfo && (
-          <div className={isMobileView ? 'absolute inset-y-0 right-0 z-30 w-72 shadow-xl' : ''}>
+          <div className={sidePanelClass}>
             <CoordinatePanel
               performerId={selectedPerformerInfo.id}
               performerName={selectedPerformerInfo.name}
@@ -743,7 +775,7 @@ export function FormationCanvas(props: FormationCanvasProps) {
           </div>
         )}
         {showAnalysisPanel && (
-          <div className={isMobileView ? 'absolute inset-y-0 right-0 z-30 w-72 shadow-xl' : ''}>
+          <div className={sidePanelClass}>
             <DrillAnalysisPanel
               formation={formation}
               sets={drillSets}
@@ -761,7 +793,7 @@ export function FormationCanvas(props: FormationCanvasProps) {
           </div>
         )}
         {showGroupPanel && (
-          <div className={isMobileView ? 'absolute inset-y-0 right-0 z-30 w-72 shadow-xl' : ''}>
+          <div className={sidePanelClass}>
             <GroupPanel
               groups={formation.groups ?? []}
               performers={formation.performers}
@@ -775,8 +807,17 @@ export function FormationCanvas(props: FormationCanvasProps) {
             />
           </div>
         )}
+        {showCollabActivity && isCollaborativeEnabled && (
+          <div className={sidePanelClass}>
+            <CollaboratorActivity
+              collaborators={collab.collaborators}
+              currentSetName={drillSets[currentSetIndex]?.name}
+              className="bg-white dark:bg-gray-900 border-l border-gray-200 dark:border-gray-700 h-full overflow-y-auto"
+            />
+          </div>
+        )}
         {showVersionHistory && formation.id && (
-          <div className={isMobileView ? 'absolute inset-y-0 right-0 z-30 w-72 shadow-xl' : ''}>
+          <div className={sidePanelClass}>
             <FormationVersionHistoryPanel
               formationId={formation.id}
               currentFormation={formation}
@@ -786,7 +827,7 @@ export function FormationCanvas(props: FormationCanvasProps) {
           </div>
         )}
         {showRehearsalMode && (
-          <div className={isMobileView ? 'absolute inset-y-0 right-0 z-30 w-80 shadow-xl' : ''}>
+          <div className={isMobileView ? 'absolute inset-y-0 right-0 z-30 w-80 shadow-xl' : isTablet ? 'absolute inset-y-0 right-0 z-30 w-96 shadow-xl' : ''}>
             <RehearsalModePanel
               formation={formation}
               sets={drillSets}
@@ -882,6 +923,7 @@ export function FormationCanvas(props: FormationCanvasProps) {
 
       {/* Formation Prompt Bar (above timeline) */}
       {isDesktop && formation.performers.length > 0 && (
+        <div data-tour="formation-ai-prompt">
         <FormationPromptBar
           performers={formation.performers}
           currentPositions={currentPositions}
@@ -892,12 +934,13 @@ export function FormationCanvas(props: FormationCanvasProps) {
           }}
           fieldConfig={formation.fieldConfig}
         />
+        </div>
       )}
 
       {/* Desktop: MetMap song selector + full Timeline */}
       {isDesktop && (
         <>
-          <div id="timeline-area" className="flex items-center gap-2 px-4 py-1 bg-gray-100 dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700">
+          <div id="timeline-area" data-tour="formation-timeline" className="flex items-center gap-2 px-4 py-1 bg-gray-100 dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700">
             <MetMapSongSelector
               linkedSongId={formation.metmapSongId}
               linkedSong={linkedSong}

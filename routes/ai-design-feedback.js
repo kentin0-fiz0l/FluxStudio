@@ -11,23 +11,14 @@
  */
 
 const express = require('express');
-const Anthropic = require('@anthropic-ai/sdk');
 const { authenticateToken, rateLimitByUser } = require('../lib/auth/middleware');
 const { logAiUsage, sanitizeApiError } = require('../services/ai-summary-service');
 const { createLogger } = require('../lib/logger');
+const { getClient } = require('../lib/ai/client');
+const { getModelForTask, getMaxTokensForTask } = require('../lib/ai/config');
 const log = createLogger('AIDesignFeedback');
 
 const router = express.Router();
-
-const MODEL = process.env.DESIGN_AI_MODEL || 'claude-sonnet-4-5-20250929';
-
-// Initialize Anthropic client
-let anthropic = null;
-if (process.env.ANTHROPIC_API_KEY) {
-  anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
-} else {
-  log.warn('ANTHROPIC_API_KEY not configured. Design feedback streaming endpoints will return errors.');
-}
 
 // ============================================================================
 // SHARED SSE STREAMING HELPER
@@ -44,6 +35,7 @@ async function streamResponse(req, res, systemPrompt, userMessage, endpoint, use
   res.setHeader('X-Accel-Buffering', 'no');
   res.flushHeaders();
 
+  const anthropic = getClient();
   if (!anthropic) {
     res.write(`data: ${JSON.stringify({ type: 'error', error: 'AI service not configured — ANTHROPIC_API_KEY is not set' })}\n\n`);
     res.end();
@@ -55,6 +47,9 @@ async function streamResponse(req, res, systemPrompt, userMessage, endpoint, use
   const timeoutId = setTimeout(() => controller.abort(), 90_000);
 
   try {
+    const taskType = options.taskType || 'design-feedback';
+    const model = getModelForTask(taskType);
+
     // Send initial status
     res.write(`data: ${JSON.stringify({ type: 'status', message: 'Analyzing design...' })}\n\n`);
 
@@ -71,8 +66,8 @@ async function streamResponse(req, res, systemPrompt, userMessage, endpoint, use
     }
 
     const stream = await anthropic.messages.stream({
-      model: MODEL,
-      max_tokens: options.maxTokens || 4096,
+      model,
+      max_tokens: options.maxTokens || getMaxTokensForTask(taskType),
       system: systemPrompt,
       messages,
     });
@@ -104,7 +99,7 @@ async function streamResponse(req, res, systemPrompt, userMessage, endpoint, use
       // Log usage
       logAiUsage({
         userId,
-        model: MODEL,
+        model,
         inputTokens,
         outputTokens,
         endpoint,
@@ -261,7 +256,7 @@ Rules:
   if (brand) userMessage += ` aligned with the brand: ${brand}`;
   userMessage += '.';
 
-  await streamResponse(req, res, systemPrompt, userMessage, 'design-feedback-stream-palette', userId);
+  await streamResponse(req, res, systemPrompt, userMessage, 'design-feedback-stream-palette', userId, { taskType: 'palette' });
 });
 
 /**

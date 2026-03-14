@@ -18,6 +18,8 @@ export function Signup() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [inviteCode, setInviteCode] = useState(searchParams.get('invite') || '');
+  const [showInviteField, setShowInviteField] = useState(!!searchParams.get('invite'));
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
@@ -85,11 +87,16 @@ export function Signup() {
     setIsLoading(true);
 
     try {
-      await signup(email, password, name, 'designer');
+      await signup(email, password, name, 'designer', undefined, inviteCode || undefined);
       observability.analytics.track('signup_complete', { method: 'email' });
       navigate(callbackUrl);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to create account');
+      const message = err instanceof Error ? err.message : 'Failed to create account';
+      // If server requires invite code, show the invite field
+      if (message.includes('invite code') || message.includes('INVITE_REQUIRED')) {
+        setShowInviteField(true);
+      }
+      setError(message);
     } finally {
       setIsLoading(false);
     }
@@ -321,6 +328,37 @@ export function Signup() {
                   </p>
                 )}
               </div>
+
+              {/* Invite Code (shown when required by backend or via URL param) */}
+              {showInviteField && (
+                <div>
+                  <label htmlFor="inviteCode" className="block text-[10px] uppercase tracking-wider text-gray-500 font-medium mb-1.5">
+                    Invite Code
+                  </label>
+                  <input
+                    id="inviteCode"
+                    type="text"
+                    value={inviteCode}
+                    onChange={(e) => setInviteCode(e.target.value.toUpperCase())}
+                    className="w-full px-4 py-3 bg-[#1a1a1a] border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-transparent transition-all font-mono tracking-wider"
+                    placeholder="ABCD-1234"
+                    autoComplete="off"
+                  />
+                  <p className="mt-1 text-xs text-gray-500">
+                    During beta, an invite code is required to create an account.
+                  </p>
+                </div>
+              )}
+
+              {!showInviteField && (
+                <button
+                  type="button"
+                  onClick={() => setShowInviteField(true)}
+                  className="text-xs text-gray-500 hover:text-gray-300 transition-colors"
+                >
+                  Have an invite code?
+                </button>
+              )}
 
               <button
                 type="submit"

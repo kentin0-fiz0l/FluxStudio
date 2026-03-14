@@ -159,7 +159,7 @@ describe('aiSlice (extended)', () => {
       const id = store.getState().ai.requestGeneration({
         type: 'image',
         prompt: 'A landscape',
-        model: 'claude-sonnet-4-20250514',
+        model: 'claude-sonnet-4-6',
       });
 
       // Complete the request first
@@ -171,9 +171,9 @@ describe('aiSlice (extended)', () => {
     });
 
     it('clearCompletedGenerations should keep only active requests', () => {
-      const id1 = store.getState().ai.requestGeneration({ type: 'text', prompt: 'a', model: 'claude-sonnet-4-20250514' });
-      const id2 = store.getState().ai.requestGeneration({ type: 'text', prompt: 'b', model: 'claude-sonnet-4-20250514' });
-      const id3 = store.getState().ai.requestGeneration({ type: 'text', prompt: 'c', model: 'claude-sonnet-4-20250514' });
+      const id1 = store.getState().ai.requestGeneration({ type: 'text', prompt: 'a', model: 'claude-sonnet-4-6' });
+      const id2 = store.getState().ai.requestGeneration({ type: 'text', prompt: 'b', model: 'claude-sonnet-4-6' });
+      const id3 = store.getState().ai.requestGeneration({ type: 'text', prompt: 'c', model: 'claude-sonnet-4-6' });
 
       store.getState().ai.updateGenerationStatus(id1, { status: 'completed' });
       store.getState().ai.cancelGeneration(id2); // sets to failed
@@ -192,9 +192,9 @@ describe('aiSlice (extended)', () => {
     });
 
     it('createConversation with no model should use preference default', () => {
-      store.getState().ai.updatePreferences({ defaultModel: 'claude-3-5-haiku-20241022' });
+      store.getState().ai.updatePreferences({ defaultModel: 'claude-haiku-4-5-20251001' });
       store.getState().ai.createConversation();
-      expect(store.getState().ai.conversations[0].model).toBe('claude-3-5-haiku-20241022');
+      expect(store.getState().ai.conversations[0].model).toBe('claude-haiku-4-5-20251001');
     });
   });
 

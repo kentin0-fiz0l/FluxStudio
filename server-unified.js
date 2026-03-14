@@ -690,17 +690,30 @@ const browserRoutes = require('./routes/browser');
 app.use('/browser', browserRoutes);
 app.use('/api/browser', browserRoutes);
 
+// Sprint 92: Beta waitlist
+const betaRoutes = require('./routes/beta');
+app.use('/beta', betaRoutes);
+app.use('/api/beta', betaRoutes);
+
 // Sprint 42: Feature Flags
 const adminFlagsRoutes = require('./routes/admin-flags');
 const { featureFlagMiddleware, getFlag } = require('./lib/featureFlags');
 
 // Sprint 56: Public flag check for signup beta gate (no auth required)
+// Phase 4: open_registration flag overrides beta gate
 const betaStatusHandler = async (_req, res) => {
   try {
+    const openRegFlag = await getFlag('open_registration');
+    const openRegistration = !!(openRegFlag && openRegFlag.enabled);
+    // If open registration is on, beta gate is effectively disabled
+    if (openRegistration) {
+      return res.json({ betaInviteRequired: false, openRegistration: true });
+    }
     const flag = await getFlag('beta_invite_required');
-    res.json({ betaInviteRequired: !!(flag && flag.enabled) });
+    res.json({ betaInviteRequired: !!(flag && flag.enabled), openRegistration: false });
   } catch {
-    res.json({ betaInviteRequired: false });
+    // Default to open registration when flags unavailable
+    res.json({ betaInviteRequired: false, openRegistration: true });
   }
 };
 app.get('/flags/beta-status', betaStatusHandler);

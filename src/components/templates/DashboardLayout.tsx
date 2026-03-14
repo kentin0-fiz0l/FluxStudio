@@ -24,6 +24,7 @@ import { MobileBottomNav } from '@/components/mobile/MobileBottomNav';
 import { KeyboardShortcutsDialog, useKeyboardShortcuts } from '@/components/ui/KeyboardShortcutsDialog';
 import { useShortcutRegistry } from '@/contexts/KeyboardShortcutsContext';
 import { OfflineIndicator } from '@/components/OfflineIndicator';
+import { TrialBanner } from '@/components/TrialBanner';
 import { useSwipeBack } from '@/hooks/useSwipeBack';
 import { useSwipeSidebar } from '@/hooks/useSwipeSidebar';
 import { useBreadcrumbs } from '@/hooks/useBreadcrumbs';
@@ -278,6 +279,9 @@ export const DashboardLayout = React.forwardRef<HTMLDivElement, DashboardLayoutP
 
           {/* Offline / Sync Status Banner */}
           <OfflineIndicator />
+
+          {/* Trial countdown banner */}
+          <TrialBanner />
 
           {/* Page Content — pb-16 accounts for MobileBottomNav on small screens */}
           <main

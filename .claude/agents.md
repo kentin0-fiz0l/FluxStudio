@@ -82,12 +82,12 @@ Implement AI-powered features using Claude/Anthropic API and other AI services.
 
 1. **Anthropic SDK Usage**
    ```javascript
-   const Anthropic = require('@anthropic-ai/sdk');
-   const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+   const { getClient } = require('../lib/ai/client');
+   const { getModelForTask, getMaxTokensForTask } = require('../lib/ai/config');
 
-   const stream = await anthropic.messages.stream({
-     model: 'claude-sonnet-4-20250514',
-     max_tokens: 4096,
+   const stream = await getClient().messages.stream({
+     model: getModelForTask('chat'),
+     max_tokens: getMaxTokensForTask('chat'),
      messages: [{ role: 'user', content: userMessage }],
    });
    ```

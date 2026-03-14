@@ -158,6 +158,8 @@ export function useCanvasState(props: FormationCanvasProps) {
 
   // Group panel visibility
   const [showGroupPanel, setShowGroupPanel] = useState(false);
+  // Collaborator activity panel visibility
+  const [showCollabActivity, setShowCollabActivity] = useState(false);
   const [playbackState, setPlaybackState] = useState<PlaybackState>({ isPlaying: false, currentTime: 0, duration: 5000, loop: false, speed: 1 });
   const [ghostTrail, setGhostTrail] = useState<Array<{ time: number; positions: Map<string, Position> }>>([]);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
@@ -206,6 +208,7 @@ export function useCanvasState(props: FormationCanvasProps) {
     showMeasurements, setShowMeasurements,
     measurementStepSize, setMeasurementStepSize,
     showGroupPanel, setShowGroupPanel,
+    showCollabActivity, setShowCollabActivity,
     playbackState, setPlaybackState,
     ghostTrail, setGhostTrail,
     hasUnsavedChanges, setHasUnsavedChanges,

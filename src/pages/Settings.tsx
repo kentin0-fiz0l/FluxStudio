@@ -29,14 +29,14 @@ import {
   Camera,
   User,
 } from 'lucide-react';
-import { FigmaIntegration } from '@/components/organisms/FigmaIntegration';
-import { SlackIntegration } from '@/components/organisms/SlackIntegration';
-import { GitHubIntegration } from '@/components/organisms/GitHubIntegration';
+const FigmaIntegration = React.lazy(() => import('@/components/organisms/FigmaIntegration').then(m => ({ default: m.FigmaIntegration })));
+const SlackIntegration = React.lazy(() => import('@/components/organisms/SlackIntegration').then(m => ({ default: m.SlackIntegration })));
+const GitHubIntegration = React.lazy(() => import('@/components/organisms/GitHubIntegration').then(m => ({ default: m.GitHubIntegration })));
 import { LanguageSwitcher } from '@/components/ui/LanguageSwitcher';
 import { useTranslation } from 'react-i18next';
 import { toast } from '../lib/toast';
 import { apiService, type UserSettings } from '../services/apiService';
-import { TwoFactorSetup } from '@/components/settings/TwoFactorSetup';
+const TwoFactorSetup = React.lazy(() => import('@/components/settings/TwoFactorSetup').then(m => ({ default: m.TwoFactorSetup })));
 import {
   isPushSupported,
   getPermissionState,
@@ -404,16 +404,13 @@ function Settings() {
             </div>
           </div>
 
-          <div className="grid lg:grid-cols-2 gap-4 md:gap-6">
-            {/* Figma Integration */}
-            <FigmaIntegration />
-
-            {/* Slack Integration */}
-            <SlackIntegration />
-
-            {/* GitHub Integration */}
-            <GitHubIntegration />
-          </div>
+          <React.Suspense fallback={<div className="grid lg:grid-cols-2 gap-4 md:gap-6"><div className="h-48 rounded-lg bg-neutral-100 dark:bg-neutral-800 animate-pulse" /><div className="h-48 rounded-lg bg-neutral-100 dark:bg-neutral-800 animate-pulse" /><div className="h-48 rounded-lg bg-neutral-100 dark:bg-neutral-800 animate-pulse" /></div>}>
+            <div className="grid lg:grid-cols-2 gap-4 md:gap-6">
+              <FigmaIntegration />
+              <SlackIntegration />
+              <GitHubIntegration />
+            </div>
+          </React.Suspense>
         </div>
 
         <div className="grid lg:grid-cols-2 gap-4 md:gap-6">
@@ -658,10 +655,12 @@ function Settings() {
 
               {/* Two-Factor Authentication — Sprint 41 */}
               <div className="p-4 bg-neutral-50 dark:bg-neutral-800 rounded-lg">
-                <TwoFactorSetup
-                  is2FAEnabled={false}
-                  onStatusChange={(enabled) => toast.success(enabled ? '2FA enabled' : '2FA disabled')}
-                />
+                <React.Suspense fallback={<div className="h-24 animate-pulse bg-neutral-100 dark:bg-neutral-700 rounded" />}>
+                  <TwoFactorSetup
+                    is2FAEnabled={false}
+                    onStatusChange={(enabled) => toast.success(enabled ? '2FA enabled' : '2FA disabled')}
+                  />
+                </React.Suspense>
               </div>
             </div>
           </Card>

@@ -24,6 +24,8 @@ export interface FormationCanvasProps {
   sandboxPositions?: Map<string, Position>;
   /** Called when positions change (e.g. for auto-save in sandbox) */
   onPositionsChange?: (positions: Map<string, Position>) => void;
+  /** Formation template ID to auto-apply when the canvas first loads (e.g. from onboarding) */
+  initialTemplateId?: string;
 }
 
 export interface Marquee {

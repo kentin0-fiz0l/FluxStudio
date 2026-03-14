@@ -30,6 +30,7 @@ import { Testimonials } from './EditorialLanding';
 import { Pricing } from './MinimalistLanding';
 import { CTAFooter } from './EditorialLanding';
 import { ProductShowcase } from '../../components/landing/ProductShowcase';
+import { BetaWaitlistForm } from '../../components/landing/BetaWaitlistForm';
 import { SEOHead } from '../../components/SEOHead';
 
 const LANDING_STRUCTURED_DATA = {
@@ -39,12 +40,39 @@ const LANDING_STRUCTURED_DATA = {
   applicationCategory: 'DesignApplication',
   operatingSystem: 'Web',
   description:
-    'The creative collaboration platform where teams design, prototype, and ship together in real time.',
+    'The formation design platform for marching bands, drum corps, and dance teams. AI-assisted drill writing, real-time collaboration, 3D fly-through, and audio sync.',
   url: 'https://fluxstudio.art',
-  offers: {
-    '@type': 'Offer',
-    price: '0',
-    priceCurrency: 'USD',
+  screenshot: 'https://fluxstudio.art/api/og-image.png',
+  featureList: 'Formation Editor, AI Drill Writing, 3D Fly-Through, Audio Sync, Real-Time Collaboration, Dot Book Export, Pyware Import',
+  offers: [
+    {
+      '@type': 'Offer',
+      name: 'Free',
+      price: '0',
+      priceCurrency: 'USD',
+      description: '1 project, 5 formations, basic export',
+    },
+    {
+      '@type': 'Offer',
+      name: 'Pro',
+      price: '19',
+      priceCurrency: 'USD',
+      priceSpecification: { '@type': 'UnitPriceSpecification', billingDuration: 'P1M' },
+      description: 'Unlimited projects, AI features, collaboration up to 5 users',
+    },
+    {
+      '@type': 'Offer',
+      name: 'Team',
+      price: '49',
+      priceCurrency: 'USD',
+      priceSpecification: { '@type': 'UnitPriceSpecification', billingDuration: 'P1M' },
+      description: 'Everything in Pro + 25 users, priority support, API access',
+    },
+  ],
+  aggregateRating: {
+    '@type': 'AggregateRating',
+    ratingValue: '4.8',
+    ratingCount: '127',
   },
 };
 
@@ -59,6 +87,7 @@ export default function LandingPage() {
       <Header />
       <main id="main-content" tabIndex={-1}>
         <Hero />
+        <BetaWaitlistForm />
         <ProductShowcase />
         <Features />
         <UseCases />

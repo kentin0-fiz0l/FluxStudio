@@ -125,7 +125,7 @@ jobs:
       branch: main
       deploy_on_push: true
     build_command: corepack enable && pnpm install --frozen-lockfile
-    run_command: node database/run-migrations.js
+    run_command: node database/run-migrations.js && node database/verify-schema.js
     environment_slug: node-js
     kind: PRE_DEPLOY
     envs:

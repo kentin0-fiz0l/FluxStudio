@@ -124,8 +124,19 @@ postgresql://username:password@host:5432/database_name?sslmode=require
 |----------|----------|---------|-------------|
 | `ANTHROPIC_API_KEY` | No | - | Anthropic API key for Claude AI features (design review, code generation, summaries) |
 | `AI_SUMMARIES_ENABLED` | No | `false` | Enable AI-powered conversation summaries (`true` to enable) |
+| `FLUXSTUDIO_MODEL_{TASK}` | No | - | Override model for a specific task (e.g. `FLUXSTUDIO_MODEL_CHAT=claude-opus-4-6`) |
+| `DESIGN_AI_MODEL` | No | - | Legacy: override model for design-feedback task |
+| `AI_SEARCH_MODEL` | No | - | Legacy: override model for search task |
+| `METMAP_AI_MODEL` | No | - | Legacy: override model for metmap task |
 
-> **Note**: AI endpoints will return helpful error messages when `ANTHROPIC_API_KEY` is not set. Some endpoints (like project structure generation) will fall back to local heuristics. The default model used is `claude-sonnet-4-5-20250929` for cost-effectiveness.
+> **Note**: AI endpoints will return helpful error messages when `ANTHROPIC_API_KEY` is not set. Some endpoints (like project structure generation) will fall back to local heuristics.
+>
+> **Model routing**: Tasks are automatically routed to the optimal model tier:
+> - **Haiku** (`claude-haiku-4-5-20251001`): search, summarize, daily-brief, palette
+> - **Sonnet** (`claude-sonnet-4-6`): chat, design-feedback, metmap, template, drill-paths
+> - **Opus** (`claude-opus-4-6`): design-review, code-generate, show-generate, formation-draft (with extended thinking)
+>
+> Use `FLUXSTUDIO_MODEL_{TASK}` env vars to override any task's model (e.g. `FLUXSTUDIO_MODEL_CHAT=claude-opus-4-6`). Task names use uppercase with hyphens replaced by underscores.
 
 ### External Services
 

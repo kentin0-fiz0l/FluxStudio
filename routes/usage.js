@@ -14,8 +14,8 @@ const router = express.Router();
 
 // Plan limits (mirrors src/config/plans.ts)
 const PLAN_LIMITS = {
-  free: { projects: 3, storageBytes: 500 * 1024 * 1024, aiCallsPerMonth: 10, collaborators: 1 },
-  pro: { projects: -1, storageBytes: 10 * 1024 * 1024 * 1024, aiCallsPerMonth: 100, collaborators: 10 },
+  free: { projects: 2, storageBytes: 250 * 1024 * 1024, aiCallsPerMonth: 5, collaborators: 1 },
+  pro: { projects: -1, storageBytes: 10 * 1024 * 1024 * 1024, aiCallsPerMonth: 200, collaborators: 5 },
   team: { projects: -1, storageBytes: 100 * 1024 * 1024 * 1024, aiCallsPerMonth: -1, collaborators: -1 },
 };
 

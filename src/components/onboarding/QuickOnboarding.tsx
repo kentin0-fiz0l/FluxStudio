@@ -5,8 +5,8 @@
  * Users create their first project in under 60 seconds.
  */
 
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { apiService } from '@/services/apiService';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -75,6 +75,7 @@ const templates: ProjectTemplate[] = [
 
 export function QuickOnboarding({ onComplete, onSkip }: QuickOnboardingProps) {
   const navigate = useNavigate();
+  const location = useLocation();
   const { user } = useAuth();
   const [projectName, setProjectName] = useState('');
   const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null);
@@ -82,10 +83,62 @@ export function QuickOnboarding({ onComplete, onSkip }: QuickOnboardingProps) {
   const [step, setStep] = useState<'name' | 'template' | 'creating' | 'done'>('name');
   const [performerCount, setPerformerCount] = useState('8');
 
+  // Check if arriving from OnboardingV2 with a formation template
+  const locationState = location.state as {
+    fromOnboardingV2?: boolean;
+    templateId?: string | null;
+    userRole?: string;
+  } | null;
+  const fromOnboardingV2 = locationState?.fromOnboardingV2 ?? false;
+  const onboardingTemplateId = locationState?.templateId ?? sessionStorage.getItem('onboarding_v2_template');
+  const onboardingRole = locationState?.userRole ?? sessionStorage.getItem('onboarding_v2_role');
+
   // Check if user has sandbox formations to import
   const hasSandboxData = (() => {
     try { return !!localStorage.getItem('tryEditor_formations'); } catch { return false; }
   })();
+
+  // Auto-create project when arriving from OnboardingV2
+  useEffect(() => {
+    if (!fromOnboardingV2 || isCreating) return;
+
+    const autoName = onboardingRole === 'band_director'
+      ? `My First Show`
+      : `My First Design`;
+    setProjectName(autoName);
+    setSelectedTemplate(onboardingRole === 'band_director' ? 'marching-band' : 'design-project');
+
+    // Auto-launch project creation
+    (async () => {
+      setStep('creating');
+      setIsCreating(true);
+      try {
+        const result = await apiService.post<{ data?: { id: string }; id?: string }>('/projects', {
+          name: autoName,
+          template: onboardingRole === 'band_director' ? 'marching-band' : 'design-project',
+          status: 'planning',
+          priority: 'medium',
+        });
+
+        const project = result.data?.data || result.data;
+        setStep('done');
+
+        // Store the formation template for the editor to pick up
+        if (onboardingTemplateId) {
+          sessionStorage.setItem('onboarding_v2_template', onboardingTemplateId);
+        }
+
+        setTimeout(() => {
+          // Navigate directly to formation editor so the template is applied
+          navigate(`/projects/${project?.id ?? ''}/formations`, { replace: true });
+        }, 1500);
+      } catch (error) {
+        console.error('Failed to auto-create project:', error);
+        setIsCreating(false);
+        setStep('name');
+      }
+    })();
+  }, [fromOnboardingV2]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleCreateProject = async () => {
     if (!projectName.trim()) return;

@@ -908,6 +908,284 @@ const fullFieldShowTemplate: DrillTemplate = (() => {
 })();
 
 // ============================================================================
+// PHASE 4 TEMPLATES — Transition-demonstrating templates for new users
+// ============================================================================
+
+// Concert Arc - semicircular arc formation (like a concert band seating)
+const concertArcTemplate: DrillTemplate = (() => {
+  const count = 16;
+  const performers: TemplatePerformer[] = [];
+  const kf0Positions = new Map<number, TemplatePosition>();
+
+  // Two rows of arcs
+  for (let row = 0; row < 2; row++) {
+    const rowCount = row === 0 ? 10 : 6;
+    const radius = 30 + row * 12;
+    const startAngle = Math.PI + Math.PI * 0.15;
+    const endAngle = 2 * Math.PI - Math.PI * 0.15;
+    for (let i = 0; i < rowCount; i++) {
+      const idx = row === 0 ? i : 10 + i;
+      if (idx >= count) break;
+      const angle = startAngle + (i / (rowCount - 1)) * (endAngle - startAngle);
+      const x = 50 + Math.cos(angle) * radius;
+      const y = 65 + Math.sin(angle) * radius;
+      performers.push({ index: idx, label: String(idx + 1), relativePosition: { x, y, rotation: 0 } });
+      kf0Positions.set(idx, { x, y, rotation: 0 });
+    }
+  }
+
+  // Keyframe 2: transition to company front
+  const kf1Positions = new Map<number, TemplatePosition>();
+  for (let i = 0; i < count; i++) {
+    kf1Positions.set(i, { x: 10 + (i * 80) / 15, y: 50, rotation: 0 });
+  }
+
+  // Keyframe 3: back to arc
+  const kf2Positions = new Map<number, TemplatePosition>(kf0Positions);
+
+  return createTemplate(
+    'show-concert-arc',
+    'Concert Arc',
+    'Semicircular concert seating arc with transition to company front and back',
+    'drill',
+    performers,
+    [
+      createInitialKeyframe(kf0Positions),
+      { index: 1, timestamp: 4000, transition: 'ease-in-out', positions: kf1Positions },
+      { index: 2, timestamp: 8000, transition: 'ease-in-out', positions: kf2Positions },
+    ],
+    {
+      tags: ['drill', 'marching', 'show', 'concert', 'arc', 'transition', 'multi-set'],
+      parameters: { minPerformers: 8, maxPerformers: 32, scalable: true, reversible: true, mirrorable: true, rotatable: true },
+    }
+  );
+})();
+
+// Diamond → Box transition (demonstrates morph animation)
+const diamondToBoxTemplate: DrillTemplate = (() => {
+  const count = 16;
+  const performers: TemplatePerformer[] = [];
+
+  // Keyframe 1: Diamond shape
+  const kf0Positions = new Map<number, TemplatePosition>();
+  const diamondPoints: [number, number][] = [];
+  const perSide = 4;
+  const cx = 50, cy = 50, r = 30;
+  // Top-right
+  for (let i = 0; i < perSide; i++) { const t = i / perSide; diamondPoints.push([cx + t * r, cy - (1 - t) * r]); }
+  // Bottom-right
+  for (let i = 0; i < perSide; i++) { const t = i / perSide; diamondPoints.push([cx + (1 - t) * r, cy + t * r]); }
+  // Bottom-left
+  for (let i = 0; i < perSide; i++) { const t = i / perSide; diamondPoints.push([cx - t * r, cy + (1 - t) * r]); }
+  // Top-left
+  for (let i = 0; i < perSide; i++) { const t = i / perSide; diamondPoints.push([cx - (1 - t) * r, cy - t * r]); }
+
+  for (let i = 0; i < count; i++) {
+    const [x, y] = diamondPoints[i];
+    performers.push({ index: i, label: String(i + 1), relativePosition: { x, y, rotation: 0 } });
+    kf0Positions.set(i, { x, y, rotation: 0 });
+  }
+
+  // Keyframe 2: Box/rectangle
+  const kf1Positions = new Map<number, TemplatePosition>();
+  for (let i = 0; i < count; i++) {
+    const side = Math.floor(i / perSide);
+    const pos = i % perSide;
+    const t = pos / (perSide - 1);
+    let x = 50, y = 50;
+    if (side === 0) { x = 25 + t * 50; y = 25; }
+    else if (side === 1) { x = 75; y = 25 + t * 50; }
+    else if (side === 2) { x = 75 - t * 50; y = 75; }
+    else { x = 25; y = 75 - t * 50; }
+    kf1Positions.set(i, { x, y, rotation: 0 });
+  }
+
+  // Keyframe 3: Back to diamond
+  const kf2Positions = new Map<number, TemplatePosition>(kf0Positions);
+
+  return createTemplate(
+    'show-diamond-to-box',
+    'Diamond → Box',
+    'Classic transition: diamond formation morphs into a box and back. Demonstrates the morph animation.',
+    'drill',
+    performers,
+    [
+      createInitialKeyframe(kf0Positions),
+      { index: 1, timestamp: 4000, transition: 'ease-in-out', positions: kf1Positions },
+      { index: 2, timestamp: 8000, transition: 'ease-in-out', positions: kf2Positions },
+    ],
+    {
+      tags: ['drill', 'marching', 'show', 'diamond', 'box', 'transition', 'morph', 'multi-set'],
+      parameters: { minPerformers: 8, maxPerformers: 32, scalable: true, reversible: true, mirrorable: true, rotatable: true },
+    }
+  );
+})();
+
+// Diagonal Line → Company Front (classic drill move)
+const diagonalToFrontTemplate: DrillTemplate = (() => {
+  const count = 12;
+  const performers: TemplatePerformer[] = [];
+
+  // Keyframe 1: Diagonal line (top-left to bottom-right)
+  const kf0Positions = new Map<number, TemplatePosition>();
+  for (let i = 0; i < count; i++) {
+    const t = i / (count - 1);
+    const x = 15 + t * 70;
+    const y = 20 + t * 60;
+    performers.push({ index: i, label: String(i + 1), relativePosition: { x, y, rotation: 0 } });
+    kf0Positions.set(i, { x, y, rotation: 0 });
+  }
+
+  // Keyframe 2: Company front (horizontal line)
+  const kf1Positions = new Map<number, TemplatePosition>();
+  for (let i = 0; i < count; i++) {
+    kf1Positions.set(i, { x: 10 + (i * 80) / (count - 1), y: 50, rotation: 0 });
+  }
+
+  // Keyframe 3: Reverse diagonal (top-right to bottom-left)
+  const kf2Positions = new Map<number, TemplatePosition>();
+  for (let i = 0; i < count; i++) {
+    const t = i / (count - 1);
+    kf2Positions.set(i, { x: 85 - t * 70, y: 20 + t * 60, rotation: 0 });
+  }
+
+  return createTemplate(
+    'show-diagonal-to-front',
+    'Diagonal → Company Front',
+    'Classic drill move: diagonal line transitions to company front, then reverses. A fundamental marching band transition.',
+    'drill',
+    performers,
+    [
+      createInitialKeyframe(kf0Positions),
+      { index: 1, timestamp: 4000, transition: 'linear', positions: kf1Positions },
+      { index: 2, timestamp: 8000, transition: 'linear', positions: kf2Positions },
+    ],
+    {
+      tags: ['drill', 'marching', 'show', 'diagonal', 'company-front', 'transition', 'classic', 'multi-set'],
+      parameters: { minPerformers: 4, maxPerformers: 24, scalable: true, reversible: true, mirrorable: true, rotatable: true },
+    }
+  );
+})();
+
+// Scatter → Logo (advanced — scatter to arranged letter/shape)
+const scatterToLogoTemplate: DrillTemplate = (() => {
+  const count = 20;
+  const performers: TemplatePerformer[] = [];
+
+  // Keyframe 1: Scattered positions (quasi-random using golden ratio)
+  const kf0Positions = new Map<number, TemplatePosition>();
+  for (let i = 0; i < count; i++) {
+    const phi = (1 + Math.sqrt(5)) / 2;
+    const x = 15 + ((i * phi * 37) % 70);
+    const y = 15 + ((i * phi * 23 + 11) % 70);
+    performers.push({ index: i, label: String(i + 1), relativePosition: { x, y, rotation: 0 } });
+    kf0Positions.set(i, { x, y, rotation: 0 });
+  }
+
+  // Keyframe 2: "F" letter formation (for FluxStudio)
+  const fPositions: [number, number][] = [
+    // Vertical bar of F
+    [30, 20], [30, 28], [30, 36], [30, 44], [30, 52], [30, 60], [30, 68], [30, 76],
+    // Top horizontal bar
+    [38, 20], [46, 20], [54, 20], [62, 20], [70, 20],
+    // Middle horizontal bar
+    [38, 48], [46, 48], [54, 48], [62, 48],
+    // Extra performers fill the top area
+    [38, 28], [46, 28], [54, 28],
+  ];
+  const kf1Positions = new Map<number, TemplatePosition>();
+  for (let i = 0; i < count; i++) {
+    const [x, y] = fPositions[i] || [50, 50];
+    kf1Positions.set(i, { x, y, rotation: 0 });
+  }
+
+  // Keyframe 3: Circle formation (celebration)
+  const kf2Positions = new Map<number, TemplatePosition>();
+  for (let i = 0; i < count; i++) {
+    const angle = (i / count) * 2 * Math.PI - Math.PI / 2;
+    kf2Positions.set(i, {
+      x: 50 + Math.cos(angle) * 30,
+      y: 50 + Math.sin(angle) * 30,
+      rotation: 0,
+    });
+  }
+
+  return createTemplate(
+    'show-scatter-to-logo',
+    'Scatter → Logo',
+    'Advanced transition: scattered performers converge into an "F" logo formation, then celebrate in a circle. Shows the power of morph animations.',
+    'drill',
+    performers,
+    [
+      createInitialKeyframe(kf0Positions),
+      { index: 1, timestamp: 5000, transition: 'ease-in-out', positions: kf1Positions },
+      { index: 2, timestamp: 10000, transition: 'ease-in-out', positions: kf2Positions },
+    ],
+    {
+      tags: ['drill', 'marching', 'show', 'scatter', 'logo', 'letter', 'advanced', 'transition', 'morph', 'multi-set'],
+      parameters: { minPerformers: 12, maxPerformers: 40, scalable: true, reversible: true, mirrorable: true, rotatable: true },
+    }
+  );
+})();
+
+// Basic Block Band - larger 32-performer block for full band directors
+const basicBlockBandTemplate: DrillTemplate = (() => {
+  const rows = 4, cols = 8, count = rows * cols;
+  const performers: TemplatePerformer[] = [];
+  const kf0Positions = new Map<number, TemplatePosition>();
+
+  for (let r = 0; r < rows; r++) {
+    for (let c = 0; c < cols; c++) {
+      const i = r * cols + c;
+      const x = 10 + (c * 80) / (cols - 1);
+      const y = 30 + (r * 40) / (rows - 1);
+      performers.push({ index: i, label: String(i + 1), relativePosition: { x, y, rotation: 0 } });
+      kf0Positions.set(i, { x, y, rotation: 0 });
+    }
+  }
+
+  // Keyframe 2: Compact block (tighter spacing)
+  const kf1Positions = new Map<number, TemplatePosition>();
+  for (let r = 0; r < rows; r++) {
+    for (let c = 0; c < cols; c++) {
+      const i = r * cols + c;
+      kf1Positions.set(i, {
+        x: 30 + (c * 40) / (cols - 1),
+        y: 35 + (r * 30) / (rows - 1),
+        rotation: 0,
+      });
+    }
+  }
+
+  // Keyframe 3: Wide company front (all in one line)
+  const kf2Positions = new Map<number, TemplatePosition>();
+  for (let i = 0; i < count; i++) {
+    kf2Positions.set(i, {
+      x: 3 + (i * 94) / (count - 1),
+      y: 50,
+      rotation: 0,
+    });
+  }
+
+  return createTemplate(
+    'show-basic-block-band',
+    'Basic Block Band',
+    'Full 32-performer block formation with transitions to compact block and wide company front. Perfect starting point for full band shows.',
+    'drill',
+    performers,
+    [
+      createInitialKeyframe(kf0Positions),
+      { index: 1, timestamp: 4000, transition: 'linear', positions: kf1Positions },
+      { index: 2, timestamp: 8000, transition: 'linear', positions: kf2Positions },
+    ],
+    {
+      tags: ['drill', 'marching', 'show', 'block', 'band', 'full', 'transition', 'beginner', 'multi-set'],
+      parameters: { minPerformers: 16, maxPerformers: 64, scalable: true, reversible: true, mirrorable: true, rotatable: true },
+    }
+  );
+})();
+
+// ============================================================================
 // TEMPLATE REGISTRY CLASS
 // ============================================================================
 
@@ -943,6 +1221,12 @@ class FormationTemplateRegistry {
       indoorDrumlineTemplate,
       colorGuardOpenerTemplate,
       fullFieldShowTemplate,
+      // Phase 4 transition-demonstrating templates
+      concertArcTemplate,
+      diamondToBoxTemplate,
+      diagonalToFrontTemplate,
+      scatterToLogoTemplate,
+      basicBlockBandTemplate,
     ];
 
     for (const template of builtIn) {

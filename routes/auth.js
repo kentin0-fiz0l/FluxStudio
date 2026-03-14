@@ -146,8 +146,13 @@ router.post('/signup',
         });
       }
 
-      // Beta invite code gate (Sprint 56)
-      const betaGateEnabled = req.isFeatureEnabled
+      // Open registration check (Phase 4) — skip beta gate when open registration is enabled
+      const openRegistration = req.isFeatureEnabled
+        ? await req.isFeatureEnabled('open_registration')
+        : true; // Default to open when feature flags unavailable
+
+      // Beta invite code gate (Sprint 56) — only enforce when open registration is disabled
+      const betaGateEnabled = !openRegistration && req.isFeatureEnabled
         ? await req.isFeatureEnabled('beta_invite_required')
         : false;
       if (betaGateEnabled) {

@@ -24,7 +24,7 @@ export function CheckoutSuccess() {
           transition={{ delay: 0.2 }}
           className="text-4xl font-bold mb-4 text-neutral-900 dark:text-white"
         >
-          Payment Successful!
+          Subscription Active!
         </motion.h1>
 
         <motion.p
@@ -33,7 +33,7 @@ export function CheckoutSuccess() {
           transition={{ delay: 0.3 }}
           className="text-xl text-neutral-500 dark:text-neutral-400 mb-8"
         >
-          Thank you for your purchase. Your creative journey begins now!
+          Your plan is now active. All features are ready to use!
         </motion.p>
 
         <motion.div
@@ -51,7 +51,7 @@ export function CheckoutSuccess() {
               <div>
                 <p className="font-medium text-neutral-900 dark:text-white">Check your email</p>
                 <p className="text-neutral-500 dark:text-neutral-400 text-sm">
-                  We've sent a confirmation email with your receipt and project details.
+                  We've sent a confirmation email with your receipt and subscription details.
                 </p>
               </div>
             </li>

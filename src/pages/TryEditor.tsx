@@ -11,8 +11,9 @@ import { useMemo, useEffect, useState, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FormationCanvas } from '@/components/formation';
 import { FormationEditorErrorBoundary } from '@/components/error/ErrorBoundary';
+import { FormationPromptBar } from '@/components/formation/FormationPromptBar';
 import { SEOHead } from '@/components/SEOHead';
-import { ArrowRight, X, Users, Shield } from 'lucide-react';
+import { ArrowRight, X, Users, Shield, Sparkles } from 'lucide-react';
 import { eventTracker } from '@/services/analytics/eventTracking';
 import { useFeatureFlag } from '@/hooks/useFeatureFlag';
 import { FEATURE_FLAGS } from '@/constants/featureFlags';
@@ -72,6 +73,7 @@ export default function TryEditor() {
   const navigate = useNavigate();
   const [showBanner, setShowBanner] = useState(true);
   const [showExitIntent, setShowExitIntent] = useState(false);
+  const [showAiCTA, setShowAiCTA] = useState(false);
   const exitIntentShownRef = useRef(false);
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -79,7 +81,7 @@ export default function TryEditor() {
   const ctaVariantActive = useFeatureFlag(FEATURE_FLAGS.TRY_CTA_VARIANT);
 
   // Restore saved positions or fall back to default V-formation
-  const sandboxPositions = useMemo(() => {
+  const initialPositions = useMemo(() => {
     try {
       const saved = localStorage.getItem(STORAGE_KEY_FORMATIONS);
       if (saved) {
@@ -90,8 +92,11 @@ export default function TryEditor() {
     return buildSandboxPositions();
   }, []);
 
+  const [sandboxPositions, setSandboxPositions] = useState<Map<string, Position>>(initialPositions);
+
   // Debounced auto-save: save positions to localStorage on change
   const saveFormations = useCallback((positions: Map<string, Position>) => {
+    setSandboxPositions(positions);
     if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
     saveTimerRef.current = setTimeout(() => {
       try {
@@ -99,6 +104,13 @@ export default function TryEditor() {
       } catch { /* storage full or unavailable */ }
     }, 300);
   }, []);
+
+  // Handler for prompt bar applying positions
+  const handlePromptApply = useCallback((positions: Map<string, Position>) => {
+    saveFormations(positions);
+    setShowAiCTA(true);
+    eventTracker.trackEvent('sandbox_ai_used', { source: 'prompt_bar' });
+  }, [saveFormations]);
 
   // Track formation interactions for conversion badge
   const [interactionCount, setInteractionCount] = useState(() => {
@@ -196,7 +208,7 @@ export default function TryEditor() {
       )}
 
       {/* Editor in sandbox mode — pre-populated with V-formation */}
-      <div id="sandbox-canvas" className="flex-1 overflow-hidden">
+      <div id="sandbox-canvas" className="flex-1 overflow-hidden relative">
         <FormationEditorErrorBoundary>
           <FormationCanvas
             projectId="sandbox"
@@ -207,7 +219,42 @@ export default function TryEditor() {
             onPositionsChange={saveFormations}
           />
         </FormationEditorErrorBoundary>
+
+        {/* Formation prompt bar — AI-powered formation descriptions */}
+        <div className="absolute bottom-0 left-0 right-0 z-10">
+          <FormationPromptBar
+            performers={SANDBOX_PERFORMERS}
+            currentPositions={sandboxPositions}
+            selectedPerformerIds={[]}
+            onApplyPositions={handlePromptApply}
+          />
+        </div>
       </div>
+
+      {/* AI CTA — shown after user generates a formation via prompt bar */}
+      {showAiCTA && (
+        <div className="flex items-center justify-between px-4 py-2.5 bg-gradient-to-r from-green-600 to-emerald-600 text-white text-sm">
+          <div className="flex items-center gap-2">
+            <Sparkles className="w-4 h-4 text-green-200" aria-hidden="true" />
+            <span className="font-medium">Nice formation! Create a free account to save it and get more AI calls.</span>
+          </div>
+          <div className="flex items-center gap-3 flex-shrink-0">
+            <button
+              onClick={() => {
+                eventTracker.trackEvent('sandbox_signup_click', { source: 'ai_cta', interactions: interactionCount });
+                navigate('/signup?from=sandbox');
+              }}
+              className="flex items-center gap-1 px-4 py-1.5 bg-white text-green-700 rounded-lg font-medium text-sm hover:bg-green-50 transition-colors"
+            >
+              Create free account
+              <ArrowRight className="w-3.5 h-3.5" aria-hidden="true" />
+            </button>
+            <button onClick={() => setShowAiCTA(false)} className="p-1 text-green-300 hover:text-white">
+              <X className="w-4 h-4" aria-hidden="true" />
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Exit-intent modal (desktop only) */}
       {showExitIntent && (

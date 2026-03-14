@@ -114,7 +114,7 @@ describe('AI Routes', () => {
       mockCreate.mockResolvedValue({
         content: [{ text: 'Here is some design feedback.' }],
         usage: { input_tokens: 100, output_tokens: 50 },
-        model: 'claude-sonnet-4-5-20250929',
+        model: 'claude-sonnet-4-6',
       });
 
       const response = await request(app)
@@ -125,14 +125,14 @@ describe('AI Routes', () => {
       expect(response.status).toBe(200);
       expect(response.body.content).toBe('Here is some design feedback.');
       expect(response.body.tokensUsed).toBe(150);
-      expect(response.body.model).toBe('claude-sonnet-4-5-20250929');
+      expect(response.body.model).toBe('claude-sonnet-4-6');
     });
 
     it('should accept optional context parameter', async () => {
       mockCreate.mockResolvedValue({
         content: [{ text: 'Contextual response.' }],
         usage: { input_tokens: 120, output_tokens: 60 },
-        model: 'claude-sonnet-4-5-20250929',
+        model: 'claude-sonnet-4-6',
       });
 
       const response = await request(app)
@@ -347,7 +347,7 @@ describe('AI Routes', () => {
       mockCreate.mockResolvedValue({
         content: [{ text: 'Response' }],
         usage: { input_tokens: 10, output_tokens: 5 },
-        model: 'claude-sonnet-4-5-20250929',
+        model: 'claude-sonnet-4-6',
       });
 
       // We need to use the streaming endpoint to create a conversation in memory
