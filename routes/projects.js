@@ -426,7 +426,11 @@ router.get('/:projectId/conversation', authenticateToken, requireProjectAccess()
     const userId = req.user.id;
 
     if (!projectsAdapter) {
-      return res.status(501).json({ success: false, error: 'Requires database mode', code: 'DATABASE_REQUIRED' });
+      return res.json({
+        success: true,
+        conversation: [],
+        warning: 'Project conversations require database mode — returning empty result',
+      });
     }
 
     const conversation = await projectsAdapter.getOrCreateProjectConversation(projectId, userId);

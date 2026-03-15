@@ -63,7 +63,7 @@ export function useCanvasState(props: FormationCanvasProps) {
 
   const isCollaborativeEnabled = collaborativeMode ?? !!formationId;
 
-  const { formation: apiFormation, loading: apiLoading, error: apiError, save: apiSave, saving: apiSaving } = useFormation({ formationId, enabled: !!formationId && !isCollaborativeEnabled });
+  const { formation: apiFormation, loading: apiLoading, error: apiError, refetch: apiRefetch, save: apiSave, saving: apiSaving } = useFormation({ formationId, enabled: !!formationId && !isCollaborativeEnabled });
 
   // Forward declarations for state setters used in collab callback
   const [formation, setFormation] = useState<Formation | null>(() => {
@@ -168,7 +168,7 @@ export function useCanvasState(props: FormationCanvasProps) {
 
   return {
     // API / Collab
-    apiLoading, apiError, apiSave, apiSaving,
+    apiLoading, apiError, apiRefetch, apiSave, apiSaving,
     isCollaborativeEnabled, collab, currentUser,
     // Core state
     formation, setFormation,

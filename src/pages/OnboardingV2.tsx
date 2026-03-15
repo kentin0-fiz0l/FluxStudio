@@ -252,7 +252,7 @@ export function OnboardingV2() {
 
   const handleRoleSelect = (role: UserRole) => {
     setUserRole(role);
-    sessionStorage.setItem('onboarding_v2_role', role);
+    localStorage.setItem('onboarding_v2_role', role);
     eventTracker.trackEvent('onboarding_v2_role_selected', { role });
 
     // Persist role to user profile (non-blocking)
@@ -322,7 +322,7 @@ export function OnboardingV2() {
 
       // Store selected template for the editor to pick up
       if (templateId) {
-        sessionStorage.setItem('onboarding_v2_template', templateId);
+        localStorage.setItem('onboarding_v2_template', templateId);
       }
 
       // Fire AI welcome message (non-blocking)

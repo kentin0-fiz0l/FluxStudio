@@ -11,13 +11,15 @@
 
 import { useEffect, useState, useMemo, useCallback, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Loader2 } from 'lucide-react';
+import { FormationEditorSkeleton } from '../../loading/FeatureSkeletons';
+import { ErrorState } from '../../ui/error-state';
 import { Timeline } from '../Timeline';
 import { ExportDialog } from '../ExportDialog';
 import { AudioUpload } from '../AudioUpload';
 import { TemplatePicker } from '../TemplatePicker';
 import { DrillAnalysisPanel } from '../DrillAnalysisPanel';
 import { DrillCritiquePanel } from '../DrillCritiquePanel';
+import { DrillCritiquePanelErrorBoundary, FormationVersionHistoryErrorBoundary } from '../../error/featureBoundaries';
 import { MovementToolsPanel } from '../MovementToolsPanel';
 import { CoordinatePanel } from '../CoordinatePanel';
 import { StepSizeOverlay } from '../StepSizeOverlay';
@@ -77,7 +79,7 @@ export function FormationCanvas(props: FormationCanvasProps) {
   const state = useCanvasState(props);
 
   const {
-    apiLoading, apiError, apiSaving,
+    apiLoading, apiError, apiRefetch, apiSaving,
     isCollaborativeEnabled, collab, currentUser,
     formation, setFormation,
     selectedPerformerIds, setSelectedPerformerIds,
@@ -353,8 +355,8 @@ export function FormationCanvas(props: FormationCanvasProps) {
 
     appliedOnboardingTemplate.current = true;
     handleApplyTemplate({ templateId });
-    // Clean up sessionStorage so it doesn't re-apply on navigation
-    sessionStorage.removeItem('onboarding_v2_template');
+    // Clean up localStorage so it doesn't re-apply on navigation
+    localStorage.removeItem('onboarding_v2_template');
   }, [formation, initialTemplateId, handleApplyTemplate]);
 
   // All keyframe positions for heat map effects
@@ -528,27 +530,23 @@ export function FormationCanvas(props: FormationCanvasProps) {
 
   // Loading/error states
   if (apiLoading || (formationId && !formation)) {
-    return (
-      <div className="flex items-center justify-center h-full">
-        <div className="flex flex-col items-center gap-2">
-          <Loader2 className="w-8 h-8 animate-spin text-blue-500" aria-hidden="true" />
-          <span className="text-sm text-gray-500">{t('formation.loading', 'Loading formation...')}</span>
-        </div>
-      </div>
-    );
+    return <FormationEditorSkeleton />;
   }
   if (apiError) {
     return (
       <div className="flex items-center justify-center h-full">
-        <div className="flex flex-col items-center gap-2 text-red-500">
-          <span className="text-lg font-medium">{t('formation.errorLoading', 'Failed to load formation')}</span>
-          <span className="text-sm">{apiError}</span>
-        </div>
+        <ErrorState
+          title={t('formation.errorLoading', 'Failed to load formation')}
+          description={apiError}
+          errorType="server"
+          onRetry={() => apiRefetch()}
+          retryText="Retry"
+        />
       </div>
     );
   }
   if (!formation) {
-    return <div className="flex items-center justify-center h-full"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500" /></div>;
+    return <FormationEditorSkeleton />;
   }
 
   return (
@@ -793,15 +791,17 @@ export function FormationCanvas(props: FormationCanvasProps) {
               sets={drillSets}
               onNavigateToSet={handleNavigateToSet}
             />
-            <DrillCritiquePanel
-              formation={formation}
-              sets={drillSets}
-              currentPositions={currentPositions}
-              onHighlightPerformers={(ids) => setSelectedPerformerIds(new Set(ids))}
-              onAutoFixCollision={handleAutoFixCollision}
-              onAutoFixAllCollisions={handleAutoFixAllCollisions}
-              className="border-t border-gray-200 dark:border-gray-700"
-            />
+            <DrillCritiquePanelErrorBoundary>
+              <DrillCritiquePanel
+                formation={formation}
+                sets={drillSets}
+                currentPositions={currentPositions}
+                onHighlightPerformers={(ids) => setSelectedPerformerIds(new Set(ids))}
+                onAutoFixCollision={handleAutoFixCollision}
+                onAutoFixAllCollisions={handleAutoFixAllCollisions}
+                className="border-t border-gray-200 dark:border-gray-700"
+              />
+            </DrillCritiquePanelErrorBoundary>
           </div>
         )}
         {showGroupPanel && (
@@ -830,12 +830,14 @@ export function FormationCanvas(props: FormationCanvasProps) {
         )}
         {showVersionHistory && formation.id && (
           <div className={sidePanelClass}>
-            <FormationVersionHistoryPanel
-              formationId={formation.id}
-              currentFormation={formation}
-              onRestore={handleVersionRestore}
-              onClose={() => setShowVersionHistory(false)}
-            />
+            <FormationVersionHistoryErrorBoundary>
+              <FormationVersionHistoryPanel
+                formationId={formation.id}
+                currentFormation={formation}
+                onRestore={handleVersionRestore}
+                onClose={() => setShowVersionHistory(false)}
+              />
+            </FormationVersionHistoryErrorBoundary>
           </div>
         )}
         {showRehearsalMode && (

@@ -1,28 +1,77 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { Link, useSearchParams, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { CheckCircle, XCircle, Mail, Loader, RefreshCw } from 'lucide-react';
 import { apiService } from '@/services/apiService';
 
+const RESEND_COOLDOWN_SECONDS = 60;
+
 export function EmailVerification() {
   const [searchParams] = useSearchParams();
   const [status, setStatus] = useState<'verifying' | 'success' | 'error' | 'resend'>('verifying');
   const [message, setMessage] = useState('');
+  const [resendCooldown, setResendCooldown] = useState(0);
+  const cooldownRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const navigate = useNavigate();
   const token = searchParams.get('token');
   const email = searchParams.get('email');
+
+  const startCooldown = useCallback(() => {
+    setResendCooldown(RESEND_COOLDOWN_SECONDS);
+    if (cooldownRef.current) clearInterval(cooldownRef.current);
+    cooldownRef.current = setInterval(() => {
+      setResendCooldown((prev) => {
+        if (prev <= 1) {
+          if (cooldownRef.current) clearInterval(cooldownRef.current);
+          cooldownRef.current = null;
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (cooldownRef.current) clearInterval(cooldownRef.current);
+    };
+  }, []);
+
+  const getErrorMessage = (err: unknown): { message: string; code: string | null } => {
+    if (err && typeof err === 'object' && 'code' in err) {
+      const code = (err as { code: string }).code;
+      switch (code) {
+        case 'TOKEN_EXPIRED':
+        case 'AUTH_VERIFICATION_EXPIRED':
+          return { message: 'Your verification link has expired. Please request a new one.', code };
+        case 'TOKEN_INVALID':
+        case 'AUTH_INVALID_VERIFICATION_TOKEN':
+          return { message: 'This verification link is invalid. It may have already been used or the link is incorrect.', code };
+        case 'TOKEN_ALREADY_USED':
+          return { message: 'This verification link has already been used. Your email may already be verified.', code };
+        default:
+          break;
+      }
+    }
+    return {
+      message: err instanceof Error ? err.message : 'An error occurred during verification. Please try again.',
+      code: null,
+    };
+  };
 
   const verifyEmail = async (verificationToken: string) => {
     try {
       await apiService.post('/auth/verify-email', { token: verificationToken });
       setStatus('success');
+
       setMessage('Email verified successfully! Redirecting to dashboard...');
       setTimeout(() => {
         navigate('/dashboard');
       }, 3000);
     } catch (err) {
       setStatus('error');
-      setMessage(err instanceof Error ? err.message : 'An error occurred during verification. Please try again.');
+      const { message: msg } = getErrorMessage(err);
+      setMessage(msg);
     }
   };
 
@@ -31,6 +80,7 @@ export function EmailVerification() {
       verifyEmail(token);
     } else {
       setStatus('error');
+
       setMessage('No verification token provided');
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -42,6 +92,8 @@ export function EmailVerification() {
       return;
     }
 
+    if (resendCooldown > 0) return;
+
     setStatus('verifying');
     setMessage('Sending verification email...');
 
@@ -49,9 +101,15 @@ export function EmailVerification() {
       await apiService.post('/auth/resend-verification', { email });
       setStatus('resend');
       setMessage('Verification email sent! Please check your inbox.');
-    } catch (_error) {
+      startCooldown();
+    } catch (err) {
       setStatus('error');
-      setMessage('An error occurred. Please try again.');
+      if (err && typeof err === 'object' && 'code' in err && (err as { code: string }).code === 'RATE_LIMIT_EXCEEDED') {
+        setMessage('Please wait before requesting another verification email.');
+        startCooldown();
+      } else {
+        setMessage('An error occurred. Please try again.');
+      }
     }
   };
 
@@ -122,21 +180,33 @@ export function EmailVerification() {
             )}
 
             {status === 'error' && (
-              <button
-                onClick={handleResendEmail}
-                className="w-full py-3 px-6 rounded-lg bg-gradient-to-r from-blue-600 to-purple-600
-                         hover:from-blue-700 hover:to-purple-700 transition-all font-semibold
-                         flex items-center justify-center"
-              >
-                <RefreshCw className="h-4 w-4 mr-2" aria-hidden="true" />
-                Resend Verification Email
-              </button>
+              <>
+                <button
+                  onClick={handleResendEmail}
+                  disabled={resendCooldown > 0}
+                  className="w-full py-3 px-6 rounded-lg bg-gradient-to-r from-blue-600 to-purple-600
+                           hover:from-blue-700 hover:to-purple-700 transition-all font-semibold
+                           flex items-center justify-center
+                           disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <RefreshCw className="h-4 w-4 mr-2" aria-hidden="true" />
+                  {resendCooldown > 0
+                    ? `Resend available in ${resendCooldown}s`
+                    : 'Resend Verification Email'}
+                </button>
+                <p className="text-xs text-gray-500 mt-2">
+                  Can't find the email? Check your spam or junk folder.
+                </p>
+              </>
             )}
 
             {status === 'resend' && (
               <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-4">
                 <p className="text-sm text-blue-400">
                   Check your inbox and click the verification link.
+                </p>
+                <p className="text-xs text-gray-500 mt-2">
+                  Can't find the email? Check your spam or junk folder.
                 </p>
               </div>
             )}

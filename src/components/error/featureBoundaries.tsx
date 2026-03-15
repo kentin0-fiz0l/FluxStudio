@@ -3,7 +3,7 @@
  * Each provides appropriate fallback UI and logging for its domain.
  */
 
-import { ReactNode } from 'react';
+import { ReactNode, useState, useCallback } from 'react';
 import { AlertTriangle, RefreshCw, Home } from 'lucide-react';
 import { Button } from '../ui/button';
 import { createLogger } from '../../lib/logger';
@@ -260,5 +260,68 @@ export function ConnectorsErrorBoundary({ children }: { children: ReactNode }) {
     >
       {children}
     </ErrorBoundary>
+  );
+}
+
+/**
+ * Resettable inline error boundary with "Try again" support.
+ * Uses a key to force remount and reset the ErrorBoundary on retry.
+ */
+function ResettableFeatureBoundary({
+  children,
+  message,
+  logLabel,
+}: {
+  children: ReactNode;
+  message: string;
+  logLabel: string;
+}) {
+  const [resetKey, setResetKey] = useState(0);
+  const handleRetry = useCallback(() => setResetKey((k) => k + 1), []);
+
+  return (
+    <ErrorBoundary
+      key={resetKey}
+      isolateComponent
+      onError={(error) => boundaryLogger.error(`${logLabel} error`, error)}
+      fallback={
+        <div className="flex flex-col items-center justify-center p-4 text-center rounded-lg border border-dashed border-neutral-300 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-900 m-2">
+          <AlertTriangle className="h-5 w-5 text-orange-500 mb-2" aria-hidden="true" />
+          <p className="text-sm text-neutral-600 dark:text-neutral-400 mb-3">
+            {message}
+          </p>
+          <Button variant="outline" size="sm" onClick={handleRetry}>
+            <RefreshCw className="h-3.5 w-3.5 mr-1.5" aria-hidden="true" />
+            Try again
+          </Button>
+        </div>
+      }
+    >
+      {children}
+    </ErrorBoundary>
+  );
+}
+
+export function ChatMessageListErrorBoundary({ children }: { children: ReactNode }) {
+  return (
+    <ResettableFeatureBoundary message="Messages could not be loaded" logLabel="ChatMessageList">
+      {children}
+    </ResettableFeatureBoundary>
+  );
+}
+
+export function DrillCritiquePanelErrorBoundary({ children }: { children: ReactNode }) {
+  return (
+    <ResettableFeatureBoundary message="AI analysis temporarily unavailable" logLabel="DrillCritiquePanel">
+      {children}
+    </ResettableFeatureBoundary>
+  );
+}
+
+export function FormationVersionHistoryErrorBoundary({ children }: { children: ReactNode }) {
+  return (
+    <ResettableFeatureBoundary message="Version history unavailable" logLabel="FormationVersionHistory">
+      {children}
+    </ResettableFeatureBoundary>
   );
 }

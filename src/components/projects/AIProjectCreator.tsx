@@ -8,7 +8,7 @@
  * - Recommended team roles
  */
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -69,6 +69,20 @@ export function AIProjectCreator({
     folders: false,
     tasks: false,
   });
+  const [showSlowMessage, setShowSlowMessage] = useState(false);
+  const slowTimerRef = useRef<ReturnType<typeof setTimeout>>();
+
+  // Show a "still working" message after 15 seconds of generating or creating
+  useEffect(() => {
+    if (isGenerating || isCreating) {
+      slowTimerRef.current = setTimeout(() => setShowSlowMessage(true), 15000);
+    } else {
+      setShowSlowMessage(false);
+    }
+    return () => {
+      if (slowTimerRef.current) clearTimeout(slowTimerRef.current);
+    };
+  }, [isGenerating, isCreating]);
 
   const generateSuggestions = useCallback(async () => {
     if (!description.trim()) return;
@@ -223,6 +237,11 @@ export function AIProjectCreator({
                 {isGenerating ? 'Generating...' : 'Generate Suggestions'}
               </Button>
             </div>
+            {showSlowMessage && isGenerating && (
+              <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-2">
+                AI is still generating suggestions. This can take a moment for complex projects...
+              </p>
+            )}
           </div>
 
           {/* AI Suggestions */}
@@ -388,22 +407,29 @@ export function AIProjectCreator({
             <Button variant="ghost" onClick={handleReset}>
               Start Over
             </Button>
-            <div className="flex items-center gap-2">
-              <Button variant="outline" onClick={() => onOpenChange(false)}>
-                Cancel
-              </Button>
-              <Button
-                onClick={handleCreateProject}
-                disabled={!projectName.trim() || isCreating}
-                className="gap-2"
-              >
-                {isCreating ? (
-                  <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" />
-                ) : (
-                  <ArrowRight className="w-4 h-4" aria-hidden="true" />
-                )}
-                Create Project
-              </Button>
+            <div className="flex flex-col items-end gap-2">
+              <div className="flex items-center gap-2">
+                <Button variant="outline" onClick={() => onOpenChange(false)}>
+                  Cancel
+                </Button>
+                <Button
+                  onClick={handleCreateProject}
+                  disabled={!projectName.trim() || isCreating}
+                  className="gap-2"
+                >
+                  {isCreating ? (
+                    <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" />
+                  ) : (
+                    <ArrowRight className="w-4 h-4" aria-hidden="true" />
+                  )}
+                  {isCreating ? 'Creating...' : 'Create Project'}
+                </Button>
+              </div>
+              {showSlowMessage && isCreating && (
+                <p className="text-xs text-neutral-500 dark:text-neutral-400">
+                  Setting up your project. This may take a moment...
+                </p>
+              )}
             </div>
           </div>
         </div>

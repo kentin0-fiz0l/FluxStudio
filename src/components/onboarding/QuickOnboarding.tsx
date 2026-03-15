@@ -90,8 +90,8 @@ export function QuickOnboarding({ onComplete, onSkip }: QuickOnboardingProps) {
     userRole?: string;
   } | null;
   const fromOnboardingV2 = locationState?.fromOnboardingV2 ?? false;
-  const onboardingTemplateId = locationState?.templateId ?? sessionStorage.getItem('onboarding_v2_template');
-  const onboardingRole = locationState?.userRole ?? sessionStorage.getItem('onboarding_v2_role');
+  const onboardingTemplateId = locationState?.templateId ?? localStorage.getItem('onboarding_v2_template');
+  const onboardingRole = locationState?.userRole ?? localStorage.getItem('onboarding_v2_role');
 
   // Check if user has sandbox formations to import
   const hasSandboxData = (() => {
@@ -125,7 +125,7 @@ export function QuickOnboarding({ onComplete, onSkip }: QuickOnboardingProps) {
 
         // Store the formation template for the editor to pick up
         if (onboardingTemplateId) {
-          sessionStorage.setItem('onboarding_v2_template', onboardingTemplateId);
+          localStorage.setItem('onboarding_v2_template', onboardingTemplateId);
         }
 
         setTimeout(() => {

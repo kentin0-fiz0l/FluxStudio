@@ -1038,9 +1038,42 @@ router.post('/:conversationId/summary/generate', authenticateToken, async (req, 
     }
 
     if (!aiSummaryService) {
-      return res.status(501).json({
-        success: false,
-        error: 'AI summary service not available'
+      // Fallback: generate a simple summary from recent messages
+      const fallbackMessages = await messagingConversationsAdapter.listMessages({
+        conversationId,
+        limit: 20,
+        includeReactions: false
+      });
+
+      if (!fallbackMessages || fallbackMessages.length < 3) {
+        return res.status(400).json({
+          success: false,
+          error: 'Conversation needs at least 3 messages to generate a summary'
+        });
+      }
+
+      const recentMessages = fallbackMessages.reverse();
+      const participants = [...new Set(recentMessages.map(m => m.sender_name || m.sender_id))];
+      const previewLines = recentMessages.slice(-5).map(m => {
+        const name = m.sender_name || 'Unknown';
+        const text = (m.content || '').slice(0, 120);
+        return `${name}: ${text}`;
+      });
+
+      return res.json({
+        success: true,
+        summary: {
+          id: null,
+          conversationId,
+          content: {
+            overview: `Conversation with ${recentMessages.length} recent messages involving ${participants.join(', ')}`,
+            highlights: previewLines,
+          },
+          pulseTone: 'neutral',
+          clarityState: 'fallback',
+          generatedBy: 'fallback',
+        },
+        warning: 'AI summary service unavailable — showing basic fallback summary',
       });
     }
 

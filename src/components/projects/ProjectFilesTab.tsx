@@ -34,6 +34,7 @@ import {
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
 import { Card } from '../ui/card';
+import { UniversalEmptyState, emptyStateConfigs } from '../ui/UniversalEmptyState';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -449,16 +450,16 @@ export const ProjectFilesTab: React.FC<ProjectFilesTabProps> = ({ project, class
   // Empty state
   if (files.length === 0) {
     return (
-      <div className={cn('flex flex-col items-center justify-center py-12', className)}>
-        <FileText className="h-16 w-16 text-neutral-300 mb-4" aria-hidden="true" />
-        <h3 className="text-lg font-semibold text-neutral-900 mb-2">No files yet</h3>
-        <p className="text-neutral-600 text-center mb-6 max-w-md">
-          Upload design files, 3D models, documentation, and more. Files marked as printable (STL,
-          OBJ, GCODE) will get a Print button.
-        </p>
-        <Button variant="primary" onClick={handleUpload} icon={<Upload className="h-4 w-4" aria-hidden="true" />}>
-          Upload Files
-        </Button>
+      <div className={cn('', className)}>
+        <UniversalEmptyState
+          icon={FileText}
+          {...emptyStateConfigs.files}
+          primaryAction={{
+            label: 'Upload Files',
+            icon: <Upload className="w-4 h-4" aria-hidden="true" />,
+            onClick: handleUpload,
+          }}
+        />
       </div>
     );
   }

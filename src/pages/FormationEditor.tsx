@@ -100,7 +100,7 @@ export default function FormationEditor() {
 
   // Check for onboarding template to auto-apply
   const [initialTemplateId] = React.useState(() => {
-    const id = sessionStorage.getItem('onboarding_v2_template');
+    const id = localStorage.getItem('onboarding_v2_template');
     return id || undefined;
   });
 

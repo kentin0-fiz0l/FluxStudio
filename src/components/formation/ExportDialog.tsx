@@ -13,8 +13,9 @@
 
 import { useState, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
-import { X, Download, Check, Loader2 } from 'lucide-react';
+import { X, Download, Check, Loader2, AlertTriangle, Users } from 'lucide-react';
 import type { FormationExportOptions, ExportProgress, Performer } from '../../services/formationService';
+import { toast } from '../../lib/toast';
 
 import { ExportFormatSelector } from './export/ExportFormatSelector';
 import type { ExportFormat } from './export/ExportFormatSelector';
@@ -64,7 +65,10 @@ export function ExportDialog({
   const [selectedFormat, setSelectedFormat] = useState<ExportFormat>('pdf');
   const [isExporting, setIsExporting] = useState(false);
   const [exportSuccess, setExportSuccess] = useState(false);
+  const [exportError, setExportError] = useState<string | null>(null);
   const [exportProgress, setExportProgress] = useState<ExportProgress | null>(null);
+
+  const hasPerformers = performers && performers.length > 0;
 
   // Export options state (consolidated)
   const [options, setOptions] = useState<ExportOptionsState>({
@@ -110,9 +114,37 @@ export function ExportDialog({
     }
   }, []);
 
+  const getExportErrorMessage = useCallback((error: unknown, format: ExportFormat): string => {
+    const raw = error instanceof Error ? error.message : String(error);
+
+    if (raw.includes('MediaRecorder')) {
+      return 'Your browser does not support video recording. Try using Chrome or Edge.';
+    }
+    if (raw.includes('canvas context') || raw.includes('Could not create canvas')) {
+      return 'Could not initialize rendering. Try a lower resolution or close other tabs.';
+    }
+    if (raw.includes('not found')) {
+      return 'One or more selected performers could not be found. Please check your selection.';
+    }
+    if (raw.includes('No pages generated')) {
+      return 'No content was generated. Make sure your formation has keyframes and sets.';
+    }
+
+    const formatLabels: Partial<Record<ExportFormat, string>> = {
+      pdf: 'PDF', png: 'PNG image', jpg: 'JPEG image', svg: 'SVG',
+      gif: 'GIF animation', video: 'video', drill_book: 'drill book',
+      coordinate_sheet: 'coordinate sheet', dotbook: 'dot book',
+      video_overlay: 'video overlay', production_sheet_pdf: 'production sheet PDF',
+      production_sheet_csv: 'production sheet CSV', audio_sync: 'audio sync file',
+    };
+
+    return `Failed to export ${formatLabels[format] ?? 'file'}. ${raw}`;
+  }, []);
+
   const handleExport = useCallback(async () => {
     setIsExporting(true);
     setExportSuccess(false);
+    setExportError(null);
     setExportProgress(null);
 
     try {
@@ -159,7 +191,10 @@ export function ExportDialog({
       }, 1500);
     } catch (error) {
       console.error('Export failed:', error);
+      const message = getExportErrorMessage(error, selectedFormat);
+      setExportError(message);
       setExportProgress(null);
+      toast.error(message);
     } finally {
       setIsExporting(false);
     }
@@ -177,6 +212,7 @@ export function ExportDialog({
     hasAudioTrack,
     onExport,
     onClose,
+    getExportErrorMessage,
   ]);
 
   if (!isOpen) return null;
@@ -219,31 +255,61 @@ export function ExportDialog({
 
         {/* Content */}
         <div className="p-6 overflow-y-auto max-h-[calc(90vh-180px)]">
-          <ExportFormatSelector
-            selectedFormat={selectedFormat}
-            onFormatChange={handleFormatChange}
-            metmapLinked={metmapLinked}
-            t={t}
-          />
+          {!hasPerformers ? (
+            <div className="flex flex-col items-center justify-center py-12 text-center">
+              <div className="w-16 h-16 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center mb-4">
+                <Users className="w-8 h-8 text-gray-400" aria-hidden="true" />
+              </div>
+              <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
+                {t('formation.noPerformers', 'No performers yet')}
+              </h3>
+              <p className="text-sm text-gray-500 dark:text-gray-400 max-w-sm">
+                {t('formation.addPerformersBeforeExporting', 'Add performers to your formation before exporting. Exports require at least one performer to generate content.')}
+              </p>
+            </div>
+          ) : (
+            <>
+              <ExportFormatSelector
+                selectedFormat={selectedFormat}
+                onFormatChange={(format) => { handleFormatChange(format); setExportError(null); }}
+                metmapLinked={metmapLinked}
+                t={t}
+              />
 
-          <ExportOptionsPanel
-            selectedFormat={selectedFormat}
-            options={options}
-            onOptionsChange={handleOptionsChange}
-            performers={performers}
-            hasAudioTrack={hasAudioTrack}
-            t={t}
-          />
+              <ExportOptionsPanel
+                selectedFormat={selectedFormat}
+                options={options}
+                onOptionsChange={handleOptionsChange}
+                performers={performers}
+                hasAudioTrack={hasAudioTrack}
+                t={t}
+              />
 
-          {formationId && (
-            <LMSShareSection
-              formationId={formationId}
-              formationName={formationName}
-              isOpen={isOpen}
-            />
+              {formationId && (
+                <LMSShareSection
+                  formationId={formationId}
+                  formationName={formationName}
+                  isOpen={isOpen}
+                />
+              )}
+
+              <ExportProgressView exportProgress={exportProgress} />
+
+              {exportError && !isExporting && (
+                <div className="flex items-start gap-3 p-3 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 mb-4">
+                  <AlertTriangle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" aria-hidden="true" />
+                  <div>
+                    <p className="text-sm font-medium text-red-800 dark:text-red-300">
+                      {t('formation.exportFailed', 'Export failed')}
+                    </p>
+                    <p className="text-sm text-red-600 dark:text-red-400 mt-1">
+                      {exportError}
+                    </p>
+                  </div>
+                </div>
+              )}
+            </>
           )}
-
-          <ExportProgressView exportProgress={exportProgress} />
         </div>
 
         {/* Footer */}
@@ -256,7 +322,7 @@ export function ExportDialog({
           </button>
           <button
             onClick={handleExport}
-            disabled={isExporting}
+            disabled={isExporting || !hasPerformers}
             className={`flex items-center gap-2 px-6 py-2 rounded-lg font-medium ${
               exportSuccess
                 ? 'bg-green-500 text-white'

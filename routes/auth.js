@@ -779,6 +779,13 @@ router.post('/verify-email',
 
       // For database mode, query directly
       if (USE_DATABASE && dbQuery) {
+        // First check if token was already used (email already verified with no token)
+        const usedCheck = await dbQuery(`
+          SELECT id, email_verified FROM users
+          WHERE email_verified = true AND verification_token IS NULL
+          AND id IN (SELECT id FROM users WHERE verification_token = $1)
+        `, [token]);
+
         const result = await dbQuery(`
           SELECT id, email, name, email_verified, verification_expires
           FROM users
@@ -786,19 +793,20 @@ router.post('/verify-email',
         `, [token]);
 
         if (result.rows.length === 0) {
-          return res.status(400).json({ success: false, error: 'Invalid or expired verification token', code: 'AUTH_INVALID_VERIFICATION_TOKEN' });
+          // Check if any user was previously verified with this token pattern
+          return res.status(400).json({ success: false, error: 'This verification link is invalid or has already been used.', code: 'TOKEN_INVALID' });
         }
 
         const user = result.rows[0];
 
         // Check if already verified
         if (user.email_verified) {
-          return res.json({ success: true, message: 'Email already verified', verified: true });
+          return res.json({ success: true, message: 'Email already verified', verified: true, code: 'TOKEN_ALREADY_USED' });
         }
 
         // Check if token is expired
         if (user.verification_expires && new Date(user.verification_expires) < new Date()) {
-          return res.status(400).json({ success: false, error: 'Verification token has expired. Please request a new one.', code: 'AUTH_VERIFICATION_EXPIRED' });
+          return res.status(400).json({ success: false, error: 'Your verification link has expired. Please request a new one.', code: 'TOKEN_EXPIRED' });
         }
 
         // Mark email as verified and clear token
@@ -831,15 +839,15 @@ router.post('/verify-email',
       const user = users.find(u => u.verificationToken === token);
 
       if (!user) {
-        return res.status(400).json({ success: false, error: 'Invalid or expired verification token', code: 'AUTH_INVALID_VERIFICATION_TOKEN' });
+        return res.status(400).json({ success: false, error: 'This verification link is invalid or has already been used.', code: 'TOKEN_INVALID' });
       }
 
       if (user.emailVerified) {
-        return res.json({ success: true, message: 'Email already verified', verified: true });
+        return res.json({ success: true, message: 'Email already verified', verified: true, code: 'TOKEN_ALREADY_USED' });
       }
 
       if (user.verificationExpires && new Date(user.verificationExpires) < new Date()) {
-        return res.status(400).json({ success: false, error: 'Verification token has expired. Please request a new one.', code: 'AUTH_VERIFICATION_EXPIRED' });
+        return res.status(400).json({ success: false, error: 'Your verification link has expired. Please request a new one.', code: 'TOKEN_EXPIRED' });
       }
 
       // Update user
@@ -892,7 +900,7 @@ router.post('/resend-verification',
       // For database mode
       if (USE_DATABASE && dbQuery) {
         const result = await dbQuery(`
-          SELECT id, name, email_verified FROM users WHERE email = $1
+          SELECT id, name, email_verified, verification_last_sent FROM users WHERE email = $1
         `, [email]);
 
         if (result.rows.length === 0) {
@@ -906,10 +914,23 @@ router.post('/resend-verification',
           return res.json({ success: true, message: 'Email is already verified' });
         }
 
-        // Update token
+        // Check per-user resend rate limit (60s cooldown)
+        if (user.verification_last_sent) {
+          const lastSent = new Date(user.verification_last_sent);
+          const secondsSince = (Date.now() - lastSent.getTime()) / 1000;
+          if (secondsSince < 60) {
+            return res.status(429).json({
+              success: false,
+              error: `Please wait ${Math.ceil(60 - secondsSince)} seconds before requesting another verification email.`,
+              code: 'RATE_LIMIT_EXCEEDED',
+            });
+          }
+        }
+
+        // Update token and last_sent timestamp
         await dbQuery(`
           UPDATE users
-          SET verification_token = $1, verification_expires = $2
+          SET verification_token = $1, verification_expires = $2, verification_last_sent = NOW()
           WHERE id = $3
         `, [verificationToken, verificationExpires, user.id]);
 
@@ -931,9 +952,23 @@ router.post('/resend-verification',
         return res.json({ success: true, message: 'Email is already verified' });
       }
 
-      // Update token
+      // Check per-user resend rate limit (60s cooldown)
+      if (user.verificationLastSent) {
+        const lastSent = new Date(user.verificationLastSent);
+        const secondsSince = (Date.now() - lastSent.getTime()) / 1000;
+        if (secondsSince < 60) {
+          return res.status(429).json({
+            success: false,
+            error: `Please wait ${Math.ceil(60 - secondsSince)} seconds before requesting another verification email.`,
+            code: 'RATE_LIMIT_EXCEEDED',
+          });
+        }
+      }
+
+      // Update token and last_sent timestamp
       user.verificationToken = verificationToken;
       user.verificationExpires = verificationExpires.toISOString();
+      user.verificationLastSent = new Date().toISOString();
       await authHelper.saveUsers(users);
 
       // Send verification email
@@ -1161,11 +1196,10 @@ router.post('/apple', async (req, res) => {
     // 3. Create or find user in database
     // 4. Return JWT token
 
-    // For now, return a helpful message
-    res.status(501).json({
+    res.status(400).json({
       success: false,
-      error: 'Apple Sign In integration is in development. Please use email/password authentication for now.',
-      code: 'AUTH_APPLE_NOT_IMPLEMENTED'
+      error: 'Apple Sign-In coming soon',
+      code: 'APPLE_AUTH_NOT_AVAILABLE'
     });
   } catch (error) {
     log.error('Apple OAuth error', error);

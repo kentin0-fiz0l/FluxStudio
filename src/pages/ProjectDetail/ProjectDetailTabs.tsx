@@ -15,6 +15,7 @@ import {
 import { useNavigate } from 'react-router-dom';
 import { LazyImage } from '@/components/LazyImage';
 import { Button, Card } from '@/components/ui';
+import { UniversalEmptyState, emptyStateConfigs } from '@/components/ui/UniversalEmptyState';
 import { TaskListView } from '@/components/tasks/TaskListView';
 import { KanbanBoard } from '@/components/tasks/KanbanBoard';
 import { ActivityFeed } from '@/components/tasks/ActivityFeed';
@@ -145,15 +146,15 @@ export const AssetsTabPanel: React.FC<{
         <div className="w-8 h-8 border-4 border-primary-500 border-t-transparent rounded-full animate-spin" />
       </div>
     ) : projectAssets.length === 0 ? (
-      <Card className="p-8 text-center">
-        <Layers className="h-12 w-12 mx-auto text-neutral-400 mb-4" aria-hidden="true" />
-        <h3 className="text-lg font-semibold text-neutral-900 mb-2">No assets yet</h3>
-        <p className="text-neutral-600 mb-4">
-          Create assets from your uploaded files to track versions and metadata.
-        </p>
-        <Button variant="primary" onClick={() => window.location.href = '/assets'}>
-          Go to Assets
-        </Button>
+      <Card className="p-0">
+        <UniversalEmptyState
+          icon={Layers}
+          {...emptyStateConfigs.assets}
+          primaryAction={{
+            label: 'Go to Assets',
+            onClick: () => { window.location.href = '/assets'; },
+          }}
+        />
       </Card>
     ) : (
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
@@ -246,16 +247,18 @@ export const BoardsTabPanel: React.FC<{
           <div className="w-8 h-8 border-4 border-primary-500 border-t-transparent rounded-full animate-spin" />
         </div>
       ) : boards.length === 0 ? (
-        <Card className="p-8 text-center">
-          <PenTool className="h-12 w-12 mx-auto text-neutral-400 mb-4" aria-hidden="true" />
-          <h3 className="text-lg font-semibold text-neutral-900 mb-2">No design boards yet</h3>
-          <p className="text-neutral-600 mb-4">
-            Create a board to start collaborating on 2D designs with your team.
-          </p>
-          <Button variant="primary" onClick={() => setShowNewBoardInput(true)}>
-            <Plus className="h-4 w-4 mr-2" aria-hidden="true" />
-            Create First Board
-          </Button>
+        <Card className="p-0">
+          <UniversalEmptyState
+            icon={PenTool}
+            title="No design boards yet"
+            description="Create a board to start collaborating on 2D designs with your team."
+            illustration="project"
+            primaryAction={{
+              label: 'Create First Board',
+              icon: <Plus className="w-4 h-4" aria-hidden="true" />,
+              onClick: () => setShowNewBoardInput(true),
+            }}
+          />
         </Card>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">

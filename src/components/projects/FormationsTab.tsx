@@ -11,6 +11,7 @@ import { useTranslation } from 'react-i18next';
 import { Plus, Users, Clock, Trash2, Play } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Card } from '../ui/card';
+import { UniversalEmptyState } from '../ui/UniversalEmptyState';
 import { useFormations } from '../../hooks/useFormations';
 
 interface FormationsTabProps {
@@ -141,21 +142,18 @@ export function FormationsTab({ projectId }: FormationsTabProps) {
 
       {/* Empty state */}
       {formations.length === 0 ? (
-        <Card className="p-8 text-center">
-          <Play className="h-12 w-12 mx-auto text-neutral-400 mb-4" aria-hidden="true" />
-          <h3 className="text-lg font-semibold text-neutral-900 dark:text-neutral-100 mb-2">
-            {t('formation.noFormationsYet', 'No formations yet')}
-          </h3>
-          <p className="text-neutral-600 dark:text-neutral-400 mb-4">
-            {t('formation.emptyStateDesc', 'Create a formation to start designing drill sequences for your show.')}
-          </p>
-          <Button
-            variant="primary"
-            onClick={() => setShowNewFormationInput(true)}
-          >
-            <Plus className="h-4 w-4 mr-2" aria-hidden="true" />
-            {t('formation.createFirst', 'Create First Formation')}
-          </Button>
+        <Card className="p-0">
+          <UniversalEmptyState
+            icon={Play}
+            title={t('formation.noFormationsYet', 'No formations yet')}
+            description={t('formation.emptyStateDesc', 'Create a formation to start designing drill sequences for your show.')}
+            illustration="project"
+            primaryAction={{
+              label: t('formation.createFirst', 'Create First Formation'),
+              icon: <Plus className="w-4 h-4" aria-hidden="true" />,
+              onClick: () => setShowNewFormationInput(true),
+            }}
+          />
         </Card>
       ) : (
         /* Formations grid */

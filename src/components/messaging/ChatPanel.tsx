@@ -13,6 +13,7 @@ import { ChatMessageList } from './ChatMessageList';
 import type { ChatMessageListRef } from './ChatMessageList';
 import { PinnedMessagesPanel } from './PinnedMessagesPanel';
 import { ChatInputArea } from './ChatInputArea';
+import { ChatMessageListErrorBoundary } from '@/components/error/featureBoundaries';
 import type { Message, Conversation } from './types';
 
 export function EmptyChatState({ onStartConversation }: { onStartConversation: () => void }) {
@@ -206,30 +207,32 @@ export const ChatPanel = forwardRef<ChatPanelRef, ChatPanelProps>(function ChatP
         <ThreadMicroHint onDismiss={onDismissThreadHint} />
       )}
 
-      <ChatMessageList
-        ref={ref as React.Ref<ChatMessageListRef>}
-        messages={messages}
-        pinnedMessageIds={pinnedMessageIds}
-        typingUsers={typingUsers}
-        highlightedMessageId={highlightedMessageId}
-        threadHighlightId={threadHighlightId}
-        editingMessageId={editingMessageId}
-        editingDraft={editingDraft}
-        currentUserId={currentUserId}
-        onReply={onReply}
-        onEdit={onEdit}
-        onDelete={onDelete}
-        onPin={onPin}
-        onCopy={onCopy}
-        onForward={onForward}
-        onReact={onReact}
-        onOpenThread={onOpenThread}
-        onViewInFiles={onViewInFiles}
-        onJumpToMessage={onJumpToMessage}
-        onChangeEditingDraft={onChangeEditingDraft}
-        onSubmitEdit={onSubmitEdit}
-        onCancelEdit={onCancelEdit}
-      />
+      <ChatMessageListErrorBoundary>
+        <ChatMessageList
+          ref={ref as React.Ref<ChatMessageListRef>}
+          messages={messages}
+          pinnedMessageIds={pinnedMessageIds}
+          typingUsers={typingUsers}
+          highlightedMessageId={highlightedMessageId}
+          threadHighlightId={threadHighlightId}
+          editingMessageId={editingMessageId}
+          editingDraft={editingDraft}
+          currentUserId={currentUserId}
+          onReply={onReply}
+          onEdit={onEdit}
+          onDelete={onDelete}
+          onPin={onPin}
+          onCopy={onCopy}
+          onForward={onForward}
+          onReact={onReact}
+          onOpenThread={onOpenThread}
+          onViewInFiles={onViewInFiles}
+          onJumpToMessage={onJumpToMessage}
+          onChangeEditingDraft={onChangeEditingDraft}
+          onSubmitEdit={onSubmitEdit}
+          onCancelEdit={onCancelEdit}
+        />
+      </ChatMessageListErrorBoundary>
 
       <ChatInputArea isConnected={isConnected} composer={composer} />
     </Card>

@@ -5,7 +5,7 @@
  *   GET  /api/auth/saml/:orgSlug/login   — Initiate SSO (redirect to IdP)
  *   POST /api/auth/saml/acs              — Assertion Consumer Service callback
  *   GET  /api/auth/saml/metadata/:orgSlug — Serve SP metadata XML
- *   GET  /api/auth/saml/:orgSlug/logout  — SLO stub (501)
+ *   GET  /api/auth/saml/:orgSlug/logout  — Clear session and return redirect
  */
 
 const express = require('express');
@@ -154,14 +154,20 @@ router.get('/metadata/:orgSlug', async (req, res) => {
 });
 
 // ---------------------------------------------------------------------------
-// GET /:orgSlug/logout — SLO stub
+// GET /:orgSlug/logout — Clear session and redirect
 // ---------------------------------------------------------------------------
 
-router.get('/:orgSlug/logout', (_req, res) => {
-  return res.status(501).json({
-    success: false,
-    error: 'Single Logout (SLO) is not yet implemented',
-    code: 'SAML_SLO_NOT_IMPLEMENTED',
+router.get('/:orgSlug/logout', (req, res) => {
+  // Clear session to log the user out locally
+  if (req.session) {
+    req.session.destroy(() => {});
+  }
+
+  const redirectUrl = `${process.env.CLIENT_URL || 'http://localhost:5173'}/login?saml_logout=true`;
+  return res.json({
+    success: true,
+    message: 'Session cleared',
+    redirectUrl,
   });
 });
 

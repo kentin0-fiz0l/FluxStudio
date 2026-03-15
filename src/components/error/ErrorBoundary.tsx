@@ -45,6 +45,9 @@ export {
   AIErrorBoundary,
   FileUploadErrorBoundary,
   ConnectorsErrorBoundary,
+  ChatMessageListErrorBoundary,
+  DrillCritiquePanelErrorBoundary,
+  FormationVersionHistoryErrorBoundary,
 } from './featureBoundaries';
 
 const boundaryLogger = createLogger('ErrorBoundary');
