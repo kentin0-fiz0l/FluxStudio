@@ -556,7 +556,7 @@ export function useCanvasHandlers({ state, formationId, projectId, onSave, sandb
     setMarquee(prev => prev ? { ...prev, currentX: x, currentY: y } : null);
   }, [canvasRef, marqueeRef, setMarquee]);
 
-  const handleCanvasPointerUp = useCallback((_e: React.PointerEvent) => {
+  const handleCanvasPointerUp = useCallback((e: React.PointerEvent) => {
     if (!marqueeRef.current || !marquee || !formation) {
       marqueeRef.current = false;
       setMarquee(null);
@@ -567,16 +567,29 @@ export function useCanvasHandlers({ state, formationId, projectId, onSave, sandb
     const maxX = Math.max(marquee.startX, marquee.currentX);
     const minY = Math.min(marquee.startY, marquee.currentY);
     const maxY = Math.max(marquee.startY, marquee.currentY);
-    if (maxX - minX < 2 && maxY - minY < 2) { setMarquee(null); return; }
-    const selected = new Set<string>();
+    if (maxX - minX < 2 && maxY - minY < 2) {
+      // Click on empty canvas (tiny marquee) — deselect all unless Shift held
+      if (!e.shiftKey) {
+        setSelectedPerformerIds(new Set());
+        if (isCollaborativeEnabled && collab.isConnected) { collab.setSelectedPerformers([]); }
+      }
+      setMarquee(null);
+      return;
+    }
+    // Collect performers within the marquee rectangle
+    const marqueeSelected = new Set<string>();
     formation.performers.forEach(p => {
       const pos = currentPositions.get(p.id);
-      if (pos && pos.x >= minX && pos.x <= maxX && pos.y >= minY && pos.y <= maxY) { selected.add(p.id); }
+      if (pos && pos.x >= minX && pos.x <= maxX && pos.y >= minY && pos.y <= maxY) { marqueeSelected.add(p.id); }
     });
+    // Shift+marquee: add to existing selection; otherwise replace
+    const selected = e.shiftKey
+      ? new Set([...selectedPerformerIds, ...marqueeSelected])
+      : marqueeSelected;
     setSelectedPerformerIds(selected);
     if (isCollaborativeEnabled && collab.isConnected) { collab.setSelectedPerformers(Array.from(selected)); }
     setMarquee(null);
-  }, [marquee, formation, currentPositions, isCollaborativeEnabled, collab, marqueeRef, setMarquee, setSelectedPerformerIds]);
+  }, [marquee, formation, currentPositions, selectedPerformerIds, isCollaborativeEnabled, collab, marqueeRef, setMarquee, setSelectedPerformerIds]);
 
   const handleCanvasClick = useCallback((e: React.MouseEvent) => {
     if (!canvasRef.current || !formation) return;

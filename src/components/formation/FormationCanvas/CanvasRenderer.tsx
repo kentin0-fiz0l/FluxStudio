@@ -735,6 +735,7 @@ export const CanvasRenderer = React.memo<CanvasRendererProps>(function CanvasRen
             performer={performer}
             position={position}
             isSelected={selectedPerformerIds.has(performer.id)}
+            isMultiSelected={selectedPerformerIds.size > 1 && selectedPerformerIds.has(performer.id)}
             isLocked={playbackState.isPlaying || isBeingDragged}
             showLabel={showLabels}
             showRotation={showRotation && selectedPerformerIds.has(performer.id)}

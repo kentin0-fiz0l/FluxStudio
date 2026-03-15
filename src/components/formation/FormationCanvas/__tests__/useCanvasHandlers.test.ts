@@ -819,14 +819,14 @@ describe('useCanvasHandlers', () => {
         }),
       );
 
-      act(() => { result.current.handleCanvasPointerUp({} as React.PointerEvent); });
+      act(() => { result.current.handleCanvasPointerUp({ shiftKey: false } as unknown as React.PointerEvent); });
       expect(state.setSelectedPerformerIds).toHaveBeenCalledWith(new Set(['p1']));
       expect(state.setMarquee).toHaveBeenCalledWith(null);
     });
 
-    it('ignores tiny marquees (< 2px threshold)', () => {
+    it('deselects all on tiny marquee (click on empty canvas)', () => {
       const marquee: Marquee = { startX: 50, startY: 50, currentX: 51, currentY: 51 };
-      const state = makeState({ marquee });
+      const state = makeState({ marquee, selectedPerformerIds: new Set(['p1']) });
       state.marqueeRef.current = true;
 
       const { result } = renderHook(() =>
@@ -839,9 +839,64 @@ describe('useCanvasHandlers', () => {
         }),
       );
 
-      act(() => { result.current.handleCanvasPointerUp({} as React.PointerEvent); });
+      act(() => { result.current.handleCanvasPointerUp({ shiftKey: false } as unknown as React.PointerEvent); });
+      expect(state.setSelectedPerformerIds).toHaveBeenCalledWith(new Set());
+      expect(state.setMarquee).toHaveBeenCalledWith(null);
+    });
+
+    it('does not deselect on tiny marquee when Shift is held', () => {
+      const marquee: Marquee = { startX: 50, startY: 50, currentX: 51, currentY: 51 };
+      const state = makeState({ marquee, selectedPerformerIds: new Set(['p1']) });
+      state.marqueeRef.current = true;
+
+      const { result } = renderHook(() =>
+        useCanvasHandlers({
+          state: state as unknown as ReturnType<typeof import('../useCanvasState').useCanvasState>,
+          formationId: 'formation-1',
+          projectId: 'project-1',
+          onSave: vi.fn(),
+          sandboxMode: false,
+        }),
+      );
+
+      act(() => { result.current.handleCanvasPointerUp({ shiftKey: true } as unknown as React.PointerEvent); });
       expect(state.setSelectedPerformerIds).not.toHaveBeenCalled();
       expect(state.setMarquee).toHaveBeenCalledWith(null);
+    });
+
+    it('adds to existing selection with Shift+marquee', () => {
+      const positions = new Map<string, Position>();
+      positions.set('p1', makePosition(25, 25));
+      positions.set('p2', makePosition(75, 75));
+      positions.set('p3', makePosition(30, 30));
+      const formation = makeFormation({
+        performers: [makePerformer('p1'), makePerformer('p2'), makePerformer('p3')],
+        keyframes: [{ id: 'kf-1', timestamp: 0, positions }],
+      });
+
+      // p2 is already selected; marquee covers p1 and p3
+      const marquee: Marquee = { startX: 10, startY: 10, currentX: 50, currentY: 50 };
+      const state = makeState({
+        formation,
+        currentPositions: positions,
+        marquee,
+        selectedPerformerIds: new Set(['p2']),
+      });
+      state.marqueeRef.current = true;
+
+      const { result } = renderHook(() =>
+        useCanvasHandlers({
+          state: state as unknown as ReturnType<typeof import('../useCanvasState').useCanvasState>,
+          formationId: 'formation-1',
+          projectId: 'project-1',
+          onSave: vi.fn(),
+          sandboxMode: false,
+        }),
+      );
+
+      act(() => { result.current.handleCanvasPointerUp({ shiftKey: true } as unknown as React.PointerEvent); });
+      // Should include previously selected p2 plus marquee-captured p1 and p3
+      expect(state.setSelectedPerformerIds).toHaveBeenCalledWith(new Set(['p1', 'p2', 'p3']));
     });
   });
 
@@ -1261,6 +1316,147 @@ describe('useCanvasHandlers', () => {
     it('performerPaths returns empty map when showPaths is false', () => {
       const { handlers } = renderHandlers();
       expect(handlers.current.performerPaths.size).toBe(0);
+    });
+  });
+
+  // ============================================================
+  // Multi-select & group drag
+  // ============================================================
+
+  describe('multi-select and group drag', () => {
+    it('group drag maintains relative positions of all selected performers', () => {
+      const positions = new Map<string, Position>();
+      positions.set('p1', makePosition(20, 30));
+      positions.set('p2', makePosition(40, 50));
+      positions.set('p3', makePosition(60, 70));
+      const formation = makeFormation({
+        performers: [makePerformer('p1'), makePerformer('p2'), makePerformer('p3')],
+        keyframes: [{ id: 'kf-1', timestamp: 0, positions }],
+      });
+      const { handlers, state } = renderHandlers({
+        formation,
+        currentPositions: positions,
+        selectedPerformerIds: new Set(['p1', 'p2', 'p3']),
+      });
+      // Move p1 from (20,30) to (25,35) => delta (+5, +5)
+      act(() => { handlers.current.handleMovePerformer('p1', makePosition(25, 35)); });
+      expect(state.setCurrentPositions).toHaveBeenCalled();
+      const updater = (state.setCurrentPositions as ReturnType<typeof vi.fn>).mock.calls[0][0];
+      const result = updater(positions) as Map<string, Position>;
+      expect(result.get('p1')).toEqual({ x: 25, y: 35, rotation: 0 });
+      expect(result.get('p2')).toEqual({ x: 45, y: 55, rotation: 0 });
+      expect(result.get('p3')).toEqual({ x: 65, y: 75, rotation: 0 });
+    });
+
+    it('group drag clamps all positions to 0-100', () => {
+      const positions = new Map<string, Position>();
+      positions.set('p1', makePosition(5, 95));
+      positions.set('p2', makePosition(10, 98));
+      const formation = makeFormation({
+        keyframes: [{ id: 'kf-1', timestamp: 0, positions }],
+      });
+      const { handlers, state } = renderHandlers({
+        formation,
+        currentPositions: positions,
+        selectedPerformerIds: new Set(['p1', 'p2']),
+      });
+      // Move p1 by (-10, +10) - p1 would go to (-5, 105)
+      act(() => { handlers.current.handleMovePerformer('p1', makePosition(-5, 105)); });
+      const updater = (state.setCurrentPositions as ReturnType<typeof vi.fn>).mock.calls[0][0];
+      const result = updater(positions) as Map<string, Position>;
+      expect(result.get('p1')!.x).toBe(0);
+      expect(result.get('p1')!.y).toBe(100);
+      expect(result.get('p2')!.x).toBe(0);
+      expect(result.get('p2')!.y).toBe(100);
+    });
+
+    it('single performer drag does not move other selected performers when only one selected', () => {
+      const positions = new Map<string, Position>();
+      positions.set('p1', makePosition(20, 30));
+      positions.set('p2', makePosition(40, 50));
+      const formation = makeFormation({
+        keyframes: [{ id: 'kf-1', timestamp: 0, positions }],
+      });
+      const { handlers } = renderHandlers({
+        formation,
+        currentPositions: positions,
+        selectedPerformerIds: new Set(['p1']),
+      });
+      act(() => { handlers.current.handleMovePerformer('p1', makePosition(30, 40)); });
+      expect(formationService.updatePosition).toHaveBeenCalledWith('formation-1', 'kf-1', 'p1', makePosition(30, 40));
+    });
+
+    it('dragging unselected performer does not trigger group move', () => {
+      const positions = new Map<string, Position>();
+      positions.set('p1', makePosition(20, 30));
+      positions.set('p2', makePosition(40, 50));
+      const formation = makeFormation({
+        keyframes: [{ id: 'kf-1', timestamp: 0, positions }],
+      });
+      const { handlers } = renderHandlers({
+        formation,
+        currentPositions: positions,
+        selectedPerformerIds: new Set(['p1']),
+      });
+      // Drag p2 which is NOT in the selection — should only move p2
+      act(() => { handlers.current.handleMovePerformer('p2', makePosition(50, 60)); });
+      expect(formationService.updatePosition).toHaveBeenCalledWith('formation-1', 'kf-1', 'p2', makePosition(50, 60));
+    });
+
+    it('nudge moves all selected performers in formation', () => {
+      const positions = new Map<string, Position>();
+      positions.set('p1', makePosition(20, 30));
+      positions.set('p2', makePosition(40, 50));
+      positions.set('p3', makePosition(60, 70));
+      const formation = makeFormation({
+        performers: [makePerformer('p1'), makePerformer('p2'), makePerformer('p3')],
+        keyframes: [{ id: 'kf-1', timestamp: 0, positions }],
+      });
+      const { handlers, state } = renderHandlers({
+        formation,
+        currentPositions: positions,
+        selectedPerformerIds: new Set(['p1', 'p3']),
+      });
+      act(() => { handlers.current.handleNudge(3, -2); });
+      const updater = (state.setCurrentPositions as ReturnType<typeof vi.fn>).mock.calls[0][0];
+      const result = updater(positions) as Map<string, Position>;
+      expect(result.get('p1')).toEqual({ x: 23, y: 28, rotation: 0 });
+      expect(result.get('p2')).toEqual({ x: 40, y: 50, rotation: 0 }); // not selected
+      expect(result.get('p3')).toEqual({ x: 63, y: 68, rotation: 0 });
+    });
+
+    it('Shift+click toggles performer in multi-selection', () => {
+      const { handlers, state } = renderHandlers({
+        selectedPerformerIds: new Set(['p1', 'p2']),
+      });
+      // Shift+click p2 to deselect it
+      act(() => { handlers.current.handleSelectPerformer('p2', true); });
+      const updater = (state.setSelectedPerformerIds as ReturnType<typeof vi.fn>).mock.calls[0][0];
+      const result = updater(new Set(['p1', 'p2']));
+      expect(result.has('p1')).toBe(true);
+      expect(result.has('p2')).toBe(false);
+    });
+
+    it('Shift+click adds performer to selection', () => {
+      const { handlers, state } = renderHandlers({
+        selectedPerformerIds: new Set(['p1']),
+      });
+      act(() => { handlers.current.handleSelectPerformer('p2', true); });
+      const updater = (state.setSelectedPerformerIds as ReturnType<typeof vi.fn>).mock.calls[0][0];
+      const result = updater(new Set(['p1']));
+      expect(result.has('p1')).toBe(true);
+      expect(result.has('p2')).toBe(true);
+    });
+
+    it('click without Shift replaces selection', () => {
+      const { handlers, state } = renderHandlers({
+        selectedPerformerIds: new Set(['p1', 'p2']),
+      });
+      act(() => { handlers.current.handleSelectPerformer('p2', false); });
+      const updater = (state.setSelectedPerformerIds as ReturnType<typeof vi.fn>).mock.calls[0][0];
+      const result = updater(new Set(['p1', 'p2']));
+      expect(result.has('p2')).toBe(true);
+      expect(result.has('p1')).toBe(false);
     });
   });
 });

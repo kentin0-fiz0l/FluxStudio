@@ -24,6 +24,7 @@ import { StepSizeOverlay } from '../StepSizeOverlay';
 import { QuickStartWizard } from '../QuickStartWizard';
 import { MetMapSongSelector } from '../MetMapSongSelector';
 import { MeasurementOverlay } from '../MeasurementOverlay';
+import { MorphSliderDialog } from '../MorphDialog';
 import { GroupPanel } from '../GroupPanel';
 import { CollisionOverlay } from '../CollisionOverlay';
 import { GhostPreviewOverlay } from '../GhostPreviewOverlay';
@@ -71,6 +72,7 @@ export function FormationCanvas(props: FormationCanvasProps) {
   const [showPacingGraph, setShowPacingGraph] = useState(false);
   const [showRehearsalMode, setShowRehearsalMode] = useState(false);
   const [showAudienceHeatmap, setShowAudienceHeatmap] = useState(false);
+  const [showMorphSlider, setShowMorphSlider] = useState(false);
 
   const state = useCanvasState(props);
 
@@ -1028,7 +1030,16 @@ export function FormationCanvas(props: FormationCanvasProps) {
         />
       )}
 
-      <ExportDialog isOpen={isExportDialogOpen} formationName={formation.name} onClose={() => setIsExportDialogOpen(false)} onExport={handleExport} />
+      <ExportDialog
+        isOpen={isExportDialogOpen}
+        formationName={formation.name}
+        formationId={formationId}
+        performers={formation.performers}
+        metmapLinked={!!linkedSong}
+        hasAudioTrack={!!formation.audioTrack || !!formation.musicTrackUrl}
+        onClose={() => setIsExportDialogOpen(false)}
+        onExport={handleExport}
+      />
       {showShortcutsDialog && <KeyboardShortcutsDialog onClose={() => setShowShortcutsDialog(false)} />}
       {(showTemplatePicker || formation.performers.length === 0) && (
         <TemplatePicker
@@ -1047,6 +1058,22 @@ export function FormationCanvas(props: FormationCanvasProps) {
           selectedPerformerIds={Array.from(selectedPerformerIds)}
           onApplyPositions={handleApplyMovementPositions}
           onClose={() => setShowMovementTools(false)}
+          onOpenMorphSlider={() => setShowMorphSlider(true)}
+        />
+      )}
+
+      {/* Morph Slider Dialog */}
+      {formation && (
+        <MorphSliderDialog
+          open={showMorphSlider}
+          onClose={() => setShowMorphSlider(false)}
+          performers={formation.performers}
+          currentPositions={currentPositions}
+          onApply={(positions) => {
+            setCurrentPositions(positions);
+            setHasUnsavedChanges(true);
+            setShowMorphSlider(false);
+          }}
         />
       )}
 

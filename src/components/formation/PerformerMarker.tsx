@@ -17,6 +17,8 @@ interface PerformerMarkerProps {
   performer: Performer;
   position: Position;
   isSelected?: boolean;
+  /** True when this performer is part of a multi-selection (2+ performers selected) */
+  isMultiSelected?: boolean;
   isLocked?: boolean;
   showLabel?: boolean;
   showRotation?: boolean;
@@ -43,6 +45,7 @@ export const PerformerMarker = React.memo<PerformerMarkerProps>(function Perform
   performer,
   position,
   isSelected = false,
+  isMultiSelected = false,
   isLocked = false,
   showLabel = true,
   showRotation = false,
@@ -223,10 +226,14 @@ export const PerformerMarker = React.memo<PerformerMarkerProps>(function Perform
       onPointerDown={handlePointerDown}
       onContextMenu={handleContextMenu}
     >
-      {/* Selection Ring */}
+      {/* Selection Ring — thicker border + green for multi-select, blue for single */}
       {isSelected && (
         <div
-          className="absolute rounded-full border-2 border-blue-500 animate-pulse"
+          className={`absolute rounded-full ${
+            isMultiSelected
+              ? 'border-[3px] border-emerald-400'
+              : 'border-2 border-blue-500 animate-pulse'
+          }`}
           style={{
             width: markerSize + 8,
             height: markerSize + 8,
@@ -263,7 +270,11 @@ export const PerformerMarker = React.memo<PerformerMarkerProps>(function Perform
       {(!performer.symbolShape || performer.symbolShape === 'circle') ? (
         <div
           className={`rounded-full flex items-center justify-center text-white font-bold text-sm shadow-lg ${
-            isSelected ? 'ring-2 ring-blue-500 ring-offset-2' : ''
+            isSelected
+              ? isMultiSelected
+                ? 'ring-2 ring-emerald-400 ring-offset-2'
+                : 'ring-2 ring-blue-500 ring-offset-2'
+              : ''
           }`}
           style={{
             width: markerSize,
@@ -282,7 +293,7 @@ export const PerformerMarker = React.memo<PerformerMarkerProps>(function Perform
           width={markerSize}
           height={markerSize}
           viewBox="0 0 32 32"
-          className={`shadow-lg ${isSelected ? 'ring-2 ring-blue-500 ring-offset-2' : ''}`}
+          className={`shadow-lg ${isSelected ? isMultiSelected ? 'ring-2 ring-emerald-400 ring-offset-2' : 'ring-2 ring-blue-500 ring-offset-2' : ''}`}
           style={{
             transform: showRotation ? `rotate(${rotation}deg)` : undefined,
             overflow: 'visible',

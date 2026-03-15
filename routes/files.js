@@ -153,7 +153,7 @@ router.get('/:fileId', authenticateToken, async (req, res) => {
  * POST /api/files/upload
  * Upload one or more files
  */
-router.post('/upload', authenticateToken, fileUpload.array('files', 10), validateUploadedFiles, async (req, res) => {
+router.post('/upload', authenticateToken, rateLimitByUser(20, 60000), fileUpload.array('files', 10), validateUploadedFiles, async (req, res) => {
   try {
     const userId = req.user.id;
     const { projectId, organizationId } = req.body;
@@ -458,6 +458,7 @@ router.get('/projects/:projectId/files', authenticateToken, async (req, res) => 
  */
 router.post('/projects/:projectId/files/upload',
   authenticateToken,
+  rateLimitByUser(20, 60000),
   fileUpload.array('files', 10),
   validateUploadedFiles,
   async (req, res) => {

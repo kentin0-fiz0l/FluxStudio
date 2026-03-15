@@ -42,6 +42,7 @@ interface MovementToolsPanelProps {
   selectedPerformerIds: string[];
   onApplyPositions: (performerIds: string[], positions: Position[]) => void;
   onClose: () => void;
+  onOpenMorphSlider?: () => void;
 }
 
 interface ToolDefinition {
@@ -78,6 +79,7 @@ export const MovementToolsPanel: React.FC<MovementToolsPanelProps> = ({
   selectedPerformerIds,
   onApplyPositions,
   onClose,
+  onOpenMorphSlider,
 }) => {
   const [selectedCategory, setSelectedCategory] = useState<ToolCategory>('transitions');
   const [selectedTool, setSelectedTool] = useState<string | null>(null);
@@ -238,17 +240,28 @@ export const MovementToolsPanel: React.FC<MovementToolsPanelProps> = ({
           )}
 
           {selectedTool === 'morph' && (
-            <div>
-              <label className="block text-xs text-gray-500 mb-1">Match Method</label>
-              <select
-                value={morphMethod}
-                onChange={(e) => setMorphMethod(e.target.value as MorphMethod)}
-                className="w-full px-2 py-1 text-sm border rounded bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600"
-              >
-                <option value="proximity">Proximity (nearest)</option>
-                <option value="index">Index (order)</option>
-                <option value="manual">Manual mapping</option>
-              </select>
+            <div className="space-y-3">
+              <div>
+                <label className="block text-xs text-gray-500 mb-1">Match Method</label>
+                <select
+                  value={morphMethod}
+                  onChange={(e) => setMorphMethod(e.target.value as MorphMethod)}
+                  className="w-full px-2 py-1 text-sm border rounded bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600"
+                >
+                  <option value="proximity">Proximity (nearest)</option>
+                  <option value="index">Index (order)</option>
+                  <option value="manual">Manual mapping</option>
+                </select>
+              </div>
+              {onOpenMorphSlider && (
+                <button
+                  onClick={onOpenMorphSlider}
+                  className="w-full flex items-center justify-center gap-1.5 px-3 py-2 bg-purple-50 dark:bg-purple-900/20 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800 rounded-lg text-sm hover:bg-purple-100 dark:hover:bg-purple-900/30 transition-colors"
+                >
+                  <Shuffle className="w-3.5 h-3.5" />
+                  Open Morph Slider
+                </button>
+              )}
             </div>
           )}
 

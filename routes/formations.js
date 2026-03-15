@@ -11,7 +11,7 @@
  */
 
 const express = require('express');
-const { authenticateToken } = require('../lib/auth/middleware');
+const { authenticateToken, rateLimitByUser } = require('../lib/auth/middleware');
 const formationsAdapter = require('../database/formations-adapter');
 const sceneObjectsAdapter = require('../database/scene-objects-adapter');
 const { createLogger } = require('../lib/logger');
@@ -59,7 +59,7 @@ router.get('/projects/:projectId/formations', authenticateToken, async (req, res
  * POST /api/projects/:projectId/formations
  * Create a new formation
  */
-router.post('/projects/:projectId/formations', authenticateToken, zodValidate(createFormationSchema), async (req, res) => {
+router.post('/projects/:projectId/formations', authenticateToken, rateLimitByUser(10, 60000), zodValidate(createFormationSchema), async (req, res) => {
   try {
     const { projectId } = req.params;
     const { name, description, stageWidth, stageHeight, gridSize } = req.body;
@@ -105,7 +105,7 @@ router.get('/formations/:formationId', authenticateToken, async (req, res) => {
  * PATCH /api/formations/:formationId
  * Update formation metadata
  */
-router.patch('/formations/:formationId', authenticateToken, zodValidate(updateFormationSchema), async (req, res) => {
+router.patch('/formations/:formationId', authenticateToken, rateLimitByUser(10, 60000), zodValidate(updateFormationSchema), async (req, res) => {
   try {
     const { formationId } = req.params;
     const { name, description, stageWidth, stageHeight, gridSize, isArchived, audioTrack } = req.body;
@@ -136,7 +136,7 @@ router.patch('/formations/:formationId', authenticateToken, zodValidate(updateFo
  * DELETE /api/formations/:formationId
  * Delete a formation
  */
-router.delete('/formations/:formationId', authenticateToken, async (req, res) => {
+router.delete('/formations/:formationId', authenticateToken, rateLimitByUser(10, 60000), async (req, res) => {
   try {
     const { formationId } = req.params;
 
@@ -158,7 +158,7 @@ router.delete('/formations/:formationId', authenticateToken, async (req, res) =>
  * PUT /api/formations/:formationId/save
  * Bulk save formation data (performers, keyframes, positions)
  */
-router.put('/formations/:formationId/save', authenticateToken, zodValidate(saveFormationSchema), async (req, res) => {
+router.put('/formations/:formationId/save', authenticateToken, rateLimitByUser(10, 60000), zodValidate(saveFormationSchema), async (req, res) => {
   try {
     const { formationId } = req.params;
     const {
@@ -200,7 +200,7 @@ router.put('/formations/:formationId/save', authenticateToken, zodValidate(saveF
  * POST /api/formations/:formationId/audio
  * Upload audio track for a formation
  */
-router.post('/formations/:formationId/audio', authenticateToken, zodValidate(formationAudioSchema), async (req, res) => {
+router.post('/formations/:formationId/audio', authenticateToken, rateLimitByUser(10, 60000), zodValidate(formationAudioSchema), async (req, res) => {
   try {
     const { formationId } = req.params;
     const { id, url, filename, duration } = req.body;
@@ -230,7 +230,7 @@ router.post('/formations/:formationId/audio', authenticateToken, zodValidate(for
  * DELETE /api/formations/:formationId/audio
  * Remove audio track from a formation
  */
-router.delete('/formations/:formationId/audio', authenticateToken, async (req, res) => {
+router.delete('/formations/:formationId/audio', authenticateToken, rateLimitByUser(10, 60000), async (req, res) => {
   try {
     const { formationId } = req.params;
 
@@ -254,7 +254,7 @@ router.delete('/formations/:formationId/audio', authenticateToken, async (req, r
  * POST /api/formations/:formationId/performers
  * Add a performer to a formation
  */
-router.post('/formations/:formationId/performers', authenticateToken, zodValidate(addPerformerSchema), async (req, res) => {
+router.post('/formations/:formationId/performers', authenticateToken, rateLimitByUser(10, 60000), zodValidate(addPerformerSchema), async (req, res) => {
   try {
     const { formationId } = req.params;
     const { name, label, color, groupName } = req.body;
@@ -283,7 +283,7 @@ router.post('/formations/:formationId/performers', authenticateToken, zodValidat
  * PATCH /api/formations/:formationId/performers/:performerId
  * Update a performer
  */
-router.patch('/formations/:formationId/performers/:performerId', authenticateToken, zodValidate(updatePerformerSchema), async (req, res) => {
+router.patch('/formations/:formationId/performers/:performerId', authenticateToken, rateLimitByUser(10, 60000), zodValidate(updatePerformerSchema), async (req, res) => {
   try {
     const { performerId } = req.params;
     const { name, label, color, groupName } = req.body;
@@ -310,7 +310,7 @@ router.patch('/formations/:formationId/performers/:performerId', authenticateTok
  * DELETE /api/formations/:formationId/performers/:performerId
  * Delete a performer
  */
-router.delete('/formations/:formationId/performers/:performerId', authenticateToken, async (req, res) => {
+router.delete('/formations/:formationId/performers/:performerId', authenticateToken, rateLimitByUser(10, 60000), async (req, res) => {
   try {
     const { performerId } = req.params;
 
@@ -329,7 +329,7 @@ router.delete('/formations/:formationId/performers/:performerId', authenticateTo
  * POST /api/formations/:formationId/keyframes
  * Add a keyframe to a formation
  */
-router.post('/formations/:formationId/keyframes', authenticateToken, zodValidate(addKeyframeSchema), async (req, res) => {
+router.post('/formations/:formationId/keyframes', authenticateToken, rateLimitByUser(10, 60000), zodValidate(addKeyframeSchema), async (req, res) => {
   try {
     const { formationId } = req.params;
     const { timestampMs, transition, duration } = req.body;
@@ -357,7 +357,7 @@ router.post('/formations/:formationId/keyframes', authenticateToken, zodValidate
  * PATCH /api/formations/:formationId/keyframes/:keyframeId
  * Update a keyframe
  */
-router.patch('/formations/:formationId/keyframes/:keyframeId', authenticateToken, zodValidate(updateKeyframeSchema), async (req, res) => {
+router.patch('/formations/:formationId/keyframes/:keyframeId', authenticateToken, rateLimitByUser(10, 60000), zodValidate(updateKeyframeSchema), async (req, res) => {
   try {
     const { keyframeId } = req.params;
     const { timestampMs, transition, duration } = req.body;
@@ -383,7 +383,7 @@ router.patch('/formations/:formationId/keyframes/:keyframeId', authenticateToken
  * DELETE /api/formations/:formationId/keyframes/:keyframeId
  * Delete a keyframe
  */
-router.delete('/formations/:formationId/keyframes/:keyframeId', authenticateToken, async (req, res) => {
+router.delete('/formations/:formationId/keyframes/:keyframeId', authenticateToken, rateLimitByUser(10, 60000), async (req, res) => {
   try {
     const { keyframeId } = req.params;
 
@@ -402,7 +402,7 @@ router.delete('/formations/:formationId/keyframes/:keyframeId', authenticateToke
  * PUT /api/formations/:formationId/keyframes/:keyframeId/positions/:performerId
  * Set performer position at a keyframe
  */
-router.put('/formations/:formationId/keyframes/:keyframeId/positions/:performerId', authenticateToken, zodValidate(setPositionSchema), async (req, res) => {
+router.put('/formations/:formationId/keyframes/:keyframeId/positions/:performerId', authenticateToken, rateLimitByUser(10, 60000), zodValidate(setPositionSchema), async (req, res) => {
   try {
     const { keyframeId, performerId } = req.params;
     const { x, y, rotation } = req.body;
@@ -443,7 +443,7 @@ router.get('/formations/:formationId/scene-objects', authenticateToken, async (r
  * POST /api/formations/:formationId/scene-objects
  * Create a single scene object
  */
-router.post('/formations/:formationId/scene-objects', authenticateToken, zodValidate(createSceneObjectSchema), async (req, res) => {
+router.post('/formations/:formationId/scene-objects', authenticateToken, rateLimitByUser(10, 60000), zodValidate(createSceneObjectSchema), async (req, res) => {
   try {
     const { formationId } = req.params;
     const { id, name, type, position, source, attachedToPerformerId, visible, locked, layer } = req.body;
@@ -464,7 +464,7 @@ router.post('/formations/:formationId/scene-objects', authenticateToken, zodVali
  * PATCH /api/formations/:formationId/scene-objects/:objectId
  * Update a scene object
  */
-router.patch('/formations/:formationId/scene-objects/:objectId', authenticateToken, zodValidate(updateSceneObjectSchema), async (req, res) => {
+router.patch('/formations/:formationId/scene-objects/:objectId', authenticateToken, rateLimitByUser(10, 60000), zodValidate(updateSceneObjectSchema), async (req, res) => {
   try {
     const { objectId } = req.params;
     const { name, type, position, source, attachedToPerformerId, visible, locked, layer } = req.body;
@@ -488,7 +488,7 @@ router.patch('/formations/:formationId/scene-objects/:objectId', authenticateTok
  * DELETE /api/formations/:formationId/scene-objects/:objectId
  * Delete a scene object
  */
-router.delete('/formations/:formationId/scene-objects/:objectId', authenticateToken, async (req, res) => {
+router.delete('/formations/:formationId/scene-objects/:objectId', authenticateToken, rateLimitByUser(10, 60000), async (req, res) => {
   try {
     const { objectId } = req.params;
     await sceneObjectsAdapter.remove(objectId);
@@ -503,7 +503,7 @@ router.delete('/formations/:formationId/scene-objects/:objectId', authenticateTo
  * PUT /api/formations/:formationId/scene-objects
  * Bulk sync all scene objects (primary save path)
  */
-router.put('/formations/:formationId/scene-objects', authenticateToken, zodValidate(bulkSyncSceneObjectsSchema), async (req, res) => {
+router.put('/formations/:formationId/scene-objects', authenticateToken, rateLimitByUser(10, 60000), zodValidate(bulkSyncSceneObjectsSchema), async (req, res) => {
   try {
     const { formationId } = req.params;
     const { objects } = req.body;
@@ -565,7 +565,7 @@ router.get('/formations/:formationId/share', async (req, res) => {
  * POST /api/formations/:formationId/share
  * Generate a share link for a formation (auth required)
  */
-router.post('/formations/:formationId/share', authenticateToken, async (req, res) => {
+router.post('/formations/:formationId/share', authenticateToken, rateLimitByUser(10, 60000), async (req, res) => {
   try {
     const { formationId } = req.params;
     const formation = await formationsAdapter.getFormationById(formationId);

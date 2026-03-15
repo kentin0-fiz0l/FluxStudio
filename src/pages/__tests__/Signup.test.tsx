@@ -192,7 +192,7 @@ describe('Signup', () => {
       fireEvent.click(screen.getByRole('button', { name: /create account/i }));
 
       await waitFor(() => {
-        expect(mockSignup).toHaveBeenCalledWith('test@example.com', 'StrongPass1!', 'Test User', 'designer');
+        expect(mockSignup).toHaveBeenCalledWith('test@example.com', 'StrongPass1!', 'Test User', 'designer', undefined, undefined);
       });
     });
 

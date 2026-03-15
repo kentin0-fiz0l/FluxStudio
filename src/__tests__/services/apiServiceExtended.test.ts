@@ -28,6 +28,12 @@ vi.mock('../../services/apiValidation', () => ({
   fileMetadataSchema: {},
   sendMessageSchema: {},
   quickPrintSchema: {},
+  userResponseSchema: {},
+  authResponseSchema: {},
+  subscriptionResponseSchema: {},
+  checkoutSessionResponseSchema: {},
+  pricingResponseSchema: {},
+  portalSessionResponseSchema: {},
 }));
 
 // Import after mocks
