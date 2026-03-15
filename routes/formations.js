@@ -17,6 +17,7 @@ const sceneObjectsAdapter = require('../database/scene-objects-adapter');
 const { createLogger } = require('../lib/logger');
 const log = createLogger('Formations');
 const { zodValidate } = require('../middleware/zodValidate');
+const { query } = require('../database/config');
 const {
   createFormationSchema,
   updateFormationSchema,
@@ -35,6 +36,49 @@ const {
 const router = express.Router();
 
 /**
+ * Verify user has access to a project (is a member or manager).
+ */
+async function canUserAccessProject(userId, projectId) {
+  try {
+    const result = await query(`
+      SELECT 1 FROM project_members
+      WHERE project_id = $1 AND user_id = $2
+      UNION
+      SELECT 1 FROM projects
+      WHERE id = $1 AND manager_id = $2
+    `, [projectId, userId]);
+    return result.rows.length > 0;
+  } catch (error) {
+    log.error('Error checking project access', error);
+    return false;
+  }
+}
+
+/**
+ * Verify user has access to a formation via its parent project.
+ * Returns the formation if authorized, or null if not found.
+ * Sends a 403 response and returns undefined if unauthorized.
+ */
+async function verifyFormationAccess(formationId, userId, res) {
+  const formation = await formationsAdapter.getFormationById(formationId);
+  if (!formation) {
+    return null;
+  }
+
+  const hasAccess = await canUserAccessProject(userId, formation.projectId);
+  if (!hasAccess) {
+    res.status(403).json({
+      success: false,
+      error: 'You do not have permission to access this formation',
+      code: 'ACCESS_DENIED'
+    });
+    return undefined;
+  }
+
+  return formation;
+}
+
+/**
  * GET /api/projects/:projectId/formations
  * List formations for a project
  */
@@ -42,6 +86,13 @@ router.get('/projects/:projectId/formations', authenticateToken, async (req, res
   try {
     const { projectId } = req.params;
     const { includeArchived } = req.query;
+
+    const hasAccess = await canUserAccessProject(req.user.id, projectId);
+    if (!hasAccess) {
+      return res.status(403).json({
+        success: false, error: 'You do not have permission to access this project', code: 'ACCESS_DENIED'
+      });
+    }
 
     const formations = await formationsAdapter.listFormationsForProject({
       projectId,
@@ -63,6 +114,13 @@ router.post('/projects/:projectId/formations', authenticateToken, rateLimitByUse
   try {
     const { projectId } = req.params;
     const { name, description, stageWidth, stageHeight, gridSize } = req.body;
+
+    const hasAccess = await canUserAccessProject(req.user.id, projectId);
+    if (!hasAccess) {
+      return res.status(403).json({
+        success: false, error: 'You do not have permission to access this project', code: 'ACCESS_DENIED'
+      });
+    }
 
     const formation = await formationsAdapter.createFormation({
       projectId,
@@ -89,7 +147,8 @@ router.get('/formations/:formationId', authenticateToken, async (req, res) => {
   try {
     const { formationId } = req.params;
 
-    const formation = await formationsAdapter.getFormationById(formationId);
+    const formation = await verifyFormationAccess(formationId, req.user.id, res);
+    if (formation === undefined) return; // 403 already sent
     if (!formation) {
       return res.status(404).json({ success: false, error: 'Formation not found', code: 'FORMATION_NOT_FOUND' });
     }
@@ -110,7 +169,8 @@ router.patch('/formations/:formationId', authenticateToken, rateLimitByUser(10, 
     const { formationId } = req.params;
     const { name, description, stageWidth, stageHeight, gridSize, isArchived, audioTrack } = req.body;
 
-    const formation = await formationsAdapter.getFormationById(formationId);
+    const formation = await verifyFormationAccess(formationId, req.user.id, res);
+    if (formation === undefined) return;
     if (!formation) {
       return res.status(404).json({ success: false, error: 'Formation not found', code: 'FORMATION_NOT_FOUND' });
     }
@@ -140,7 +200,8 @@ router.delete('/formations/:formationId', authenticateToken, rateLimitByUser(10,
   try {
     const { formationId } = req.params;
 
-    const formation = await formationsAdapter.getFormationById(formationId);
+    const formation = await verifyFormationAccess(formationId, req.user.id, res);
+    if (formation === undefined) return;
     if (!formation) {
       return res.status(404).json({ success: false, error: 'Formation not found', code: 'FORMATION_NOT_FOUND' });
     }
@@ -168,7 +229,8 @@ router.put('/formations/:formationId/save', authenticateToken, rateLimitByUser(1
       metmapSongId, tempoMap, useConstantTempo
     } = req.body;
 
-    const existingFormation = await formationsAdapter.getFormationById(formationId);
+    const existingFormation = await verifyFormationAccess(formationId, req.user.id, res);
+    if (existingFormation === undefined) return;
     if (!existingFormation) {
       return res.status(404).json({ success: false, error: 'Formation not found', code: 'FORMATION_NOT_FOUND' });
     }
@@ -205,7 +267,8 @@ router.post('/formations/:formationId/audio', authenticateToken, rateLimitByUser
     const { formationId } = req.params;
     const { id, url, filename, duration } = req.body;
 
-    const formation = await formationsAdapter.getFormationById(formationId);
+    const formation = await verifyFormationAccess(formationId, req.user.id, res);
+    if (formation === undefined) return;
     if (!formation) {
       return res.status(404).json({ success: false, error: 'Formation not found', code: 'FORMATION_NOT_FOUND' });
     }
@@ -234,7 +297,8 @@ router.delete('/formations/:formationId/audio', authenticateToken, rateLimitByUs
   try {
     const { formationId } = req.params;
 
-    const formation = await formationsAdapter.getFormationById(formationId);
+    const formation = await verifyFormationAccess(formationId, req.user.id, res);
+    if (formation === undefined) return;
     if (!formation) {
       return res.status(404).json({ success: false, error: 'Formation not found', code: 'FORMATION_NOT_FOUND' });
     }
@@ -259,7 +323,8 @@ router.post('/formations/:formationId/performers', authenticateToken, rateLimitB
     const { formationId } = req.params;
     const { name, label, color, groupName } = req.body;
 
-    const formation = await formationsAdapter.getFormationById(formationId);
+    const formation = await verifyFormationAccess(formationId, req.user.id, res);
+    if (formation === undefined) return;
     if (!formation) {
       return res.status(404).json({ success: false, error: 'Formation not found', code: 'FORMATION_NOT_FOUND' });
     }
@@ -285,8 +350,14 @@ router.post('/formations/:formationId/performers', authenticateToken, rateLimitB
  */
 router.patch('/formations/:formationId/performers/:performerId', authenticateToken, rateLimitByUser(10, 60000), zodValidate(updatePerformerSchema), async (req, res) => {
   try {
-    const { performerId } = req.params;
+    const { formationId, performerId } = req.params;
     const { name, label, color, groupName } = req.body;
+
+    const formation = await verifyFormationAccess(formationId, req.user.id, res);
+    if (formation === undefined) return;
+    if (!formation) {
+      return res.status(404).json({ success: false, error: 'Formation not found', code: 'FORMATION_NOT_FOUND' });
+    }
 
     const performer = await formationsAdapter.updatePerformer(performerId, {
       name,
@@ -312,7 +383,13 @@ router.patch('/formations/:formationId/performers/:performerId', authenticateTok
  */
 router.delete('/formations/:formationId/performers/:performerId', authenticateToken, rateLimitByUser(10, 60000), async (req, res) => {
   try {
-    const { performerId } = req.params;
+    const { formationId, performerId } = req.params;
+
+    const formation = await verifyFormationAccess(formationId, req.user.id, res);
+    if (formation === undefined) return;
+    if (!formation) {
+      return res.status(404).json({ success: false, error: 'Formation not found', code: 'FORMATION_NOT_FOUND' });
+    }
 
     await formationsAdapter.deletePerformer(performerId);
 
@@ -334,7 +411,8 @@ router.post('/formations/:formationId/keyframes', authenticateToken, rateLimitBy
     const { formationId } = req.params;
     const { timestampMs, transition, duration } = req.body;
 
-    const formation = await formationsAdapter.getFormationById(formationId);
+    const formation = await verifyFormationAccess(formationId, req.user.id, res);
+    if (formation === undefined) return;
     if (!formation) {
       return res.status(404).json({ success: false, error: 'Formation not found', code: 'FORMATION_NOT_FOUND' });
     }
@@ -359,8 +437,14 @@ router.post('/formations/:formationId/keyframes', authenticateToken, rateLimitBy
  */
 router.patch('/formations/:formationId/keyframes/:keyframeId', authenticateToken, rateLimitByUser(10, 60000), zodValidate(updateKeyframeSchema), async (req, res) => {
   try {
-    const { keyframeId } = req.params;
+    const { formationId, keyframeId } = req.params;
     const { timestampMs, transition, duration } = req.body;
+
+    const formation = await verifyFormationAccess(formationId, req.user.id, res);
+    if (formation === undefined) return;
+    if (!formation) {
+      return res.status(404).json({ success: false, error: 'Formation not found', code: 'FORMATION_NOT_FOUND' });
+    }
 
     const keyframe = await formationsAdapter.updateKeyframe(keyframeId, {
       timestampMs,
@@ -385,7 +469,13 @@ router.patch('/formations/:formationId/keyframes/:keyframeId', authenticateToken
  */
 router.delete('/formations/:formationId/keyframes/:keyframeId', authenticateToken, rateLimitByUser(10, 60000), async (req, res) => {
   try {
-    const { keyframeId } = req.params;
+    const { formationId, keyframeId } = req.params;
+
+    const formation = await verifyFormationAccess(formationId, req.user.id, res);
+    if (formation === undefined) return;
+    if (!formation) {
+      return res.status(404).json({ success: false, error: 'Formation not found', code: 'FORMATION_NOT_FOUND' });
+    }
 
     await formationsAdapter.deleteKeyframe(keyframeId);
 
@@ -404,8 +494,14 @@ router.delete('/formations/:formationId/keyframes/:keyframeId', authenticateToke
  */
 router.put('/formations/:formationId/keyframes/:keyframeId/positions/:performerId', authenticateToken, rateLimitByUser(10, 60000), zodValidate(setPositionSchema), async (req, res) => {
   try {
-    const { keyframeId, performerId } = req.params;
+    const { formationId, keyframeId, performerId } = req.params;
     const { x, y, rotation } = req.body;
+
+    const formation = await verifyFormationAccess(formationId, req.user.id, res);
+    if (formation === undefined) return;
+    if (!formation) {
+      return res.status(404).json({ success: false, error: 'Formation not found', code: 'FORMATION_NOT_FOUND' });
+    }
 
     const position = await formationsAdapter.setPosition({
       keyframeId,
@@ -431,6 +527,13 @@ router.put('/formations/:formationId/keyframes/:keyframeId/positions/:performerI
 router.get('/formations/:formationId/scene-objects', authenticateToken, async (req, res) => {
   try {
     const { formationId } = req.params;
+
+    const formation = await verifyFormationAccess(formationId, req.user.id, res);
+    if (formation === undefined) return;
+    if (!formation) {
+      return res.status(404).json({ success: false, error: 'Formation not found', code: 'FORMATION_NOT_FOUND' });
+    }
+
     const objects = await sceneObjectsAdapter.listByFormation(formationId);
     res.json({ success: true, sceneObjects: objects });
   } catch (error) {
@@ -447,6 +550,12 @@ router.post('/formations/:formationId/scene-objects', authenticateToken, rateLim
   try {
     const { formationId } = req.params;
     const { id, name, type, position, source, attachedToPerformerId, visible, locked, layer } = req.body;
+
+    const formation = await verifyFormationAccess(formationId, req.user.id, res);
+    if (formation === undefined) return;
+    if (!formation) {
+      return res.status(404).json({ success: false, error: 'Formation not found', code: 'FORMATION_NOT_FOUND' });
+    }
 
     const object = await sceneObjectsAdapter.create({
       formationId, id, name, type, position, source,
@@ -466,8 +575,14 @@ router.post('/formations/:formationId/scene-objects', authenticateToken, rateLim
  */
 router.patch('/formations/:formationId/scene-objects/:objectId', authenticateToken, rateLimitByUser(10, 60000), zodValidate(updateSceneObjectSchema), async (req, res) => {
   try {
-    const { objectId } = req.params;
+    const { formationId, objectId } = req.params;
     const { name, type, position, source, attachedToPerformerId, visible, locked, layer } = req.body;
+
+    const formation = await verifyFormationAccess(formationId, req.user.id, res);
+    if (formation === undefined) return;
+    if (!formation) {
+      return res.status(404).json({ success: false, error: 'Formation not found', code: 'FORMATION_NOT_FOUND' });
+    }
 
     const object = await sceneObjectsAdapter.update(objectId, {
       name, type, position, source, attachedToPerformerId, visible, locked, layer
@@ -490,7 +605,14 @@ router.patch('/formations/:formationId/scene-objects/:objectId', authenticateTok
  */
 router.delete('/formations/:formationId/scene-objects/:objectId', authenticateToken, rateLimitByUser(10, 60000), async (req, res) => {
   try {
-    const { objectId } = req.params;
+    const { formationId, objectId } = req.params;
+
+    const formation = await verifyFormationAccess(formationId, req.user.id, res);
+    if (formation === undefined) return;
+    if (!formation) {
+      return res.status(404).json({ success: false, error: 'Formation not found', code: 'FORMATION_NOT_FOUND' });
+    }
+
     await sceneObjectsAdapter.remove(objectId);
     res.json({ success: true, message: 'Scene object deleted' });
   } catch (error) {
@@ -507,6 +629,12 @@ router.put('/formations/:formationId/scene-objects', authenticateToken, rateLimi
   try {
     const { formationId } = req.params;
     const { objects } = req.body;
+
+    const formation = await verifyFormationAccess(formationId, req.user.id, res);
+    if (formation === undefined) return;
+    if (!formation) {
+      return res.status(404).json({ success: false, error: 'Formation not found', code: 'FORMATION_NOT_FOUND' });
+    }
 
     const result = await sceneObjectsAdapter.bulkSync(formationId, objects);
     res.json({ success: true, sceneObjects: result });
@@ -568,8 +696,9 @@ router.get('/formations/:formationId/share', async (req, res) => {
 router.post('/formations/:formationId/share', authenticateToken, rateLimitByUser(10, 60000), async (req, res) => {
   try {
     const { formationId } = req.params;
-    const formation = await formationsAdapter.getFormationById(formationId);
 
+    const formation = await verifyFormationAccess(formationId, req.user.id, res);
+    if (formation === undefined) return;
     if (!formation) {
       return res.status(404).json({ success: false, error: 'Formation not found', code: 'FORMATION_NOT_FOUND' });
     }

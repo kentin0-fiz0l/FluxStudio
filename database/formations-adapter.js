@@ -151,13 +151,16 @@ class FormationsAdapter {
    * @param {Object} options
    * @returns {Array} Array of formations
    */
-  async listFormationsForProject({ projectId, includeArchived = false }) {
+  async listFormationsForProject({ projectId, includeArchived = false, limit = 100, offset = 0 }) {
     const conditions = ['f.project_id = $1'];
     const params = [projectId];
 
     if (!includeArchived) {
       conditions.push('f.is_archived = FALSE');
     }
+
+    params.push(limit, offset);
+    const limitIdx = params.length - 1;
 
     const result = await query(`
       SELECT
@@ -169,6 +172,7 @@ class FormationsAdapter {
       LEFT JOIN users u ON f.created_by = u.id
       WHERE ${conditions.join(' AND ')}
       ORDER BY f.updated_at DESC
+      LIMIT $${limitIdx} OFFSET $${limitIdx + 1}
     `, params);
 
     return result.rows.map(row => ({
@@ -545,201 +549,187 @@ class FormationsAdapter {
     groups, sectionShapeMap,
     metmapSongId, tempoMap, useConstantTempo
   }) {
-    // Update formation metadata (name + extended fields stored as JSONB)
-    const metadataUpdates = {};
-    if (name) metadataUpdates.name = name;
+    await transaction(async (client) => {
+      // Update formation metadata (name + extended fields stored as JSONB)
+      if (name) {
+        await client.query(`UPDATE formations SET name = $1, updated_at = NOW() WHERE id = $2`, [name, formationId]);
+      }
 
-    // Store extended drill fields as a JSON blob in the extra_data column
-    const extraData = {};
-    if (drillSettings !== undefined) extraData.drillSettings = drillSettings;
-    if (sets !== undefined) extraData.sets = sets;
-    if (fieldConfig !== undefined) extraData.fieldConfig = fieldConfig;
-    if (groups !== undefined) extraData.groups = groups;
-    if (sectionShapeMap !== undefined) extraData.sectionShapeMap = sectionShapeMap;
-    if (metmapSongId !== undefined) extraData.metmapSongId = metmapSongId;
-    if (tempoMap !== undefined) extraData.tempoMap = tempoMap;
-    if (useConstantTempo !== undefined) extraData.useConstantTempo = useConstantTempo;
+      // Store extended drill fields as a JSON blob in the extra_data column
+      const extraData = {};
+      if (drillSettings !== undefined) extraData.drillSettings = drillSettings;
+      if (sets !== undefined) extraData.sets = sets;
+      if (fieldConfig !== undefined) extraData.fieldConfig = fieldConfig;
+      if (groups !== undefined) extraData.groups = groups;
+      if (sectionShapeMap !== undefined) extraData.sectionShapeMap = sectionShapeMap;
+      if (metmapSongId !== undefined) extraData.metmapSongId = metmapSongId;
+      if (tempoMap !== undefined) extraData.tempoMap = tempoMap;
+      if (useConstantTempo !== undefined) extraData.useConstantTempo = useConstantTempo;
 
-    if (Object.keys(metadataUpdates).length > 0) {
-      await this.updateFormation(formationId, metadataUpdates);
-    }
-
-    // Save extended data as JSONB (add column if missing via upsert pattern)
-    if (Object.keys(extraData).length > 0) {
-      try {
-        await query(`
-          UPDATE formations SET extra_data = COALESCE(extra_data, '{}'::jsonb) || $2::jsonb, updated_at = NOW()
-          WHERE id = $1
-        `, [formationId, JSON.stringify(extraData)]);
-      } catch (e) {
-        // If extra_data column doesn't exist yet, add it
-        if (e.message && e.message.includes('extra_data')) {
-          await query(`ALTER TABLE formations ADD COLUMN IF NOT EXISTS extra_data JSONB DEFAULT '{}'::jsonb`);
-          await query(`
-            UPDATE formations SET extra_data = $2::jsonb, updated_at = NOW()
+      if (Object.keys(extraData).length > 0) {
+        try {
+          await client.query(`
+            UPDATE formations SET extra_data = COALESCE(extra_data, '{}'::jsonb) || $2::jsonb, updated_at = NOW()
             WHERE id = $1
           `, [formationId, JSON.stringify(extraData)]);
+        } catch (e) {
+          if (e.message && e.message.includes('extra_data')) {
+            await client.query(`ALTER TABLE formations ADD COLUMN IF NOT EXISTS extra_data JSONB DEFAULT '{}'::jsonb`);
+            await client.query(`
+              UPDATE formations SET extra_data = $2::jsonb, updated_at = NOW()
+              WHERE id = $1
+            `, [formationId, JSON.stringify(extraData)]);
+          } else {
+            throw e;
+          }
+        }
+      }
+
+      // Get existing performers and keyframes
+      const existingPerformers = await client.query(`
+        SELECT id FROM formation_performers WHERE formation_id = $1
+      `, [formationId]);
+      const existingPerformerIds = new Set(existingPerformers.rows.map(p => p.id));
+
+      const existingKeyframes = await client.query(`
+        SELECT id FROM formation_keyframes WHERE formation_id = $1
+      `, [formationId]);
+      const existingKeyframeIds = new Set(existingKeyframes.rows.map(k => k.id));
+
+      // Process performers
+      const newPerformerIds = new Set();
+      for (let i = 0; i < performers.length; i++) {
+        const performer = performers[i];
+        newPerformerIds.add(performer.id);
+
+        if (existingPerformerIds.has(performer.id)) {
+          await client.query(`
+            UPDATE formation_performers
+            SET name = $1, label = $2, color = $3, group_name = $4, sort_order = $5, updated_at = NOW()
+            WHERE id = $6
+          `, [performer.name, performer.label, performer.color, performer.group || null, i, performer.id]);
         } else {
-          console.error('Error saving extra formation data', e);
+          await client.query(`
+            INSERT INTO formation_performers (
+              id, formation_id, name, label, color, group_name, sort_order, created_at, updated_at
+            )
+            VALUES ($1, $2, $3, $4, $5, $6, $7, NOW(), NOW())
+          `, [performer.id, formationId, performer.name, performer.label, performer.color, performer.group || null, i]);
         }
-      }
-    }
 
-    // Get existing performers and keyframes
-    const existingPerformers = await query(`
-      SELECT id FROM formation_performers WHERE formation_id = $1
-    `, [formationId]);
-    const existingPerformerIds = new Set(existingPerformers.rows.map(p => p.id));
-
-    const existingKeyframes = await query(`
-      SELECT id FROM formation_keyframes WHERE formation_id = $1
-    `, [formationId]);
-    const existingKeyframeIds = new Set(existingKeyframes.rows.map(k => k.id));
-
-    // Process performers
-    const newPerformerIds = new Set();
-    for (let i = 0; i < performers.length; i++) {
-      const performer = performers[i];
-      newPerformerIds.add(performer.id);
-
-      if (existingPerformerIds.has(performer.id)) {
-        // Update existing performer
-        await this.updatePerformer(performer.id, {
-          name: performer.name,
-          label: performer.label,
-          color: performer.color,
-          groupName: performer.group
-        });
-        await query(`
-          UPDATE formation_performers SET sort_order = $1 WHERE id = $2
-        `, [i, performer.id]);
-      } else {
-        // Insert new performer
-        await query(`
-          INSERT INTO formation_performers (
-            id, formation_id, name, label, color, group_name, sort_order, created_at, updated_at
-          )
-          VALUES ($1, $2, $3, $4, $5, $6, $7, NOW(), NOW())
-        `, [performer.id, formationId, performer.name, performer.label, performer.color, performer.group || null, i]);
-      }
-
-      // Save extended performer fields as JSONB
-      const perfExtra = {};
-      if (performer.instrument) perfExtra.instrument = performer.instrument;
-      if (performer.section) perfExtra.section = performer.section;
-      if (performer.drillNumber) perfExtra.drillNumber = performer.drillNumber;
-      if (performer.symbolShape) perfExtra.symbolShape = performer.symbolShape;
-      if (Object.keys(perfExtra).length > 0) {
-        try {
-          await query(`
-            UPDATE formation_performers SET extra_data = COALESCE(extra_data, '{}'::jsonb) || $2::jsonb
-            WHERE id = $1
-          `, [performer.id, JSON.stringify(perfExtra)]);
-        } catch (e) {
-          if (e.message && e.message.includes('extra_data')) {
-            await query(`ALTER TABLE formation_performers ADD COLUMN IF NOT EXISTS extra_data JSONB DEFAULT '{}'::jsonb`);
-            await query(`
-              UPDATE formation_performers SET extra_data = $2::jsonb WHERE id = $1
+        // Save extended performer fields as JSONB
+        const perfExtra = {};
+        if (performer.instrument) perfExtra.instrument = performer.instrument;
+        if (performer.section) perfExtra.section = performer.section;
+        if (performer.drillNumber) perfExtra.drillNumber = performer.drillNumber;
+        if (performer.symbolShape) perfExtra.symbolShape = performer.symbolShape;
+        if (Object.keys(perfExtra).length > 0) {
+          try {
+            await client.query(`
+              UPDATE formation_performers SET extra_data = COALESCE(extra_data, '{}'::jsonb) || $2::jsonb
+              WHERE id = $1
             `, [performer.id, JSON.stringify(perfExtra)]);
-          }
-        }
-      }
-    }
-
-    // Delete removed performers
-    for (const existingId of existingPerformerIds) {
-      if (!newPerformerIds.has(existingId)) {
-        await this.deletePerformer(existingId);
-      }
-    }
-
-    // Process keyframes
-    const newKeyframeIds = new Set();
-    for (let i = 0; i < keyframes.length; i++) {
-      const keyframe = keyframes[i];
-      newKeyframeIds.add(keyframe.id);
-
-      if (existingKeyframeIds.has(keyframe.id)) {
-        // Update existing keyframe
-        await this.updateKeyframe(keyframe.id, {
-          timestampMs: keyframe.timestamp,
-          transition: keyframe.transition,
-          duration: keyframe.duration
-        });
-        await query(`
-          UPDATE formation_keyframes SET sort_order = $1 WHERE id = $2
-        `, [i, keyframe.id]);
-      } else {
-        // Insert new keyframe
-        await query(`
-          INSERT INTO formation_keyframes (
-            id, formation_id, timestamp_ms, transition, duration, sort_order, created_at, updated_at
-          )
-          VALUES ($1, $2, $3, $4, $5, $6, NOW(), NOW())
-        `, [keyframe.id, formationId, keyframe.timestamp || 0, keyframe.transition || 'linear', keyframe.duration || 1000, i]);
-      }
-
-      // Update positions for this keyframe
-      if (keyframe.positions) {
-        // Delete existing positions for this keyframe
-        await query(`DELETE FROM formation_positions WHERE keyframe_id = $1`, [keyframe.id]);
-
-        // Insert new positions
-        const positions = keyframe.positions instanceof Map
-          ? Object.fromEntries(keyframe.positions)
-          : keyframe.positions;
-
-        for (const [performerId, pos] of Object.entries(positions)) {
-          if (newPerformerIds.has(performerId)) {
-            await this.setPosition({
-              keyframeId: keyframe.id,
-              performerId,
-              x: pos.x,
-              y: pos.y,
-              rotation: pos.rotation || 0
-            });
+          } catch (e) {
+            if (e.message && e.message.includes('extra_data')) {
+              await client.query(`ALTER TABLE formation_performers ADD COLUMN IF NOT EXISTS extra_data JSONB DEFAULT '{}'::jsonb`);
+              await client.query(`
+                UPDATE formation_performers SET extra_data = $2::jsonb WHERE id = $1
+              `, [performer.id, JSON.stringify(perfExtra)]);
+            }
           }
         }
       }
 
-      // Save pathCurves and beatBinding as JSONB on keyframe row
-      const kfExtra = {};
-      if (keyframe.pathCurves) {
-        kfExtra.pathCurves = keyframe.pathCurves instanceof Map
-          ? Object.fromEntries(keyframe.pathCurves)
-          : keyframe.pathCurves;
+      // Delete removed performers (CASCADE deletes their positions)
+      for (const existingId of existingPerformerIds) {
+        if (!newPerformerIds.has(existingId)) {
+          await client.query('DELETE FROM formation_performers WHERE id = $1', [existingId]);
+        }
       }
-      if (keyframe.beatBinding) {
-        kfExtra.beatBinding = keyframe.beatBinding;
-      }
-      if (Object.keys(kfExtra).length > 0) {
-        try {
-          await query(`
-            UPDATE formation_keyframes SET extra_data = COALESCE(extra_data, '{}'::jsonb) || $2::jsonb
-            WHERE id = $1
-          `, [keyframe.id, JSON.stringify(kfExtra)]);
-        } catch (e) {
-          if (e.message && e.message.includes('extra_data')) {
-            await query(`ALTER TABLE formation_keyframes ADD COLUMN IF NOT EXISTS extra_data JSONB DEFAULT '{}'::jsonb`);
-            await query(`
-              UPDATE formation_keyframes SET extra_data = $2::jsonb WHERE id = $1
+
+      // Process keyframes
+      const newKeyframeIds = new Set();
+      for (let i = 0; i < keyframes.length; i++) {
+        const keyframe = keyframes[i];
+        newKeyframeIds.add(keyframe.id);
+
+        if (existingKeyframeIds.has(keyframe.id)) {
+          await client.query(`
+            UPDATE formation_keyframes
+            SET timestamp_ms = $1, transition = $2, duration = $3, sort_order = $4, updated_at = NOW()
+            WHERE id = $5
+          `, [keyframe.timestamp || 0, keyframe.transition || 'linear', keyframe.duration || 1000, i, keyframe.id]);
+        } else {
+          await client.query(`
+            INSERT INTO formation_keyframes (
+              id, formation_id, timestamp_ms, transition, duration, sort_order, created_at, updated_at
+            )
+            VALUES ($1, $2, $3, $4, $5, $6, NOW(), NOW())
+          `, [keyframe.id, formationId, keyframe.timestamp || 0, keyframe.transition || 'linear', keyframe.duration || 1000, i]);
+        }
+
+        // Update positions for this keyframe
+        if (keyframe.positions) {
+          await client.query(`DELETE FROM formation_positions WHERE keyframe_id = $1`, [keyframe.id]);
+
+          const positions = keyframe.positions instanceof Map
+            ? Object.fromEntries(keyframe.positions)
+            : keyframe.positions;
+
+          for (const [performerId, pos] of Object.entries(positions)) {
+            if (newPerformerIds.has(performerId)) {
+              const posId = uuidv4();
+              await client.query(`
+                INSERT INTO formation_positions (
+                  id, keyframe_id, performer_id, x, y, rotation, created_at, updated_at
+                )
+                VALUES ($1, $2, $3, $4, $5, $6, NOW(), NOW())
+                ON CONFLICT (keyframe_id, performer_id)
+                DO UPDATE SET x = $4, y = $5, rotation = $6, updated_at = NOW()
+              `, [posId, keyframe.id, performerId, pos.x, pos.y, pos.rotation || 0]);
+            }
+          }
+        }
+
+        // Save pathCurves and beatBinding as JSONB on keyframe row
+        const kfExtra = {};
+        if (keyframe.pathCurves) {
+          kfExtra.pathCurves = keyframe.pathCurves instanceof Map
+            ? Object.fromEntries(keyframe.pathCurves)
+            : keyframe.pathCurves;
+        }
+        if (keyframe.beatBinding) {
+          kfExtra.beatBinding = keyframe.beatBinding;
+        }
+        if (Object.keys(kfExtra).length > 0) {
+          try {
+            await client.query(`
+              UPDATE formation_keyframes SET extra_data = COALESCE(extra_data, '{}'::jsonb) || $2::jsonb
+              WHERE id = $1
             `, [keyframe.id, JSON.stringify(kfExtra)]);
+          } catch (e) {
+            if (e.message && e.message.includes('extra_data')) {
+              await client.query(`ALTER TABLE formation_keyframes ADD COLUMN IF NOT EXISTS extra_data JSONB DEFAULT '{}'::jsonb`);
+              await client.query(`
+                UPDATE formation_keyframes SET extra_data = $2::jsonb WHERE id = $1
+              `, [keyframe.id, JSON.stringify(kfExtra)]);
+            }
           }
         }
       }
-    }
 
-    // Delete removed keyframes
-    for (const existingId of existingKeyframeIds) {
-      if (!newKeyframeIds.has(existingId)) {
-        await this.deleteKeyframe(existingId);
+      // Delete removed keyframes (CASCADE deletes their positions)
+      for (const existingId of existingKeyframeIds) {
+        if (!newKeyframeIds.has(existingId)) {
+          await client.query('DELETE FROM formation_keyframes WHERE id = $1', [existingId]);
+        }
       }
-    }
 
-    // Update formation timestamp
-    await query(`UPDATE formations SET updated_at = NOW() WHERE id = $1`, [formationId]);
+      // Update formation timestamp
+      await client.query(`UPDATE formations SET updated_at = NOW() WHERE id = $1`, [formationId]);
+    });
 
-    // Return the updated formation
+    // Return the updated formation (outside transaction, read-only)
     return this.getFormationById(formationId);
   }
 

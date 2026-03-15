@@ -23,6 +23,7 @@ const { zodValidate } = require('../middleware/zodValidate');
 const { createProjectSchema, updateProjectSchema, addProjectMemberSchema, updateProjectMemberRoleSchema } = require('../lib/schemas');
 const { query } = require('../database/config');
 const { ingestEvent } = require('../lib/analytics/funnelTracker');
+const { requireProjectAccess } = require('../middleware/requireProjectAccess');
 
 const router = express.Router();
 
@@ -167,7 +168,7 @@ router.get('/', authenticateToken, async (req, res) => {
  * Performance optimization: Fetches project, unread count, and members
  * in parallel using Promise.all instead of sequential queries
  */
-router.get('/:projectId', authenticateToken, async (req, res) => {
+router.get('/:projectId', authenticateToken, requireProjectAccess(), async (req, res) => {
   try {
     const { projectId } = req.params;
     const userId = req.user.id;
@@ -325,7 +326,7 @@ router.post('/', authenticateToken, validateInput.sanitizeInput, checkProjectQuo
  * PUT /api/projects/:projectId
  * Update a project
  */
-router.put('/:projectId', authenticateToken, validateInput.sanitizeInput, zodValidate(updateProjectSchema), async (req, res) => {
+router.put('/:projectId', authenticateToken, requireProjectAccess(), validateInput.sanitizeInput, zodValidate(updateProjectSchema), async (req, res) => {
   try {
     const { projectId } = req.params;
     const userId = req.user.id;
@@ -366,7 +367,7 @@ router.put('/:projectId', authenticateToken, validateInput.sanitizeInput, zodVal
  * DELETE /api/projects/:projectId
  * Delete a project
  */
-router.delete('/:projectId', authenticateToken, async (req, res) => {
+router.delete('/:projectId', authenticateToken, requireProjectAccess(), async (req, res) => {
   try {
     const { projectId } = req.params;
     const userId = req.user.id;
@@ -394,7 +395,7 @@ router.delete('/:projectId', authenticateToken, async (req, res) => {
  * GET /api/projects/:projectId/activity
  * Get project activity/events
  */
-router.get('/:projectId/activity', authenticateToken, async (req, res) => {
+router.get('/:projectId/activity', authenticateToken, requireProjectAccess(), async (req, res) => {
   try {
     const { projectId } = req.params;
     const { limit = 20, offset = 0 } = req.query;
@@ -419,7 +420,7 @@ router.get('/:projectId/activity', authenticateToken, async (req, res) => {
  * GET /api/projects/:projectId/conversation
  * Get or create project conversation
  */
-router.get('/:projectId/conversation', authenticateToken, async (req, res) => {
+router.get('/:projectId/conversation', authenticateToken, requireProjectAccess(), async (req, res) => {
   try {
     const { projectId } = req.params;
     const userId = req.user.id;
@@ -441,7 +442,7 @@ router.get('/:projectId/conversation', authenticateToken, async (req, res) => {
  * GET /api/projects/:projectId/members
  * Get project members
  */
-router.get('/:projectId/members', authenticateToken, async (req, res) => {
+router.get('/:projectId/members', authenticateToken, requireProjectAccess(), async (req, res) => {
   try {
     const { projectId } = req.params;
 
@@ -462,7 +463,7 @@ router.get('/:projectId/members', authenticateToken, async (req, res) => {
  * POST /api/projects/:projectId/members
  * Add member to project
  */
-router.post('/:projectId/members', authenticateToken, validateInput.sanitizeInput, zodValidate(addProjectMemberSchema), async (req, res) => {
+router.post('/:projectId/members', authenticateToken, requireProjectAccess(), validateInput.sanitizeInput, zodValidate(addProjectMemberSchema), async (req, res) => {
   try {
     const { projectId } = req.params;
     const { userId: memberUserId, role = 'contributor' } = req.body;
@@ -486,7 +487,7 @@ router.post('/:projectId/members', authenticateToken, validateInput.sanitizeInpu
  * DELETE /api/projects/:projectId/members/:userId
  * Remove member from project
  */
-router.delete('/:projectId/members/:userId', authenticateToken, async (req, res) => {
+router.delete('/:projectId/members/:userId', authenticateToken, requireProjectAccess(), async (req, res) => {
   try {
     const { projectId, userId: memberUserId } = req.params;
 
@@ -505,7 +506,7 @@ router.delete('/:projectId/members/:userId', authenticateToken, async (req, res)
  * PUT /api/projects/:projectId/members/:userId
  * Update member role
  */
-router.put('/:projectId/members/:userId', authenticateToken, validateInput.sanitizeInput, zodValidate(updateProjectMemberRoleSchema), async (req, res) => {
+router.put('/:projectId/members/:userId', authenticateToken, requireProjectAccess(), validateInput.sanitizeInput, zodValidate(updateProjectMemberRoleSchema), async (req, res) => {
   try {
     const { projectId, userId: memberUserId } = req.params;
     const { role } = req.body;
@@ -555,23 +556,9 @@ router.get('/activities/recent', authenticateToken, async (req, res) => {
  * GET /api/projects/:projectId/counts
  * Get project counts for tab badges
  */
-router.get('/:projectId/counts', authenticateToken, async (req, res) => {
+router.get('/:projectId/counts', authenticateToken, requireProjectAccess(), async (req, res) => {
   try {
     const { projectId } = req.params;
-    const userId = req.user.id;
-
-    // Verify project membership
-    if (projectsAdapter) {
-      const project = await projectsAdapter.getProjectById(projectId);
-      if (!project) {
-        return res.status(404).json({ success: false, error: 'Project not found', code: 'PROJECT_NOT_FOUND' });
-      }
-      const members = await projectsAdapter.getProjectMembers(projectId);
-      const isMember = members.some(m => m.userId === userId || m.user_id === userId);
-      if (!isMember) {
-        return res.status(403).json({ success: false, error: 'Not a project member', code: 'NOT_PROJECT_MEMBER' });
-      }
-    }
 
     // Get counts using database aggregations (each wrapped in try/catch for resilience)
     const safeCount = async (sql, params) => {

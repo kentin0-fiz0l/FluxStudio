@@ -164,9 +164,9 @@ export class ApiService {
           throw new Error('Authentication required. Please sign in again.');
         }
 
-        if (response.status === 403 && errorData.error === 'CSRF_TOKEN_INVALID') {
+        if (response.status === 403) {
           this.clearCsrfToken();
-          if (retries > 0) {
+          if (errorData.error === 'CSRF_TOKEN_INVALID' && retries > 0) {
             return this.makeRequest(url, { ...options, retries: retries - 1 });
           }
         }
@@ -180,6 +180,11 @@ export class ApiService {
           apiLogger.warn('Rate limited, retrying after', { waitMs, retriesLeft: retries - 1 });
           await this.delay(waitMs);
           return this.makeRequest(url, { ...options, retries: retries - 1 });
+        }
+
+        // Friendly message when server returns 500 with no parseable error
+        if (response.status >= 500 && !errorData.message) {
+          throw new Error('Something went wrong on our end. Please try again in a moment.');
         }
 
         throw new Error(errorData.message || `HTTP ${response.status}: ${response.statusText}`);

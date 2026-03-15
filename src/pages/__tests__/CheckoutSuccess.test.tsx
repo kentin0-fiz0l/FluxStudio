@@ -23,7 +23,7 @@ describe('CheckoutSuccess', () => {
     vi.clearAllMocks();
   });
 
-  const renderCheckoutSuccess = (initialEntries: string[] = ['/checkout/success']) => {
+  const renderCheckoutSuccess = (initialEntries: string[] = ['/checkout/success?session_id=cs_test_a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6']) => {
     return render(
       <MemoryRouter initialEntries={initialEntries}>
         <CheckoutSuccess />
@@ -79,9 +79,10 @@ describe('CheckoutSuccess', () => {
       expect(screen.getByText(/cs_test_a1b2c3d4e5f6/i)).toBeInTheDocument();
     });
 
-    test('does not display order reference when no session_id', () => {
-      renderCheckoutSuccess();
-      expect(screen.queryByText(/order reference/i)).not.toBeInTheDocument();
+    test('shows no-session state when no session_id', () => {
+      renderCheckoutSuccess(['/checkout/success']);
+      expect(screen.getByText('No checkout session found')).toBeInTheDocument();
+      expect(screen.getByText('Go to Billing')).toBeInTheDocument();
     });
   });
 });

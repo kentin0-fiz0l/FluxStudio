@@ -8,7 +8,36 @@ const helmet = require('helmet');
 const cors = require('cors');
 const validator = require('validator');
 const crypto = require('crypto');
+const DOMPurify = require('isomorphic-dompurify');
 const { securityLogger } = require('../lib/logger');
+
+/**
+ * HTML sanitization for rich text content (Tiptap editor, messages)
+ * Allows safe formatting tags while stripping XSS vectors.
+ */
+const ALLOWED_TAGS = [
+  'p', 'br', 'b', 'i', 'u', 'strong', 'em', 's',
+  'ul', 'ol', 'li',
+  'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
+  'a', 'blockquote', 'code', 'pre',
+  'span', 'div', 'sub', 'sup', 'hr'
+];
+
+const ALLOWED_ATTR = [
+  'href', 'target', 'rel',
+  'class', 'data-type', 'data-id'
+];
+
+function sanitizeRichText(html) {
+  if (!html || typeof html !== 'string') return html;
+  return DOMPurify.sanitize(html, {
+    ALLOWED_TAGS,
+    ALLOWED_ATTR,
+    ALLOW_DATA_ATTR: false,
+    FORBID_TAGS: ['script', 'iframe', 'object', 'embed', 'form', 'style', 'math'],
+    FORBID_ATTR: ['onerror', 'onclick', 'onload', 'onmouseover', 'onfocus', 'onblur'],
+  });
+}
 
 /**
  * Rate limiting configuration
@@ -266,6 +295,7 @@ module.exports = {
   cors: cors(corsOptions),
   helmet: helmet(helmetConfig),
   validateInput,
+  sanitizeRichText,
   securityErrorHandler,
   auditLogger,
   traceIdMiddleware

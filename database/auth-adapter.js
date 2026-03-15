@@ -12,7 +12,7 @@ class AuthAdapter {
   // User management
   async getUsers() {
     try {
-      const result = await query('SELECT * FROM users WHERE is_active = true ORDER BY created_at DESC');
+      const result = await query('SELECT * FROM users WHERE is_active = true ORDER BY created_at DESC LIMIT 100');
       return result.rows.map(this.transformUser);
     } catch (error) {
       log.error('Error getting users', error);
@@ -157,7 +157,7 @@ class AuthAdapter {
   // File management (placeholder - files are handled separately)
   async getFiles() {
     try {
-      const result = await query('SELECT * FROM files ORDER BY created_at DESC');
+      const result = await query('SELECT * FROM files ORDER BY created_at DESC LIMIT 100');
       return result.rows.map(this.transformFile);
     } catch (error) {
       log.error('Error getting files', error);
@@ -202,7 +202,7 @@ class AuthAdapter {
   // Team management (placeholder)
   async getTeams() {
     try {
-      const result = await query('SELECT * FROM teams ORDER BY created_at DESC');
+      const result = await query('SELECT * FROM teams ORDER BY created_at DESC LIMIT 100');
       return result.rows;
     } catch (error) {
       log.error('Error getting teams', error);

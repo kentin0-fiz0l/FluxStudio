@@ -18,6 +18,7 @@ const { createLogger } = require('../lib/logger');
 const log = createLogger('Messaging');
 const { authenticateToken } = require('../lib/auth/middleware');
 const { zodValidate } = require('../middleware/zodValidate');
+const { sanitizeRichText } = require('../middleware/security');
 const { createConversationSchema, createMessageSchema } = require('../lib/schemas/messaging');
 const messagingConversationsAdapter = require('../database/messaging-conversations-adapter');
 const filesAdapter = require('../database/files-adapter');
@@ -735,10 +736,12 @@ router.post('/:id/messages', authenticateToken, zodValidate(createMessageSchema)
       return res.status(404).json({ success: false, error: 'Conversation not found' });
     }
 
+    const sanitizedText = text ? sanitizeRichText(text) : '';
+
     let message = await messagingConversationsAdapter.createMessage({
       conversationId,
       userId,
-      text: text || '',
+      text: sanitizedText,
       assetId: assetId || null,
       replyToMessageId: replyToMessageId || null,
       projectId: projectId || null,
@@ -1151,11 +1154,12 @@ router.put('/:conversationId/messages/:messageId', authenticateToken, async (req
       });
     }
 
-    // Update the message using editMessage (matches adapter function signature)
+    // Sanitize and update the message
+    const sanitizedText = sanitizeRichText(text.trim());
     const updatedMessage = await messagingConversationsAdapter.editMessage({
       messageId,
       userId,
-      content: text.trim()
+      content: sanitizedText
     });
 
     // Emit real-time event
@@ -1163,7 +1167,7 @@ router.put('/:conversationId/messages/:messageId', authenticateToken, async (req
       messagingNamespace.to(conversationId).emit('message:edited', {
         messageId,
         conversationId,
-        text: text.trim(),
+        text: sanitizedText,
         editedAt: new Date().toISOString(),
         editedBy: userId
       });
@@ -1333,11 +1337,12 @@ messagesRouter.patch('/:messageId', authenticateToken, async (req, res) => {
       return res.status(403).json({ success: false, error: 'Not authorized to edit messages in this conversation' });
     }
 
-    // Edit the message (adapter will verify ownership)
+    // Sanitize and edit the message (adapter will verify ownership)
+    const sanitizedContent = sanitizeRichText(content.trim());
     const updated = await messagingConversationsAdapter.editMessage({
       messageId,
       userId,
-      content: content.trim()
+      content: sanitizedContent
     });
 
     if (!updated) {

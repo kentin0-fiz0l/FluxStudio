@@ -25,6 +25,7 @@ const { createLogger } = require('../lib/logger');
 const log = createLogger('Files');
 const { zodValidate } = require('../middleware/zodValidate');
 const { attachFileSchema, attachFileByProjectSchema } = require('../lib/schemas');
+const { requireProjectAccess, canUserAccessProject } = require('../middleware/requireProjectAccess');
 
 const router = express.Router();
 
@@ -48,23 +49,6 @@ const fileUpload = multer({
     files: 10
   }
 });
-
-// Helper function to check project access
-async function canUserAccessProject(userId, projectId) {
-  try {
-    const result = await query(`
-      SELECT 1 FROM project_members
-      WHERE project_id = $1 AND user_id = $2
-      UNION
-      SELECT 1 FROM projects
-      WHERE id = $1 AND manager_id = $2
-    `, [projectId, userId]);
-    return result.rows.length > 0;
-  } catch (error) {
-    log.error('Error checking project access', error);
-    return false;
-  }
-}
 
 // MIME type mapping for file serving
 const mimeTypes = {
@@ -293,6 +277,12 @@ router.post('/:fileId/attach', authenticateToken, zodValidate(attachFileSchema),
       return res.status(404).json({ success: false, error: 'File not found', code: 'FILE_NOT_FOUND' });
     }
 
+    // Verify user has access to the target project
+    const hasAccess = await canUserAccessProject(req.user.id, projectId);
+    if (!hasAccess) {
+      return res.status(403).json({ success: false, error: 'You do not have permission to access this project', code: 'PROJECT_ACCESS_DENIED' });
+    }
+
     // Attach file to project
     await filesAdapter.attachFileToProject({
       fileId,
@@ -313,7 +303,7 @@ router.post('/:fileId/attach', authenticateToken, zodValidate(attachFileSchema),
  * DELETE /api/files/:fileId/attach/:projectId
  * Detach file from project (via project_files join table)
  */
-router.delete('/:fileId/attach/:projectId', authenticateToken, async (req, res) => {
+router.delete('/:fileId/attach/:projectId', authenticateToken, requireProjectAccess(), async (req, res) => {
   try {
     const { fileId, projectId } = req.params;
 
@@ -330,7 +320,7 @@ router.delete('/:fileId/attach/:projectId', authenticateToken, async (req, res) 
  * GET /api/project-files/:projectId
  * Get files attached to project (via project_files join table)
  */
-router.get('/project-files/:projectId', authenticateToken, async (req, res) => {
+router.get('/project-files/:projectId', authenticateToken, requireProjectAccess(), async (req, res) => {
   try {
     const { projectId } = req.params;
     const { limit = 50, offset = 0 } = req.query;
@@ -356,7 +346,7 @@ router.get('/project-files/:projectId', authenticateToken, async (req, res) => {
  * POST /api/projects/:projectId/attach-file
  * Attach existing file to project (alternative route matching REST conventions)
  */
-router.post('/projects/:projectId/attach-file', authenticateToken, zodValidate(attachFileByProjectSchema), async (req, res) => {
+router.post('/projects/:projectId/attach-file', authenticateToken, requireProjectAccess(), zodValidate(attachFileByProjectSchema), async (req, res) => {
   try {
     const { projectId } = req.params;
     const { fileId, role = 'reference', notes } = req.body;
@@ -386,7 +376,7 @@ router.post('/projects/:projectId/attach-file', authenticateToken, zodValidate(a
  * DELETE /api/projects/:projectId/files/:fileId/detach
  * Detach file from project (alternative route)
  */
-router.delete('/projects/:projectId/files/:fileId/detach', authenticateToken, async (req, res) => {
+router.delete('/projects/:projectId/files/:fileId/detach', authenticateToken, requireProjectAccess(), async (req, res) => {
   try {
     const { projectId, fileId } = req.params;
 

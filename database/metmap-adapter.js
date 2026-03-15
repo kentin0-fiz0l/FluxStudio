@@ -1030,8 +1030,10 @@ async function createSnapshot(songId, userId, { name, description, yjsState, sec
 async function getSnapshot(snapshotId, userId) {
   try {
     const result = await query(
-      'SELECT * FROM metmap_snapshots WHERE id = $1',
-      [snapshotId]
+      `SELECT s.* FROM metmap_snapshots s
+       JOIN metmap_songs song ON s.song_id = song.id
+       WHERE s.id = $1 AND song.user_id = $2`,
+      [snapshotId, userId]
     );
     if (result.rows.length === 0) return null;
     const row = result.rows[0];
@@ -1145,7 +1147,12 @@ async function createBranch(songId, userId, { name, description, sourceSnapshotI
  */
 async function getBranch(branchId, userId) {
   try {
-    const result = await query('SELECT * FROM metmap_branches WHERE id = $1', [branchId]);
+    const result = await query(
+      `SELECT b.* FROM metmap_branches b
+       JOIN metmap_songs song ON b.song_id = song.id
+       WHERE b.id = $1 AND song.user_id = $2`,
+      [branchId, userId]
+    );
     if (result.rows.length === 0) return null;
     const row = result.rows[0];
     return {
@@ -1179,7 +1186,12 @@ async function deleteBranch(branchId, userId) {
  */
 async function mergeBranch(branchId, userId) {
   try {
-    const branch = await query('SELECT * FROM metmap_branches WHERE id = $1', [branchId]);
+    const branch = await query(
+      `SELECT b.* FROM metmap_branches b
+       JOIN metmap_songs song ON b.song_id = song.id
+       WHERE b.id = $1 AND song.user_id = $2`,
+      [branchId, userId]
+    );
     if (branch.rows.length === 0) return null;
 
     const row = branch.rows[0];
@@ -1187,8 +1199,8 @@ async function mergeBranch(branchId, userId) {
 
     // Copy branch state to song
     await query(
-      'UPDATE metmap_songs SET yjs_state = $2, updated_at = NOW() WHERE id = $1',
-      [row.song_id, row.yjs_state]
+      'UPDATE metmap_songs SET yjs_state = $2, updated_at = NOW() WHERE id = $1 AND user_id = $3',
+      [row.song_id, row.yjs_state, userId]
     );
 
     // Mark branch as merged

@@ -1,10 +1,49 @@
 import { Link, useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { CheckCircle, ArrowRight, Download, Mail } from 'lucide-react';
+import { CheckCircle, ArrowRight, Download, Mail, AlertTriangle } from 'lucide-react';
 
 export function CheckoutSuccess() {
   const [searchParams] = useSearchParams();
   const sessionId = searchParams.get('session_id');
+
+  // If no session_id, the user may have navigated here directly or the session expired
+  if (!sessionId) {
+    return (
+      <div className="min-h-screen bg-gray-50 dark:bg-neutral-950 text-neutral-900 dark:text-white flex items-center justify-center px-4">
+        <div className="max-w-lg w-full text-center">
+          <div className="w-24 h-24 mx-auto mb-8 rounded-full bg-yellow-100 dark:bg-yellow-500/20 flex items-center justify-center">
+            <AlertTriangle className="w-14 h-14 text-yellow-600 dark:text-yellow-400" aria-hidden="true" />
+          </div>
+
+          <h1 className="text-3xl font-bold mb-4 text-neutral-900 dark:text-white">
+            No checkout session found
+          </h1>
+
+          <p className="text-lg text-neutral-500 dark:text-neutral-400 mb-8">
+            This page requires a valid checkout session. If you just completed a purchase,
+            check your email for confirmation or visit your billing page.
+          </p>
+
+          <div className="space-y-4">
+            <Link
+              to="/billing"
+              className="flex items-center justify-center gap-2 w-full py-4 px-6 bg-gradient-to-r from-blue-500 to-purple-500 rounded-xl font-semibold text-white hover:from-blue-600 hover:to-purple-600 transition-all"
+            >
+              Go to Billing
+              <ArrowRight className="w-5 h-5" aria-hidden="true" />
+            </Link>
+
+            <Link
+              to="/pricing"
+              className="block text-neutral-500 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white transition-colors"
+            >
+              View plans
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-neutral-950 text-neutral-900 dark:text-white flex items-center justify-center px-4">
@@ -91,11 +130,9 @@ export function CheckoutSuccess() {
           </Link>
         </motion.div>
 
-        {sessionId && (
-          <p className="mt-8 text-xs text-neutral-400 dark:text-neutral-500">
-            Order reference: {sessionId.slice(0, 20)}...
-          </p>
-        )}
+        <p className="mt-8 text-xs text-neutral-400 dark:text-neutral-500">
+          Order reference: {sessionId.slice(0, 20)}...
+        </p>
       </div>
     </div>
   );

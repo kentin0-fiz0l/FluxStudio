@@ -27,6 +27,8 @@ export function Checkout() {
   }, [planFromUrl, user]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const startCheckout = async (planId: PlanId, interval: 'month' | 'year') => {
+    if (loading) return;
+
     if (!user) {
       navigate(`/login?callbackUrl=${encodeURIComponent(`/checkout?plan=${planId}&interval=${interval}`)}`);
       return;

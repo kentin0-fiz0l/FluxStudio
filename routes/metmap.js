@@ -19,6 +19,7 @@ const { authenticateToken } = require('../lib/auth/middleware');
 const { v4: uuidv4 } = require('uuid');
 const metmapAdapter = require('../database/metmap-adapter');
 const { fileStorage } = require('../lib/storage');
+const { canUserAccessProject } = require('../middleware/requireProjectAccess');
 const { zodValidate } = require('../middleware/zodValidate');
 const {
   createSongSchema,
@@ -94,6 +95,14 @@ router.post('/songs', authenticateToken, zodValidate(createSongSchema), async (r
   try {
     const { title, description, projectId, bpmDefault, timeSignatureDefault } = req.body;
 
+    // Verify project access if associating song with a project
+    if (projectId) {
+      const hasAccess = await canUserAccessProject(req.user.id, projectId);
+      if (!hasAccess) {
+        return res.status(403).json({ success: false, error: 'You do not have permission to access this project', code: 'PROJECT_ACCESS_DENIED' });
+      }
+    }
+
     const song = await metmapAdapter.createSong(req.user.id, {
       title: title.trim(),
       description,
@@ -137,6 +146,14 @@ router.put('/songs/:songId', authenticateToken, zodValidate(updateSongSchema), a
   try {
     const { songId } = req.params;
     const { title, description, projectId, bpmDefault, timeSignatureDefault } = req.body;
+
+    // Verify project access if reassigning song to a project
+    if (projectId) {
+      const hasAccess = await canUserAccessProject(req.user.id, projectId);
+      if (!hasAccess) {
+        return res.status(403).json({ success: false, error: 'You do not have permission to access this project', code: 'PROJECT_ACCESS_DENIED' });
+      }
+    }
 
     const song = await metmapAdapter.updateSong(songId, req.user.id, {
       title,
@@ -635,10 +652,16 @@ router.post('/songs/:songId/snapshots', authenticateToken, zodValidate(createSna
     const { songId } = req.params;
     const { name, description, sectionCount, totalBars } = req.body;
 
+    // Verify song ownership before accessing Yjs state
+    const song = await metmapAdapter.getSongById(songId, req.user.id);
+    if (!song) {
+      return res.status(404).json({ success: false, error: 'Song not found', code: 'METMAP_SONG_NOT_FOUND' });
+    }
+
     // Get current Yjs state from the song
     const yjsState = await metmapAdapter.getYjsState(songId);
     if (!yjsState) {
-      return res.status(404).json({ success: false, error: 'Song not found or no Yjs state', code: 'METMAP_SONG_NOT_FOUND' });
+      return res.status(404).json({ success: false, error: 'No Yjs state available', code: 'METMAP_NO_YJS_STATE' });
     }
 
     const snapshot = await metmapAdapter.createSnapshot(songId, req.user.id, {
@@ -679,13 +702,21 @@ router.delete('/songs/:songId/snapshots/:id', authenticateToken, async (req, res
  */
 router.post('/songs/:songId/snapshots/:id/restore', authenticateToken, async (req, res) => {
   try {
+    const { songId } = req.params;
+
+    // Verify song ownership
+    const song = await metmapAdapter.getSongById(songId, req.user.id);
+    if (!song) {
+      return res.status(404).json({ success: false, error: 'Song not found', code: 'METMAP_SONG_NOT_FOUND' });
+    }
+
     const snapshot = await metmapAdapter.getSnapshot(req.params.id, req.user.id);
     if (!snapshot || !snapshot.yjsState) {
       return res.status(404).json({ success: false, error: 'Snapshot not found', code: 'METMAP_SNAPSHOT_NOT_FOUND' });
     }
 
     // Replace song's Yjs state with snapshot state
-    await metmapAdapter.saveYjsState(req.params.songId, snapshot.yjsState);
+    await metmapAdapter.saveYjsState(songId, snapshot.yjsState);
 
     res.json({ success: true, snapshot: { id: snapshot.id, name: snapshot.name } });
   } catch (error) {

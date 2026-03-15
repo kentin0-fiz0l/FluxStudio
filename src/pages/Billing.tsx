@@ -80,6 +80,7 @@ export function Billing() {
   }, [user, navigate, fetchSubscriptionStatus]);
 
   const openCustomerPortal = async () => {
+    if (portalLoading) return;
     setPortalLoading(true);
     setError('');
 
@@ -90,6 +91,8 @@ export function Billing() {
 
       if (result.data?.url) {
         window.location.href = result.data.url;
+      } else {
+        throw new Error('No portal URL returned');
       }
     } catch (err) {
       console.error('Error opening portal:', err);
@@ -389,9 +392,10 @@ export function Billing() {
           {subscription?.hasSubscription && (
             <button
               onClick={openCustomerPortal}
-              className="text-primary-600 hover:text-primary-700 dark:text-primary-400 dark:hover:text-primary-300 text-sm font-medium transition-colors"
+              disabled={portalLoading}
+              className="text-primary-600 hover:text-primary-700 dark:text-primary-400 dark:hover:text-primary-300 text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              Update payment method
+              {portalLoading ? 'Opening portal...' : 'Update payment method'}
             </button>
           )}
         </motion.div>
@@ -415,9 +419,10 @@ export function Billing() {
               </p>
               <button
                 onClick={openCustomerPortal}
-                className="text-primary-600 hover:text-primary-700 dark:text-primary-400 dark:hover:text-primary-300 text-sm font-medium transition-colors"
+                disabled={portalLoading}
+                className="text-primary-600 hover:text-primary-700 dark:text-primary-400 dark:hover:text-primary-300 text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                View invoices
+                {portalLoading ? 'Opening portal...' : 'View invoices'}
               </button>
             </>
           ) : (

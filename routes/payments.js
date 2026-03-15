@@ -58,11 +58,14 @@ router.post('/webhooks/stripe', async (req, res) => {
     const result = await paymentService.handleWebhook(payload, signature);
 
     log.info('Stripe webhook processed', { type: result.type });
-    res.json(result);
+    // Always return 200 after signature verification passes
+    // (even if event processing had errors, retrying won't help)
+    res.status(200).json(result);
   } catch (error) {
     log.error('Webhook processing error', error);
-    // Return 400 for invalid webhooks so Stripe doesn't retry
-    res.status(400).json({ success: false, error: error.message, code: 'PAYMENT_WEBHOOK_ERROR' });
+    // Return 400 for signature verification failures so Stripe retries with correct signature
+    // Return 400 for missing config so we don't silently swallow events
+    res.status(400).json({ success: false, error: 'Webhook verification failed', code: 'PAYMENT_WEBHOOK_ERROR' });
   }
 });
 

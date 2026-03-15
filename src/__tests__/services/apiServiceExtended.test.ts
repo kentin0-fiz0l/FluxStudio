@@ -274,7 +274,7 @@ describe('ApiService Extended Tests', () => {
           json: () => Promise.resolve({}),
         });
 
-      await expect(apiService.post('/test', {})).rejects.toThrow('HTTP 500: Internal Server Error');
+      await expect(apiService.post('/test', {})).rejects.toThrow('Something went wrong on our end. Please try again in a moment.');
     });
   });
 
