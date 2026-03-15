@@ -81,7 +81,7 @@ router.post('/events', authenticateToken, zodValidate(observabilityEventsSchema)
     res.json({ success: true, count: names.length });
   } catch (error) {
     log.error('Events ingestion error', error);
-    res.status(500).json({ success: false, error: 'Failed to store events', code: 'INTERNAL_ERROR' });
+    res.status(500).json({ success: false, error: 'Failed to store events', code: 'OBSERVABILITY_ERROR' });
   }
 });
 
@@ -131,7 +131,7 @@ router.post('/vitals', async (req, res) => {
     const { sessionId, url, vitals, viewport, connectionType, userAgent, performanceScore } = body;
 
     if (!sessionId || !vitals) {
-      return res.status(400).json({ success: false, error: 'sessionId and vitals are required', code: 'MISSING_FIELDS' });
+      return res.status(400).json({ success: false, error: 'sessionId and vitals are required', code: 'OBSERVABILITY_MISSING_FIELDS' });
     }
 
     await query(
@@ -158,7 +158,7 @@ router.post('/vitals', async (req, res) => {
     res.json({ success: true });
   } catch (error) {
     log.error('Vitals ingestion error', error);
-    res.status(500).json({ success: false, error: 'Failed to store vitals', code: 'INTERNAL_ERROR' });
+    res.status(500).json({ success: false, error: 'Failed to store vitals', code: 'OBSERVABILITY_ERROR' });
   }
 });
 
@@ -215,7 +215,7 @@ router.get('/vitals/summary', authenticateToken, async (req, res) => {
     });
   } catch (error) {
     log.error('Vitals summary error', error);
-    res.status(500).json({ success: false, error: 'Failed to fetch vitals summary', code: 'INTERNAL_ERROR' });
+    res.status(500).json({ success: false, error: 'Failed to fetch vitals summary', code: 'OBSERVABILITY_ERROR' });
   }
 });
 
@@ -319,7 +319,7 @@ router.get('/metrics', authenticateToken, async (req, res) => {
     });
   } catch (error) {
     log.error('Metrics error', error);
-    res.status(500).json({ success: false, error: 'Failed to fetch metrics', code: 'INTERNAL_ERROR' });
+    res.status(500).json({ success: false, error: 'Failed to fetch metrics', code: 'OBSERVABILITY_ERROR' });
   }
 });
 

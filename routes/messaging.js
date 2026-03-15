@@ -100,8 +100,8 @@ router.get('/', authenticateToken, async (req, res) => {
       filter: { projectId }
     });
   } catch (error) {
-    log.error('Error listing conversations', error);
-    res.status(500).json({ success: false, error: 'Failed to list conversations' });
+    log.error('Error listing conversations', error, { userId: req.user?.id });
+    res.status(500).json({ success: false, error: 'Failed to list conversations', code: 'MESSAGING_LIST_ERROR' });
   }
 });
 
@@ -115,11 +115,11 @@ router.post('/', authenticateToken, zodValidate(createConversationSchema), async
     const { name, isGroup, memberUserIds, organizationId, projectId } = req.body;
 
     if (memberUserIds && !Array.isArray(memberUserIds)) {
-      return res.status(400).json({ success: false, error: 'memberUserIds must be an array' });
+      return res.status(400).json({ success: false, error: 'memberUserIds must be an array', code: 'MESSAGING_INVALID_MEMBERS' });
     }
 
     if (isGroup && !name) {
-      return res.status(400).json({ success: false, error: 'Group conversations require a name' });
+      return res.status(400).json({ success: false, error: 'Group conversations require a name', code: 'MESSAGING_MISSING_GROUP_NAME' });
     }
 
     const conversation = await messagingConversationsAdapter.createConversation({
@@ -133,8 +133,8 @@ router.post('/', authenticateToken, zodValidate(createConversationSchema), async
 
     res.status(201).json({ success: true, conversation });
   } catch (error) {
-    log.error('Error creating conversation', error);
-    res.status(500).json({ success: false, error: 'Failed to create conversation' });
+    log.error('Error creating conversation', error, { userId: req.user?.id });
+    res.status(500).json({ success: false, error: 'Failed to create conversation', code: 'MESSAGING_CREATE_ERROR' });
   }
 });
 
@@ -153,13 +153,13 @@ router.get('/:id', authenticateToken, async (req, res) => {
     });
 
     if (!conversation) {
-      return res.status(404).json({ success: false, error: 'Conversation not found' });
+      return res.status(404).json({ success: false, error: 'Conversation not found', code: 'MESSAGING_CONVERSATION_NOT_FOUND' });
     }
 
     res.json({ success: true, conversation });
   } catch (error) {
     log.error('Error getting conversation', error);
-    res.status(500).json({ success: false, error: 'Failed to get conversation' });
+    res.status(500).json({ success: false, error: 'Failed to get conversation', code: 'MESSAGING_GET_ERROR' });
   }
 });
 
@@ -179,7 +179,7 @@ router.patch('/:id', authenticateToken, async (req, res) => {
     });
 
     if (!existing) {
-      return res.status(404).json({ success: false, error: 'Conversation not found' });
+      return res.status(404).json({ success: false, error: 'Conversation not found', code: 'MESSAGING_CONVERSATION_NOT_FOUND' });
     }
 
     const updated = await messagingConversationsAdapter.updateConversation({
@@ -191,7 +191,7 @@ router.patch('/:id', authenticateToken, async (req, res) => {
     res.json({ success: true, conversation: updated });
   } catch (error) {
     log.error('Error updating conversation', error);
-    res.status(500).json({ success: false, error: 'Failed to update conversation' });
+    res.status(500).json({ success: false, error: 'Failed to update conversation', code: 'MESSAGING_UPDATE_ERROR' });
   }
 });
 
@@ -211,13 +211,13 @@ router.post('/:id/mute', authenticateToken, async (req, res) => {
     const result = await presenceAdapter.muteConversation(conversationId, userId, mutedUntil);
 
     if (!result) {
-      return res.status(404).json({ success: false, error: 'Conversation not found or not a member' });
+      return res.status(404).json({ success: false, error: 'Conversation not found or not a member', code: 'MESSAGING_CONVERSATION_NOT_FOUND' });
     }
 
     res.json({ success: true, muted: true, mutedUntil });
   } catch (error) {
     log.error('Error muting conversation', error);
-    res.status(500).json({ success: false, error: 'Failed to mute conversation' });
+    res.status(500).json({ success: false, error: 'Failed to mute conversation', code: 'MESSAGING_MUTE_ERROR' });
   }
 });
 
@@ -233,13 +233,13 @@ router.delete('/:id/mute', authenticateToken, async (req, res) => {
     const result = await presenceAdapter.unmuteConversation(conversationId, userId);
 
     if (!result) {
-      return res.status(404).json({ success: false, error: 'Conversation not found or not a member' });
+      return res.status(404).json({ success: false, error: 'Conversation not found or not a member', code: 'MESSAGING_CONVERSATION_NOT_FOUND' });
     }
 
     res.json({ success: true, muted: false });
   } catch (error) {
     log.error('Error unmuting conversation', error);
-    res.status(500).json({ success: false, error: 'Failed to unmute conversation' });
+    res.status(500).json({ success: false, error: 'Failed to unmute conversation', code: 'MESSAGING_UNMUTE_ERROR' });
   }
 });
 
@@ -255,13 +255,13 @@ router.get('/:id/mute', authenticateToken, async (req, res) => {
     const status = await presenceAdapter.getMuteStatus(conversationId, userId);
 
     if (!status) {
-      return res.status(404).json({ success: false, error: 'Not a member of this conversation' });
+      return res.status(404).json({ success: false, error: 'Not a member of this conversation', code: 'MESSAGING_NOT_A_MEMBER' });
     }
 
     res.json({ success: true, ...status });
   } catch (error) {
     log.error('Error getting mute status', error);
-    res.status(500).json({ success: false, error: 'Failed to get mute status' });
+    res.status(500).json({ success: false, error: 'Failed to get mute status', code: 'MESSAGING_MUTE_STATUS_ERROR' });
   }
 });
 
@@ -281,7 +281,7 @@ router.patch('/:id/archive', authenticateToken, async (req, res) => {
     });
 
     if (!existing) {
-      return res.status(404).json({ success: false, error: 'Conversation not found' });
+      return res.status(404).json({ success: false, error: 'Conversation not found', code: 'MESSAGING_CONVERSATION_NOT_FOUND' });
     }
 
     await query(
@@ -292,7 +292,7 @@ router.patch('/:id/archive', authenticateToken, async (req, res) => {
     res.json({ success: true, archived });
   } catch (error) {
     log.error('Error updating conversation archive status', error);
-    res.status(500).json({ success: false, error: 'Failed to update archive status' });
+    res.status(500).json({ success: false, error: 'Failed to update archive status', code: 'MESSAGING_ARCHIVE_ERROR' });
   }
 });
 
@@ -311,7 +311,7 @@ router.delete('/:id/members/me', authenticateToken, async (req, res) => {
     });
 
     if (!existing) {
-      return res.status(404).json({ success: false, error: 'Conversation not found' });
+      return res.status(404).json({ success: false, error: 'Conversation not found', code: 'MESSAGING_CONVERSATION_NOT_FOUND' });
     }
 
     const removed = await messagingConversationsAdapter.removeMember({
@@ -322,7 +322,7 @@ router.delete('/:id/members/me', authenticateToken, async (req, res) => {
     res.json({ success: true, removed });
   } catch (error) {
     log.error('Error leaving conversation', error);
-    res.status(500).json({ success: false, error: 'Failed to leave conversation' });
+    res.status(500).json({ success: false, error: 'Failed to leave conversation', code: 'MESSAGING_LEAVE_ERROR' });
   }
 });
 
@@ -336,7 +336,7 @@ router.post('/:id/members', authenticateToken, async (req, res) => {
     const { userId: memberUserId, role } = req.body;
 
     if (!memberUserId) {
-      return res.status(400).json({ success: false, error: 'userId is required' });
+      return res.status(400).json({ success: false, error: 'userId is required', code: 'MESSAGING_MISSING_USER_ID' });
     }
 
     const member = await messagingConversationsAdapter.addMember({
@@ -348,7 +348,7 @@ router.post('/:id/members', authenticateToken, async (req, res) => {
     res.status(201).json({ success: true, member });
   } catch (error) {
     log.error('Error adding member', error);
-    res.status(500).json({ success: false, error: 'Failed to add member' });
+    res.status(500).json({ success: false, error: 'Failed to add member', code: 'MESSAGING_ADD_MEMBER_ERROR' });
   }
 });
 
@@ -369,7 +369,7 @@ router.delete('/:id/members/:userId', authenticateToken, async (req, res) => {
     res.json({ success: true, removed });
   } catch (error) {
     log.error('Error removing member', error);
-    res.status(500).json({ success: false, error: 'Failed to remove member' });
+    res.status(500).json({ success: false, error: 'Failed to remove member', code: 'MESSAGING_REMOVE_MEMBER_ERROR' });
   }
 });
 
@@ -384,7 +384,7 @@ router.post('/:id/read', authenticateToken, async (req, res) => {
     const { messageId } = req.body;
 
     if (!messageId) {
-      return res.status(400).json({ success: false, error: 'messageId is required' });
+      return res.status(400).json({ success: false, error: 'messageId is required', code: 'MESSAGING_MISSING_MESSAGE_ID' });
     }
 
     const updated = await messagingConversationsAdapter.setLastRead({
@@ -396,7 +396,7 @@ router.post('/:id/read', authenticateToken, async (req, res) => {
     res.json({ success: true, updated });
   } catch (error) {
     log.error('Error updating last read', error);
-    res.status(500).json({ success: false, error: 'Failed to update last read' });
+    res.status(500).json({ success: false, error: 'Failed to update last read', code: 'MESSAGING_UPDATE_READ_ERROR' });
   }
 });
 
@@ -419,7 +419,7 @@ router.get('/:id/messages', authenticateToken, async (req, res) => {
     });
 
     if (!conversation) {
-      return res.status(404).json({ success: false, error: 'Conversation not found' });
+      return res.status(404).json({ success: false, error: 'Conversation not found', code: 'MESSAGING_CONVERSATION_NOT_FOUND' });
     }
 
     let messages = await messagingConversationsAdapter.listMessages({
@@ -437,7 +437,7 @@ router.get('/:id/messages', authenticateToken, async (req, res) => {
     });
   } catch (error) {
     log.error('Error listing messages', error);
-    res.status(500).json({ success: false, error: 'Failed to list messages' });
+    res.status(500).json({ success: false, error: 'Failed to list messages', code: 'MESSAGING_LIST_MESSAGES_ERROR' });
   }
 });
 
@@ -451,7 +451,7 @@ router.post('/:id/upload', authenticateToken, fileUpload.single('file'), async (
     const conversationId = req.params.id;
 
     if (!req.file) {
-      return res.status(400).json({ success: false, error: 'No file uploaded' });
+      return res.status(400).json({ success: false, error: 'No file uploaded', code: 'MESSAGING_MISSING_FILE' });
     }
 
     const conversation = await messagingConversationsAdapter.getConversationById({
@@ -460,7 +460,7 @@ router.post('/:id/upload', authenticateToken, fileUpload.single('file'), async (
     });
 
     if (!conversation) {
-      return res.status(404).json({ success: false, error: 'Conversation not found' });
+      return res.status(404).json({ success: false, error: 'Conversation not found', code: 'MESSAGING_CONVERSATION_NOT_FOUND' });
     }
 
     const file = req.file;
@@ -559,7 +559,7 @@ router.post('/:id/upload', authenticateToken, fileUpload.single('file'), async (
     });
   } catch (error) {
     log.error('Error uploading conversation file', error);
-    res.status(500).json({ success: false, error: 'Failed to upload file' });
+    res.status(500).json({ success: false, error: 'Failed to upload file', code: 'MESSAGING_UPLOAD_ERROR' });
   }
 });
 
@@ -574,7 +574,7 @@ router.post('/:id/voice-message', authenticateToken, fileUpload.single('file'), 
     const duration = parseFloat(req.body.duration) || 0;
 
     if (!req.file) {
-      return res.status(400).json({ success: false, error: 'No audio file uploaded' });
+      return res.status(400).json({ success: false, error: 'No audio file uploaded', code: 'MESSAGING_MISSING_AUDIO' });
     }
 
     const conversation = await messagingConversationsAdapter.getConversationById({
@@ -583,7 +583,7 @@ router.post('/:id/voice-message', authenticateToken, fileUpload.single('file'), 
     });
 
     if (!conversation) {
-      return res.status(404).json({ success: false, error: 'Conversation not found' });
+      return res.status(404).json({ success: false, error: 'Conversation not found', code: 'MESSAGING_CONVERSATION_NOT_FOUND' });
     }
 
     const file = req.file;
@@ -709,7 +709,7 @@ router.post('/:id/voice-message', authenticateToken, fileUpload.single('file'), 
     });
   } catch (error) {
     log.error('Error creating voice message', error);
-    res.status(500).json({ success: false, error: 'Failed to create voice message' });
+    res.status(500).json({ success: false, error: 'Failed to create voice message', code: 'MESSAGING_VOICE_MESSAGE_ERROR' });
   }
 });
 
@@ -724,7 +724,7 @@ router.post('/:id/messages', authenticateToken, zodValidate(createMessageSchema)
     const { text, assetId, replyToMessageId, projectId, isSystemMessage } = req.body;
 
     if (!text && !assetId) {
-      return res.status(400).json({ success: false, error: 'Either text or assetId is required' });
+      return res.status(400).json({ success: false, error: 'Either text or assetId is required', code: 'MESSAGING_MISSING_CONTENT' });
     }
 
     const conversation = await messagingConversationsAdapter.getConversationById({
@@ -733,7 +733,7 @@ router.post('/:id/messages', authenticateToken, zodValidate(createMessageSchema)
     });
 
     if (!conversation) {
-      return res.status(404).json({ success: false, error: 'Conversation not found' });
+      return res.status(404).json({ success: false, error: 'Conversation not found', code: 'MESSAGING_CONVERSATION_NOT_FOUND' });
     }
 
     const sanitizedText = text ? sanitizeRichText(text) : '';
@@ -780,7 +780,7 @@ router.post('/:id/messages', authenticateToken, zodValidate(createMessageSchema)
     res.status(201).json({ success: true, message });
   } catch (error) {
     log.error('Error creating message', error);
-    res.status(500).json({ success: false, error: 'Failed to create message' });
+    res.status(500).json({ success: false, error: 'Failed to create message', code: 'MESSAGING_CREATE_MESSAGE_ERROR' });
   }
 });
 
@@ -798,14 +798,14 @@ router.get('/:id/pins', authenticateToken, async (req, res) => {
       userId
     });
     if (!conversation) {
-      return res.status(404).json({ success: false, error: 'Conversation not found or not a member' });
+      return res.status(404).json({ success: false, error: 'Conversation not found or not a member', code: 'MESSAGING_CONVERSATION_NOT_FOUND' });
     }
 
     const pins = await messagingConversationsAdapter.listPinnedMessages({ conversationId, limit: 20 });
     return res.json({ success: true, pins });
   } catch (error) {
     log.error('Error listing pins', error);
-    return res.status(500).json({ success: false, error: 'Failed to list pinned messages' });
+    return res.status(500).json({ success: false, error: 'Failed to list pinned messages', code: 'MESSAGING_LIST_PINS_ERROR' });
   }
 });
 
@@ -823,7 +823,7 @@ router.get('/:conversationId/read-states', authenticateToken, async (req, res) =
       userId
     });
     if (!conversation) {
-      return res.status(404).json({ success: false, error: 'Conversation not found' });
+      return res.status(404).json({ success: false, error: 'Conversation not found', code: 'MESSAGING_CONVERSATION_NOT_FOUND' });
     }
 
     const readStates = await messagingConversationsAdapter.getConversationReadStates({ conversationId });
@@ -835,7 +835,7 @@ router.get('/:conversationId/read-states', authenticateToken, async (req, res) =
     });
   } catch (error) {
     log.error('Error fetching read states', error);
-    return res.status(500).json({ success: false, error: 'Failed to fetch read states' });
+    return res.status(500).json({ success: false, error: 'Failed to fetch read states', code: 'MESSAGING_READ_STATES_ERROR' });
   }
 });
 
@@ -850,7 +850,7 @@ router.post('/:conversationId/read', authenticateToken, async (req, res) => {
     const { lastReadMessageId } = req.body;
 
     if (!lastReadMessageId) {
-      return res.status(400).json({ success: false, error: 'lastReadMessageId is required' });
+      return res.status(400).json({ success: false, error: 'lastReadMessageId is required', code: 'MESSAGING_MISSING_MESSAGE_ID' });
     }
 
     const conversation = await messagingConversationsAdapter.getConversationById({
@@ -858,7 +858,7 @@ router.post('/:conversationId/read', authenticateToken, async (req, res) => {
       userId
     });
     if (!conversation) {
-      return res.status(404).json({ success: false, error: 'Conversation not found' });
+      return res.status(404).json({ success: false, error: 'Conversation not found', code: 'MESSAGING_CONVERSATION_NOT_FOUND' });
     }
 
     const readState = await messagingConversationsAdapter.updateReadState({
@@ -884,7 +884,7 @@ router.post('/:conversationId/read', authenticateToken, async (req, res) => {
     });
   } catch (error) {
     log.error('Error marking conversation as read', error);
-    return res.status(500).json({ success: false, error: 'Failed to mark as read' });
+    return res.status(500).json({ success: false, error: 'Failed to mark as read', code: 'MESSAGING_MARK_READ_ERROR' });
   }
 });
 
@@ -908,7 +908,7 @@ router.get('/:conversationId/threads/:threadRootMessageId/messages', authenticat
     });
 
     if (!result) {
-      return res.status(404).json({ success: false, error: 'Thread not found or access denied' });
+      return res.status(404).json({ success: false, error: 'Thread not found or access denied', code: 'MESSAGING_THREAD_NOT_FOUND' });
     }
 
     return res.json({
@@ -921,7 +921,7 @@ router.get('/:conversationId/threads/:threadRootMessageId/messages', authenticat
     });
   } catch (error) {
     log.error('Error fetching thread messages', error);
-    return res.status(500).json({ success: false, error: 'Failed to fetch thread messages' });
+    return res.status(500).json({ success: false, error: 'Failed to fetch thread messages', code: 'MESSAGING_THREAD_ERROR' });
   }
 });
 
@@ -939,7 +939,7 @@ router.get('/:conversationId/threads/:threadRootMessageId/summary', authenticate
       userId
     });
     if (!conversation) {
-      return res.status(404).json({ success: false, error: 'Conversation not found' });
+      return res.status(404).json({ success: false, error: 'Conversation not found', code: 'MESSAGING_CONVERSATION_NOT_FOUND' });
     }
 
     const summary = await messagingConversationsAdapter.getThreadSummary({
@@ -955,7 +955,7 @@ router.get('/:conversationId/threads/:threadRootMessageId/summary', authenticate
     });
   } catch (error) {
     log.error('Error fetching thread summary', error);
-    return res.status(500).json({ success: false, error: 'Failed to fetch thread summary' });
+    return res.status(500).json({ success: false, error: 'Failed to fetch thread summary', code: 'MESSAGING_THREAD_SUMMARY_ERROR' });
   }
 });
 
@@ -1147,7 +1147,7 @@ router.put('/:conversationId/messages/:messageId', authenticateToken, async (req
     const { text } = req.body;
 
     if (!text || typeof text !== 'string' || text.trim().length === 0) {
-      return res.status(400).json({ success: false, error: 'Text content is required' });
+      return res.status(400).json({ success: false, error: 'Text content is required', code: 'MESSAGING_MISSING_CONTENT' });
     }
 
     // Verify user is in conversation
@@ -1157,7 +1157,7 @@ router.put('/:conversationId/messages/:messageId', authenticateToken, async (req
     });
 
     if (!conversation) {
-      return res.status(404).json({ success: false, error: 'Conversation not found or not a member' });
+      return res.status(404).json({ success: false, error: 'Conversation not found or not a member', code: 'MESSAGING_CONVERSATION_NOT_FOUND' });
     }
 
     // Get the message to verify ownership
@@ -1170,11 +1170,11 @@ router.put('/:conversationId/messages/:messageId', authenticateToken, async (req
     const message = messages.find(m => m.id === messageId);
 
     if (!message) {
-      return res.status(404).json({ success: false, error: 'Message not found' });
+      return res.status(404).json({ success: false, error: 'Message not found', code: 'MESSAGING_MESSAGE_NOT_FOUND' });
     }
 
     if (message.userId !== userId && message.user_id !== userId) {
-      return res.status(403).json({ success: false, error: 'You can only edit your own messages' });
+      return res.status(403).json({ success: false, error: 'You can only edit your own messages', code: 'MESSAGING_PERMISSION_DENIED' });
     }
 
     // Check edit time limit (15 minutes)
@@ -1221,7 +1221,7 @@ router.put('/:conversationId/messages/:messageId', authenticateToken, async (req
     res.json({ success: true, message: updatedMessage });
   } catch (error) {
     log.error('Error editing message', error);
-    res.status(500).json({ success: false, error: 'Failed to edit message' });
+    res.status(500).json({ success: false, error: 'Failed to edit message', code: 'MESSAGING_EDIT_ERROR' });
   }
 });
 
@@ -1241,7 +1241,7 @@ router.delete('/:conversationId/messages/:messageId', authenticateToken, async (
     });
 
     if (!conversation) {
-      return res.status(404).json({ success: false, error: 'Conversation not found or not a member' });
+      return res.status(404).json({ success: false, error: 'Conversation not found or not a member', code: 'MESSAGING_CONVERSATION_NOT_FOUND' });
     }
 
     // Get the message to verify ownership
@@ -1254,7 +1254,7 @@ router.delete('/:conversationId/messages/:messageId', authenticateToken, async (
     const message = messages.find(m => m.id === messageId);
 
     if (!message) {
-      return res.status(404).json({ success: false, error: 'Message not found' });
+      return res.status(404).json({ success: false, error: 'Message not found', code: 'MESSAGING_MESSAGE_NOT_FOUND' });
     }
 
     // Allow deletion by message author or conversation admin
@@ -1302,7 +1302,7 @@ router.delete('/:conversationId/messages/:messageId', authenticateToken, async (
     res.json({ success: true, messageId, deleted: true });
   } catch (error) {
     log.error('Error deleting message', error);
-    res.status(500).json({ success: false, error: 'Failed to delete message' });
+    res.status(500).json({ success: false, error: 'Failed to delete message', code: 'MESSAGING_DELETE_ERROR' });
   }
 });
 
@@ -1331,13 +1331,13 @@ messagesRouter.delete('/:id', authenticateToken, async (req, res) => {
     });
 
     if (!deleted) {
-      return res.status(404).json({ success: false, error: 'Message not found or not authorized' });
+      return res.status(404).json({ success: false, error: 'Message not found or not authorized', code: 'MESSAGING_MESSAGE_NOT_FOUND' });
     }
 
     res.json({ success: true, deleted: true });
   } catch (error) {
     log.error('Error deleting message', error);
-    res.status(500).json({ success: false, error: 'Failed to delete message' });
+    res.status(500).json({ success: false, error: 'Failed to delete message', code: 'MESSAGING_DELETE_ERROR' });
   }
 });
 
@@ -1352,13 +1352,13 @@ messagesRouter.patch('/:messageId', authenticateToken, async (req, res) => {
     const { content } = req.body;
 
     if (!content || typeof content !== 'string' || !content.trim()) {
-      return res.status(400).json({ success: false, error: 'Content is required' });
+      return res.status(400).json({ success: false, error: 'Content is required', code: 'MESSAGING_MISSING_CONTENT' });
     }
 
     // Get the message to check ownership and conversation membership
     const message = await messagingConversationsAdapter.getMessageById({ messageId });
     if (!message) {
-      return res.status(404).json({ success: false, error: 'Message not found' });
+      return res.status(404).json({ success: false, error: 'Message not found', code: 'MESSAGING_MESSAGE_NOT_FOUND' });
     }
 
     // Verify conversation membership
@@ -1367,7 +1367,7 @@ messagesRouter.patch('/:messageId', authenticateToken, async (req, res) => {
       userId
     });
     if (!conversation) {
-      return res.status(403).json({ success: false, error: 'Not authorized to edit messages in this conversation' });
+      return res.status(403).json({ success: false, error: 'Not authorized to edit messages in this conversation', code: 'MESSAGING_PERMISSION_DENIED' });
     }
 
     // Sanitize and edit the message (adapter will verify ownership)
@@ -1379,7 +1379,7 @@ messagesRouter.patch('/:messageId', authenticateToken, async (req, res) => {
     });
 
     if (!updated) {
-      return res.status(403).json({ success: false, error: 'Could not edit message - you may not be the author' });
+      return res.status(403).json({ success: false, error: 'Could not edit message - you may not be the author', code: 'MESSAGING_PERMISSION_DENIED' });
     }
 
     return res.json({
@@ -1391,7 +1391,7 @@ messagesRouter.patch('/:messageId', authenticateToken, async (req, res) => {
     if (error.message && error.message.includes('Unauthorized')) {
       return res.status(403).json({ success: false, error: error.message });
     }
-    return res.status(500).json({ success: false, error: 'Failed to edit message' });
+    return res.status(500).json({ success: false, error: 'Failed to edit message', code: 'MESSAGING_EDIT_ERROR' });
   }
 });
 
@@ -1418,7 +1418,7 @@ messagesRouter.post('/:messageId/reactions', authenticateToken, async (req, res)
     // Check if message exists and user has access
     const message = await messagingConversationsAdapter.getMessageById({ messageId });
     if (!message) {
-      return res.status(404).json({ success: false, error: 'Message not found' });
+      return res.status(404).json({ success: false, error: 'Message not found', code: 'MESSAGING_MESSAGE_NOT_FOUND' });
     }
 
     // Verify user is a member of the conversation
@@ -1427,7 +1427,7 @@ messagesRouter.post('/:messageId/reactions', authenticateToken, async (req, res)
       userId
     });
     if (!conversation) {
-      return res.status(403).json({ success: false, error: 'Not authorized to react to this message' });
+      return res.status(403).json({ success: false, error: 'Not authorized to react to this message', code: 'MESSAGING_PERMISSION_DENIED' });
     }
 
     const result = await messagingConversationsAdapter.addReaction({
@@ -1443,7 +1443,7 @@ messagesRouter.post('/:messageId/reactions', authenticateToken, async (req, res)
     });
   } catch (error) {
     log.error('Error adding reaction', error);
-    res.status(500).json({ success: false, error: 'Failed to add reaction' });
+    res.status(500).json({ success: false, error: 'Failed to add reaction', code: 'MESSAGING_ADD_REACTION_ERROR' });
   }
 });
 
@@ -1462,7 +1462,7 @@ messagesRouter.delete('/:messageId/reactions/:emoji', authenticateToken, async (
     // Check if message exists
     const message = await messagingConversationsAdapter.getMessageById({ messageId });
     if (!message) {
-      return res.status(404).json({ success: false, error: 'Message not found' });
+      return res.status(404).json({ success: false, error: 'Message not found', code: 'MESSAGING_MESSAGE_NOT_FOUND' });
     }
 
     // Verify user is a member of the conversation
@@ -1471,7 +1471,7 @@ messagesRouter.delete('/:messageId/reactions/:emoji', authenticateToken, async (
       userId
     });
     if (!conversation) {
-      return res.status(403).json({ success: false, error: 'Not authorized to remove reaction from this message' });
+      return res.status(403).json({ success: false, error: 'Not authorized to remove reaction from this message', code: 'MESSAGING_PERMISSION_DENIED' });
     }
 
     const result = await messagingConversationsAdapter.removeReaction({
@@ -1487,7 +1487,7 @@ messagesRouter.delete('/:messageId/reactions/:emoji', authenticateToken, async (
     });
   } catch (error) {
     log.error('Error removing reaction', error);
-    res.status(500).json({ success: false, error: 'Failed to remove reaction' });
+    res.status(500).json({ success: false, error: 'Failed to remove reaction', code: 'MESSAGING_REMOVE_REACTION_ERROR' });
   }
 });
 
@@ -1503,7 +1503,7 @@ messagesRouter.get('/:messageId/reactions', authenticateToken, async (req, res) 
     // Check if message exists
     const message = await messagingConversationsAdapter.getMessageById({ messageId });
     if (!message) {
-      return res.status(404).json({ success: false, error: 'Message not found' });
+      return res.status(404).json({ success: false, error: 'Message not found', code: 'MESSAGING_MESSAGE_NOT_FOUND' });
     }
 
     // Verify user is a member of the conversation
@@ -1512,7 +1512,7 @@ messagesRouter.get('/:messageId/reactions', authenticateToken, async (req, res) 
       userId
     });
     if (!conversation) {
-      return res.status(403).json({ success: false, error: 'Not authorized to view reactions for this message' });
+      return res.status(403).json({ success: false, error: 'Not authorized to view reactions for this message', code: 'MESSAGING_PERMISSION_DENIED' });
     }
 
     const result = await messagingConversationsAdapter.listReactionsForMessage({ messageId });
@@ -1524,7 +1524,7 @@ messagesRouter.get('/:messageId/reactions', authenticateToken, async (req, res) 
     });
   } catch (error) {
     log.error('Error listing reactions', error);
-    res.status(500).json({ success: false, error: 'Failed to list reactions' });
+    res.status(500).json({ success: false, error: 'Failed to list reactions', code: 'MESSAGING_LIST_REACTIONS_ERROR' });
   }
 });
 
@@ -1542,7 +1542,7 @@ messagesRouter.post('/:messageId/pin', authenticateToken, async (req, res) => {
     // Check if message exists
     const message = await messagingConversationsAdapter.getMessageById({ messageId });
     if (!message) {
-      return res.status(404).json({ success: false, error: 'Message not found' });
+      return res.status(404).json({ success: false, error: 'Message not found', code: 'MESSAGING_MESSAGE_NOT_FOUND' });
     }
 
     // Verify conversation membership
@@ -1551,7 +1551,7 @@ messagesRouter.post('/:messageId/pin', authenticateToken, async (req, res) => {
       userId
     });
     if (!conversation) {
-      return res.status(403).json({ success: false, error: 'Not authorized to pin messages in this conversation' });
+      return res.status(403).json({ success: false, error: 'Not authorized to pin messages in this conversation', code: 'MESSAGING_PERMISSION_DENIED' });
     }
 
     const pins = await messagingConversationsAdapter.pinMessage({ messageId, userId });
@@ -1562,7 +1562,7 @@ messagesRouter.post('/:messageId/pin', authenticateToken, async (req, res) => {
     });
   } catch (error) {
     log.error('Error pinning message', error);
-    return res.status(500).json({ success: false, error: 'Failed to pin message' });
+    return res.status(500).json({ success: false, error: 'Failed to pin message', code: 'MESSAGING_PIN_ERROR' });
   }
 });
 
@@ -1578,7 +1578,7 @@ messagesRouter.delete('/:messageId/pin', authenticateToken, async (req, res) => 
     // Check if message exists
     const message = await messagingConversationsAdapter.getMessageById({ messageId });
     if (!message) {
-      return res.status(404).json({ success: false, error: 'Message not found' });
+      return res.status(404).json({ success: false, error: 'Message not found', code: 'MESSAGING_MESSAGE_NOT_FOUND' });
     }
 
     // Verify conversation membership
@@ -1587,7 +1587,7 @@ messagesRouter.delete('/:messageId/pin', authenticateToken, async (req, res) => 
       userId
     });
     if (!conversation) {
-      return res.status(403).json({ success: false, error: 'Not authorized to unpin messages in this conversation' });
+      return res.status(403).json({ success: false, error: 'Not authorized to unpin messages in this conversation', code: 'MESSAGING_PERMISSION_DENIED' });
     }
 
     const pins = await messagingConversationsAdapter.unpinMessage({ messageId });
@@ -1598,7 +1598,7 @@ messagesRouter.delete('/:messageId/pin', authenticateToken, async (req, res) => 
     });
   } catch (error) {
     log.error('Error unpinning message', error);
-    return res.status(500).json({ success: false, error: 'Failed to unpin message' });
+    return res.status(500).json({ success: false, error: 'Failed to unpin message', code: 'MESSAGING_UNPIN_ERROR' });
   }
 });
 
@@ -1640,7 +1640,7 @@ messagesRouter.get('/search', authenticateToken, async (req, res) => {
     });
   } catch (error) {
     log.error('Error searching messages', error);
-    return res.status(500).json({ success: false, error: 'Failed to search messages' });
+    return res.status(500).json({ success: false, error: 'Failed to search messages', code: 'MESSAGING_SEARCH_ERROR' });
   }
 });
 

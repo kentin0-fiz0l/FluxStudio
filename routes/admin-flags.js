@@ -46,7 +46,7 @@ router.get('/', requireAdmin, async (req, res) => {
     res.json(result.rows);
   } catch (err) {
     log.error('List flags error', err);
-    res.status(500).json({ success: false, error: 'Failed to fetch feature flags', code: 'INTERNAL_ERROR' });
+    res.status(500).json({ success: false, error: 'Failed to fetch feature flags', code: 'FLAGS_LIST_ERROR' });
   }
 });
 
@@ -60,7 +60,7 @@ router.get('/evaluate', async (req, res) => {
     res.json(flags);
   } catch (err) {
     log.error('Evaluate flags error', err);
-    res.status(500).json({ success: false, error: 'Failed to evaluate feature flags', code: 'INTERNAL_ERROR' });
+    res.status(500).json({ success: false, error: 'Failed to evaluate feature flags', code: 'FLAGS_EVALUATE_ERROR' });
   }
 });
 
@@ -105,7 +105,7 @@ router.post('/', requireAdmin, zodValidate(createFeatureFlagSchema), async (req,
       return res.status(409).json({ success: false, error: 'A flag with this name already exists', code: 'DUPLICATE_FLAG' });
     }
     log.error('Create flag error', err);
-    res.status(500).json({ success: false, error: 'Failed to create feature flag', code: 'INTERNAL_ERROR' });
+    res.status(500).json({ success: false, error: 'Failed to create feature flag', code: 'FLAGS_CREATE_ERROR' });
   }
 });
 
@@ -148,7 +148,7 @@ router.patch('/:id', requireAdmin, zodValidate(updateFeatureFlagSchema), async (
     }
 
     if (updates.length === 0) {
-      return res.status(400).json({ success: false, error: 'No valid fields to update', code: 'MISSING_FIELDS' });
+      return res.status(400).json({ success: false, error: 'No valid fields to update', code: 'FLAGS_MISSING_FIELDS' });
     }
 
     params.push(id);
@@ -167,7 +167,7 @@ router.patch('/:id', requireAdmin, zodValidate(updateFeatureFlagSchema), async (
     res.json(result.rows[0]);
   } catch (err) {
     log.error('Update flag error', err);
-    res.status(500).json({ success: false, error: 'Failed to update feature flag', code: 'INTERNAL_ERROR' });
+    res.status(500).json({ success: false, error: 'Failed to update feature flag', code: 'FLAGS_UPDATE_ERROR' });
   }
 });
 
@@ -194,7 +194,7 @@ router.delete('/:id', requireAdmin, async (req, res) => {
     res.json({ success: true });
   } catch (err) {
     log.error('Delete flag error', err);
-    res.status(500).json({ success: false, error: 'Failed to delete feature flag', code: 'INTERNAL_ERROR' });
+    res.status(500).json({ success: false, error: 'Failed to delete feature flag', code: 'FLAGS_DELETE_ERROR' });
   }
 });
 

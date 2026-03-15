@@ -244,8 +244,8 @@ router.get('/', authenticateToken, zodValidateQuery(searchQuerySchema), async (r
       searchTime: Date.now(),
     });
   } catch (error) {
-    log.error('Search error', error);
-    res.status(500).json({ success: false, error: 'Search failed' });
+    log.error('Search error', error, { userId: req.user?.id, query: req.query?.q });
+    res.status(500).json({ success: false, error: 'Search failed', code: 'SEARCH_ERROR' });
   }
 });
 

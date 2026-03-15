@@ -37,10 +37,11 @@ router.post('/link-preview', authenticateToken, zodValidate(linkPreviewSchema), 
       ['link_preview', JSON.stringify({ url }), userId]
     );
 
+    log.info('Link preview job created', { userId, jobId: result.rows[0].id });
     res.status(201).json({ success: true, jobId: result.rows[0].id });
   } catch (error) {
-    log.error('Error creating link-preview job', error);
-    res.status(500).json({ success: false, error: 'Failed to create job' });
+    log.error('Error creating link-preview job', error, { userId: req.user?.id });
+    res.status(500).json({ success: false, error: 'Failed to create job', code: 'BROWSER_LINK_PREVIEW_ERROR' });
   }
 });
 
@@ -58,10 +59,11 @@ router.post('/web-capture', authenticateToken, zodValidate(webCaptureSchema), as
       ['web_capture', JSON.stringify({ url, projectId, boardId: boardId || null }), userId]
     );
 
+    log.info('Web capture job created', { userId, jobId: result.rows[0].id, projectId });
     res.status(201).json({ success: true, jobId: result.rows[0].id });
   } catch (error) {
-    log.error('Error creating web-capture job', error);
-    res.status(500).json({ success: false, error: 'Failed to create job' });
+    log.error('Error creating web-capture job', error, { userId: req.user?.id });
+    res.status(500).json({ success: false, error: 'Failed to create job', code: 'BROWSER_WEB_CAPTURE_ERROR' });
   }
 });
 
@@ -79,10 +81,11 @@ router.post('/pdf-export', authenticateToken, zodValidate(pdfExportSchema), asyn
       ['pdf_export', JSON.stringify({ html, css: css || null, projectId, format: format || null, pageSize: pageSize || null }), userId]
     );
 
+    log.info('PDF export job created', { userId, jobId: result.rows[0].id, projectId });
     res.status(201).json({ success: true, jobId: result.rows[0].id });
   } catch (error) {
-    log.error('Error creating pdf-export job', error);
-    res.status(500).json({ success: false, error: 'Failed to create job' });
+    log.error('Error creating pdf-export job', error, { userId: req.user?.id });
+    res.status(500).json({ success: false, error: 'Failed to create job', code: 'BROWSER_PDF_EXPORT_ERROR' });
   }
 });
 
@@ -100,10 +103,11 @@ router.post('/thumbnail', authenticateToken, zodValidate(thumbnailSchema), async
       ['thumbnail', JSON.stringify({ projectId }), userId]
     );
 
+    log.info('Thumbnail job created', { userId, jobId: result.rows[0].id, projectId });
     res.status(201).json({ success: true, jobId: result.rows[0].id });
   } catch (error) {
-    log.error('Error creating thumbnail job', error);
-    res.status(500).json({ success: false, error: 'Failed to create job' });
+    log.error('Error creating thumbnail job', error, { userId: req.user?.id });
+    res.status(500).json({ success: false, error: 'Failed to create job', code: 'BROWSER_THUMBNAIL_ERROR' });
   }
 });
 
@@ -121,10 +125,11 @@ router.post('/design-qa', authenticateToken, zodValidate(designQaSchema), async 
       ['design_qa', JSON.stringify({ url, baselineAssetId, viewport: viewport || null, threshold: threshold || null }), userId]
     );
 
+    log.info('Design QA job created', { userId, jobId: result.rows[0].id });
     res.status(201).json({ success: true, jobId: result.rows[0].id });
   } catch (error) {
-    log.error('Error creating design-qa job', error);
-    res.status(500).json({ success: false, error: 'Failed to create job' });
+    log.error('Error creating design-qa job', error, { userId: req.user?.id });
+    res.status(500).json({ success: false, error: 'Failed to create job', code: 'BROWSER_DESIGN_QA_ERROR' });
   }
 });
 
@@ -143,13 +148,13 @@ router.get('/jobs/:id', authenticateToken, async (req, res) => {
     );
 
     if (result.rows.length === 0) {
-      return res.status(404).json({ success: false, error: 'Job not found' });
+      return res.status(404).json({ success: false, error: 'Job not found', code: 'BROWSER_JOB_NOT_FOUND' });
     }
 
     res.json({ success: true, job: result.rows[0] });
   } catch (error) {
-    log.error('Error fetching job status', error);
-    res.status(500).json({ success: false, error: 'Failed to fetch job status' });
+    log.error('Error fetching job status', error, { userId: req.user?.id, jobId: req.params.id });
+    res.status(500).json({ success: false, error: 'Failed to fetch job status', code: 'BROWSER_JOB_STATUS_ERROR' });
   }
 });
 

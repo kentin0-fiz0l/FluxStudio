@@ -18,10 +18,15 @@ const { createLogger } = require('../lib/logger');
 const log = createLogger('LMS');
 const { authenticateToken } = require('../lib/data-helpers');
 const lmsOAuth = require('../services/lms-oauth-service');
+const { zodValidate } = require('../middleware/zodValidate');
+const { zodValidateParams } = require('../middleware/zodValidateParams');
+const {
+  lmsProviderParamsSchema,
+  lmsConnectSchema,
+  lmsShareSchema,
+} = require('../lib/schemas');
 
 const router = express.Router();
-
-const VALID_PROVIDERS = ['google_classroom', 'canvas_lms'];
 
 // ========================================
 // Routes
@@ -64,19 +69,16 @@ router.get('/providers', authenticateToken, async (req, res) => {
         ],
       });
     }
-    log.error('Error listing LMS providers', error);
-    res.status(500).json({ success: false, error: 'Failed to list providers' });
+    log.error('Error listing LMS providers', error, { userId: req.user?.id });
+    res.status(500).json({ success: false, error: 'Failed to list providers', code: 'LMS_LIST_PROVIDERS_ERROR' });
   }
 });
 
 /**
  * GET /:provider/courses — list courses for a connected provider.
  */
-router.get('/:provider/courses', authenticateToken, async (req, res) => {
+router.get('/:provider/courses', authenticateToken, zodValidateParams(lmsProviderParamsSchema), async (req, res) => {
   const { provider } = req.params;
-  if (!VALID_PROVIDERS.includes(provider)) {
-    return res.status(400).json({ success: false, error: 'Invalid LMS provider' });
-  }
 
   try {
     const userId = req.user.id;
@@ -91,21 +93,18 @@ router.get('/:provider/courses', authenticateToken, async (req, res) => {
     log.info(`Listing courses for ${provider}`, { userId, count: courses.length });
     res.json({ courses });
   } catch (error) {
-    log.error(`Error fetching courses for ${provider}`, error);
+    log.error(`Error fetching courses for ${provider}`, error, { userId: req.user?.id, provider });
     const status = error.message?.includes('not connected') ? 401 : 500;
-    res.status(status).json({ success: false, error: error.message });
+    const code = status === 401 ? 'LMS_NOT_CONNECTED' : 'LMS_LIST_COURSES_ERROR';
+    res.status(status).json({ success: false, error: error.message, code });
   }
 });
 
 /**
  * GET /:provider/callback — OAuth redirect handler (browser redirect).
  */
-router.get('/:provider/callback', async (req, res) => {
+router.get('/:provider/callback', zodValidateParams(lmsProviderParamsSchema), async (req, res) => {
   const { provider } = req.params;
-  if (!VALID_PROVIDERS.includes(provider)) {
-    return res.status(400).json({ success: false, error: 'Invalid LMS provider' });
-  }
-
   const { code, state } = req.query;
   if (!code || !state) {
     return res.redirect(
@@ -159,11 +158,8 @@ router.get('/:provider/callback', async (req, res) => {
 /**
  * POST /:provider/connect — initiate OAuth flow (returns real auth URL).
  */
-router.post('/:provider/connect', authenticateToken, async (req, res) => {
+router.post('/:provider/connect', authenticateToken, zodValidateParams(lmsProviderParamsSchema), zodValidate(lmsConnectSchema), async (req, res) => {
   const { provider } = req.params;
-  if (!VALID_PROVIDERS.includes(provider)) {
-    return res.status(400).json({ success: false, error: 'Invalid LMS provider' });
-  }
 
   try {
     const userId = req.user.id;
@@ -177,35 +173,26 @@ router.post('/:provider/connect', authenticateToken, async (req, res) => {
         return res.status(400).json({
           success: false,
           error: 'institutionUrl is required for Canvas LMS',
+          code: 'LMS_MISSING_INSTITUTION_URL',
         });
       }
       authUrl = await lmsOAuth.initiateCanvasOAuth(userId, institutionUrl);
     }
 
-    log.info(`Connect request for ${provider}`, { userId });
+    log.info(`LMS connection initiated for ${provider}`, { userId, provider });
     res.json({ authUrl });
   } catch (error) {
-    log.error(`Error initiating ${provider} OAuth`, error);
-    res.status(500).json({ success: false, error: error.message });
+    log.error(`Error initiating ${provider} OAuth`, error, { userId: req.user?.id, provider });
+    res.status(500).json({ success: false, error: error.message, code: 'LMS_CONNECT_ERROR' });
   }
 });
 
 /**
  * POST /:provider/share — share a formation to an LMS course as an assignment.
  */
-router.post('/:provider/share', authenticateToken, async (req, res) => {
+router.post('/:provider/share', authenticateToken, zodValidateParams(lmsProviderParamsSchema), zodValidate(lmsShareSchema), async (req, res) => {
   const { provider } = req.params;
-  if (!VALID_PROVIDERS.includes(provider)) {
-    return res.status(400).json({ success: false, error: 'Invalid LMS provider' });
-  }
-
   const { courseId, title, formationId, embedUrl } = req.body;
-  if (!courseId || !title || !formationId) {
-    return res.status(400).json({
-      success: false,
-      error: 'courseId, title, and formationId are required',
-    });
-  }
 
   try {
     const userId = req.user.id;
@@ -219,32 +206,30 @@ router.post('/:provider/share', authenticateToken, async (req, res) => {
       result = await lmsOAuth.createCanvasAssignment(userId, courseId, title, formationUrl);
     }
 
-    log.info(`Share to ${provider}`, { userId, courseId, title, formationId });
+    log.info(`Formation shared to ${provider}`, { userId, provider, courseId, formationId, assignmentId: result.assignmentId });
     res.json({ url: result.url, assignmentId: result.assignmentId });
   } catch (error) {
-    log.error(`Error sharing to ${provider}`, error);
+    log.error(`Error sharing to ${provider}`, error, { userId: req.user?.id, provider, courseId, formationId });
     const status = error.message?.includes('not connected') ? 401 : 500;
-    res.status(status).json({ success: false, error: error.message });
+    const code = status === 401 ? 'LMS_NOT_CONNECTED' : 'LMS_SHARE_ERROR';
+    res.status(status).json({ success: false, error: error.message, code });
   }
 });
 
 /**
  * DELETE /:provider/disconnect — remove OAuth connection for an LMS provider.
  */
-router.delete('/:provider/disconnect', authenticateToken, async (req, res) => {
+router.delete('/:provider/disconnect', authenticateToken, zodValidateParams(lmsProviderParamsSchema), async (req, res) => {
   const { provider } = req.params;
-  if (!VALID_PROVIDERS.includes(provider)) {
-    return res.status(400).json({ success: false, error: 'Invalid LMS provider' });
-  }
 
   try {
     const userId = req.user.id;
     await lmsOAuth.deactivateToken(userId, provider);
-    log.info(`${provider} disconnected`, { userId });
+    log.info(`LMS provider disconnected`, { userId, provider });
     res.json({ success: true, message: `${provider} disconnected` });
   } catch (error) {
-    log.error(`Error disconnecting ${provider}`, error);
-    res.status(500).json({ success: false, error: error.message });
+    log.error(`Error disconnecting ${provider}`, error, { userId: req.user?.id, provider });
+    res.status(500).json({ success: false, error: error.message, code: 'LMS_DISCONNECT_ERROR' });
   }
 });
 

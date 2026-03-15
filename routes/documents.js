@@ -48,13 +48,15 @@ router.get('/projects/:projectId/documents', authenticateToken, async (req, res)
     if (error.message.includes('access')) {
       return res.status(403).json({
         success: false,
-        error: 'Access denied: You do not have permission to view documents in this project'
+        error: 'Access denied: You do not have permission to view documents in this project',
+        code: 'DOCUMENT_ACCESS_DENIED'
       });
     }
 
     res.status(500).json({
       success: false,
-      error: error.message || 'Failed to list documents'
+      error: error.message || 'Failed to list documents',
+      code: 'DOCUMENT_LIST_ERROR'
     });
   }
 });
@@ -85,13 +87,15 @@ router.post('/projects/:projectId/documents', authenticateToken, rateLimitByUser
     if (error.message.includes('access')) {
       return res.status(403).json({
         success: false,
-        error: 'Access denied: You do not have permission to create documents in this project'
+        error: 'Access denied: You do not have permission to create documents in this project',
+        code: 'DOCUMENT_ACCESS_DENIED'
       });
     }
 
     res.status(500).json({
       success: false,
-      error: error.message || 'Failed to create document'
+      error: error.message || 'Failed to create document',
+      code: 'DOCUMENT_CREATE_ERROR'
     });
   }
 });
@@ -117,13 +121,15 @@ router.get('/documents/:documentId', authenticateToken, async (req, res) => {
     if (error.message.includes('not found') || error.message.includes('access denied')) {
       return res.status(404).json({
         success: false,
-        error: 'Document not found or access denied'
+        error: 'Document not found or access denied',
+        code: 'DOCUMENT_NOT_FOUND'
       });
     }
 
     res.status(500).json({
       success: false,
-      error: error.message || 'Failed to get document'
+      error: error.message || 'Failed to get document',
+      code: 'DOCUMENT_GET_ERROR'
     });
   }
 });
@@ -150,20 +156,23 @@ router.patch('/documents/:documentId', authenticateToken, zodValidate(updateDocu
     if (error.message.includes('Viewers cannot edit')) {
       return res.status(403).json({
         success: false,
-        error: 'Insufficient permissions: Viewers cannot edit documents'
+        error: 'Insufficient permissions: Viewers cannot edit documents',
+        code: 'DOCUMENT_PERMISSION_DENIED'
       });
     }
 
     if (error.message.includes('not found') || error.message.includes('access denied')) {
       return res.status(404).json({
         success: false,
-        error: 'Document not found or access denied'
+        error: 'Document not found or access denied',
+        code: 'DOCUMENT_NOT_FOUND'
       });
     }
 
     res.status(500).json({
       success: false,
-      error: error.message || 'Failed to update document'
+      error: error.message || 'Failed to update document',
+      code: 'DOCUMENT_UPDATE_ERROR'
     });
   }
 });
@@ -189,20 +198,23 @@ router.delete('/documents/:documentId', authenticateToken, async (req, res) => {
     if (error.message.includes('Insufficient permissions')) {
       return res.status(403).json({
         success: false,
-        error: error.message
+        error: error.message,
+        code: 'DOCUMENT_PERMISSION_DENIED'
       });
     }
 
     if (error.message.includes('not found') || error.message.includes('access denied')) {
       return res.status(404).json({
         success: false,
-        error: 'Document not found or access denied'
+        error: 'Document not found or access denied',
+        code: 'DOCUMENT_NOT_FOUND'
       });
     }
 
     res.status(500).json({
       success: false,
-      error: error.message || 'Failed to delete document'
+      error: error.message || 'Failed to delete document',
+      code: 'DOCUMENT_DELETE_ERROR'
     });
   }
 });
@@ -235,13 +247,15 @@ router.get('/documents/:documentId/versions', authenticateToken, async (req, res
     if (error.message.includes('not found') || error.message.includes('access denied')) {
       return res.status(404).json({
         success: false,
-        error: 'Document not found or access denied'
+        error: 'Document not found or access denied',
+        code: 'DOCUMENT_NOT_FOUND'
       });
     }
 
     res.status(500).json({
       success: false,
-      error: error.message || 'Failed to get document versions'
+      error: error.message || 'Failed to get document versions',
+      code: 'DOCUMENT_VERSIONS_ERROR'
     });
   }
 });
@@ -270,13 +284,15 @@ router.get('/documents/:documentId/versions/:versionNumber', authenticateToken, 
     if (error.message.includes('not found') || error.message.includes('access denied')) {
       return res.status(404).json({
         success: false,
-        error: 'Version not found or access denied'
+        error: 'Version not found or access denied',
+        code: 'DOCUMENT_VERSION_NOT_FOUND'
       });
     }
 
     res.status(500).json({
       success: false,
-      error: error.message || 'Failed to get version snapshot'
+      error: error.message || 'Failed to get version snapshot',
+      code: 'DOCUMENT_VERSION_SNAPSHOT_ERROR'
     });
   }
 });
@@ -433,7 +449,8 @@ router.get('/documents/:documentId/versions/:v1/diff/:v2', authenticateToken, as
     if (!version1 || !version2) {
       return res.status(404).json({
         success: false,
-        error: 'One or both versions not found'
+        error: 'One or both versions not found',
+        code: 'DOCUMENT_VERSION_NOT_FOUND'
       });
     }
 
@@ -490,7 +507,8 @@ router.get('/documents/:documentId/versions/:v1/diff/:v2', authenticateToken, as
 
     res.status(500).json({
       success: false,
-      error: error.message || 'Failed to compute diff'
+      error: error.message || 'Failed to compute diff',
+      code: 'DOCUMENT_DIFF_ERROR'
     });
   }
 });

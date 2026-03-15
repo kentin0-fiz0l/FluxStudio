@@ -41,7 +41,7 @@ router.post('/channels', authenticateToken, validateInput.sanitizeInput, zodVali
   const { name, teamId, description } = req.body;
 
   if (!name || !teamId) {
-    return res.status(400).json({ success: false, error: 'Name and team ID are required', code: 'MISSING_FIELDS' });
+    return res.status(400).json({ success: false, error: 'Name and team ID are required', code: 'CHANNEL_MISSING_FIELDS' });
   }
 
   const channels = await getChannels();
@@ -97,7 +97,7 @@ router.post('/organizations', authenticateToken, zodValidate(createOrganizationS
     const { name, description } = req.body;
 
     if (!name) {
-      return res.status(400).json({ success: false, error: 'Organization name is required', code: 'MISSING_FIELDS' });
+      return res.status(400).json({ success: false, error: 'Organization name is required', code: 'ORG_MISSING_NAME' });
     }
 
     const teams = JSON.parse(fs.readFileSync(TEAMS_FILE, 'utf8')).teams || [];
