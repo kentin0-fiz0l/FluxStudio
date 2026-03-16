@@ -54,18 +54,21 @@ export function PinnedMessagesPanel({
         {messages.map((msg) => (
           <div
             key={msg.id}
-            role="button"
-            tabIndex={0}
-            className="flex items-start gap-3 p-2 rounded-lg bg-neutral-50 dark:bg-neutral-800 cursor-pointer hover:bg-neutral-100 dark:hover:bg-neutral-700 transition-colors"
-            onClick={() => onJumpTo(msg.id)}
-            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onJumpTo(msg.id); } }}
+            className="flex items-start gap-3 p-2 rounded-lg bg-neutral-50 dark:bg-neutral-800 hover:bg-neutral-100 dark:hover:bg-neutral-700 transition-colors"
           >
-            <ChatAvatar user={msg.author} size="sm" />
-            <div className="flex-1 min-w-0">
-              <p className="text-xs font-medium text-neutral-900 dark:text-neutral-100">{msg.author.name}</p>
-              <p className="text-sm text-neutral-600 dark:text-neutral-400 truncate">{msg.content}</p>
-            </div>
             <button
+              type="button"
+              className="appearance-none bg-transparent border-none p-0 m-0 cursor-pointer flex items-start gap-3 flex-1 min-w-0 text-left"
+              onClick={() => onJumpTo(msg.id)}
+            >
+              <ChatAvatar user={msg.author} size="sm" />
+              <div className="flex-1 min-w-0">
+                <p className="text-xs font-medium text-neutral-900 dark:text-neutral-100">{msg.author.name}</p>
+                <p className="text-sm text-neutral-600 dark:text-neutral-400 truncate">{msg.content}</p>
+              </div>
+            </button>
+            <button
+              type="button"
               onClick={(e) => {
                 e.stopPropagation();
                 onUnpin(msg.id);

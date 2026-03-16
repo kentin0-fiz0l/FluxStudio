@@ -23,6 +23,7 @@ const FormData = require('form-data');
 const path = require('path');
 const { createId } = require('@paralleldrive/cuid2');
 const { authenticateToken } = require('../lib/auth/middleware');
+const { canUserAccessProject } = require('../middleware/requireProjectAccess');
 const { query } = require('../database/config');
 const { printRateLimit, rateLimit } = require('../middleware/security');
 const { csrfProtection } = require('../middleware/csrf');
@@ -125,28 +126,6 @@ async function proxyToFluxPrint(req, res, endpoint, method = 'GET') {
         code: 'PRINTING_PROXY_ERROR'
       });
     }
-  }
-}
-
-/**
- * Check if user can access project
- */
-async function canUserAccessProject(userId, projectId) {
-  try {
-    const result = await query(`
-      SELECT p.id
-      FROM projects p
-      LEFT JOIN project_members pm ON p.id = pm.project_id
-      WHERE p.id = $1
-        AND (p."clientId" = $2 OR pm.user_id = $2)
-        AND p.deleted_at IS NULL
-      LIMIT 1
-    `, [projectId, userId]);
-
-    return result.rows.length > 0;
-  } catch (error) {
-    log.error('Error checking project access', error);
-    return false;
   }
 }
 

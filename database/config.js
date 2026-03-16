@@ -60,14 +60,14 @@ const poolConfig = {
   min: process.env.NODE_ENV === 'production' ? 5 : 2,   // Minimum number of clients in the pool
   idleTimeoutMillis: 30000, // Close idle clients after 30 seconds
   connectionTimeoutMillis: 2000, // Return an error after 2 seconds if connection could not be established
-  acquireTimeoutMillis: 60000, // Maximum time to wait for connection acquisition
+  acquireTimeoutMillis: 10000, // Maximum time to wait for connection acquisition
   createTimeoutMillis: 30000, // Maximum time to wait for connection creation
   destroyTimeoutMillis: 5000, // Maximum time to wait for connection destruction
   reapIntervalMillis: 1000, // How often to check for idle connections to reap
   createRetryIntervalMillis: 200, // How long to wait before retrying connection creation
 
   // Advanced pool options
-  propagateCreateError: false, // Don't crash on connection creation errors
+  propagateCreateError: process.env.NODE_ENV !== 'production', // Propagate errors in dev for easier debugging
   allowExitOnIdle: false, // Don't allow process to exit if pool is idle
 
   // Statement timeout (30 seconds)
@@ -199,11 +199,12 @@ async function query(text, params = [], options = {}) {
   }
 }
 
-// Transaction helper
-async function transaction(callback) {
+// Transaction helper with configurable timeout
+async function transaction(callback, timeoutMs = 30000) {
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
+    await client.query(`SET LOCAL statement_timeout = '${Number(timeoutMs)}'`);
     const result = await callback(client);
     await client.query('COMMIT');
     return result;

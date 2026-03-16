@@ -3,11 +3,50 @@ import type { ActivityItem, ActivityFilter } from './activity-feed-types';
 import { ACTIVITY_TYPE_MAP } from './activity-feed-utils';
 import { Conversation } from '../../types/messaging';
 
+interface ActivityRecord {
+  id: string;
+  type: string;
+  title: string;
+  description?: string;
+  timestamp: string;
+  userId: string;
+  userName: string;
+  organizationId?: string;
+  teamId?: string;
+  projectId?: string;
+  conversationId?: string;
+  metadata?: Record<string, unknown>;
+}
+
+interface ConversationMessage {
+  id: string;
+  content: string;
+  createdAt: string;
+  conversationId?: string;
+  author: { id: string; name: string; avatar?: string; userType?: string };
+  attachments?: unknown[];
+}
+
+interface ProjectRecord {
+  id: string;
+  name: string;
+  description?: string;
+  status: string;
+  priority: string;
+  createdAt: string;
+  updatedAt: string;
+  managerId: string;
+  organizationId?: string;
+  primaryTeamId?: string;
+  teamIds: string[];
+  metadata: { projectType: string; serviceCategory: string };
+}
+
 interface UseActivityDataParams {
-  recentActivity: any[] | undefined;
-  conversationMessages: Record<string, any[]> | undefined;
+  recentActivity: ActivityRecord[] | undefined;
+  conversationMessages: Record<string, ConversationMessage[]> | undefined;
   conversations: Conversation[] | undefined;
-  projects: any[] | undefined;
+  projects: ProjectRecord[] | undefined;
   filter: ActivityFilter;
   showOnlyMyActivity: boolean;
   userId: string | undefined;
@@ -34,7 +73,7 @@ export function useActivityData({
           id: activity.id,
           type: activity.type as ActivityItem['type'],
           title: activity.title,
-          description: activity.description,
+          description: activity.description || '',
           timestamp: new Date(activity.timestamp),
           user: {
             id: activity.userId,

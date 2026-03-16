@@ -74,20 +74,18 @@ export function AudioTrackPanel({
 
       {!hasAudio ? (
         /* Upload area */
-        <div
+        <button
+          type="button"
           onDrop={handleDrop}
           onDragOver={handleDragOver}
           onDragLeave={() => setDragOver(false)}
-          className={`flex flex-col items-center gap-2 rounded-lg border-2 border-dashed p-4 text-center transition-colors cursor-pointer ${
+          className={`appearance-none bg-transparent w-full flex flex-col items-center gap-2 rounded-lg border-2 border-dashed p-4 text-center transition-colors cursor-pointer ${
             dragOver
               ? 'border-indigo-400 bg-indigo-50 dark:bg-indigo-950/30'
               : 'border-neutral-300 dark:border-neutral-700 hover:border-neutral-400 dark:hover:border-neutral-500'
           }`}
           onClick={() => fileInputRef.current?.click()}
-          role="button"
-          tabIndex={0}
           aria-label="Upload audio file"
-          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') fileInputRef.current?.click(); }}
         >
           {audioLoading ? (
             <Loader2 className="h-6 w-6 animate-spin text-indigo-500" aria-hidden="true" />
@@ -106,7 +104,7 @@ export function AudioTrackPanel({
             className="hidden"
             aria-hidden="true"
           />
-        </div>
+        </button>
       ) : (
         /* Audio info + controls */
         <div className="space-y-2">

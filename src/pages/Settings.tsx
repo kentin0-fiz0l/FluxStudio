@@ -343,15 +343,13 @@ function Settings() {
 
           <div className="flex items-center gap-6">
             {/* Avatar */}
-            <div
-              className="relative group cursor-pointer"
+            <button
+              type="button"
+              className="appearance-none bg-transparent border-none p-0 m-0 relative group cursor-pointer"
               onClick={() => avatarInputRef.current?.click()}
               onDragOver={(e) => e.preventDefault()}
               onDrop={handleAvatarDrop}
-              role="button"
-              tabIndex={0}
               aria-label="Upload profile picture"
-              onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') avatarInputRef.current?.click(); }}
             >
               <div className="w-20 h-20 rounded-full overflow-hidden border-2 border-neutral-200 dark:border-neutral-700 flex items-center justify-center bg-gradient-to-br from-primary-400 to-primary-600">
                 {avatarPreview || user?.avatar ? (
@@ -375,7 +373,7 @@ function Settings() {
                 onChange={handleAvatarSelect}
                 aria-label="Choose avatar image"
               />
-            </div>
+            </button>
 
             {/* Profile Info */}
             <div className="flex-1 min-w-0">

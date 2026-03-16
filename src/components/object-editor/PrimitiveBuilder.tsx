@@ -7,7 +7,9 @@
 
 import { useState, useCallback, Suspense } from 'react';
 import { Canvas } from '@react-three/fiber';
-import { OrbitControls, PerspectiveCamera, Outlines } from '@react-three/drei';
+import { OrbitControls } from '@react-three/drei/core/OrbitControls';
+import { PerspectiveCamera } from '@react-three/drei/core/PerspectiveCamera';
+import { Outlines } from '@react-three/drei/core/Outlines';
 import { X, Plus, Trash2, Save } from 'lucide-react';
 import { Button } from '@/components/ui';
 import type {
@@ -135,18 +137,21 @@ export function PrimitiveBuilder({ onSave, onClose }: PrimitiveBuilderProps) {
               {primitives.map((prim) => (
                 <div
                   key={prim.id}
-                  role="button"
-                  tabIndex={0}
-                  onClick={() => setSelectedId(prim.id)}
-                  onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setSelectedId(prim.id); } }}
-                  className={`flex items-center justify-between px-2 py-1.5 rounded text-sm cursor-pointer ${
+                  className={`flex items-center justify-between px-2 py-1.5 rounded text-sm ${
                     prim.id === selectedId
                       ? 'bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300'
                       : 'hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300'
                   }`}
                 >
-                  <span className="truncate">{prim.shape}</span>
                   <button
+                    type="button"
+                    onClick={() => setSelectedId(prim.id)}
+                    className="appearance-none bg-transparent border-none p-0 m-0 cursor-pointer truncate flex-1 text-left"
+                  >
+                    {prim.shape}
+                  </button>
+                  <button
+                    type="button"
                     onClick={(e) => { e.stopPropagation(); removePrimitive(prim.id); }}
                     className="text-gray-400 hover:text-red-500"
                   >

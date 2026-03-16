@@ -198,13 +198,11 @@ export function ProjectOverviewWidget(props: WidgetProps) {
       {/* Projects List */}
       <div className="space-y-3">
         {filteredProjects.slice(0, 3).map((project: ProjectData) => (
-          <div
+          <button
             key={project.id}
-            role="button"
-            tabIndex={0}
-            className="p-3 rounded-lg bg-white/5 border border-white/10 hover:bg-white/10 cursor-pointer transition-colors group"
+            type="button"
+            className="appearance-none bg-transparent border border-white/10 m-0 w-full text-left p-3 rounded-lg bg-white/5 hover:bg-white/10 cursor-pointer transition-colors group"
             onClick={() => navigateTo('project', project.id)}
-            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); navigateTo('project', project.id); } }}
           >
             <div className="flex items-start justify-between mb-2">
               <div className="flex-1 min-w-0">
@@ -242,7 +240,7 @@ export function ProjectOverviewWidget(props: WidgetProps) {
                 <span>{project.lastActivity}</span>
               </div>
             </div>
-          </div>
+          </button>
         ))}
       </div>
 

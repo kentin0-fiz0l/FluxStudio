@@ -148,7 +148,6 @@ export function GitHubIntegration() {
             {repos.slice(0, 10).map((repo) => (
               <div
                 key={repo.id}
-                role="button"
                 tabIndex={0}
                 className={`p-3 rounded-lg transition-colors cursor-pointer ${
                   selectedRepo === repo.full_name

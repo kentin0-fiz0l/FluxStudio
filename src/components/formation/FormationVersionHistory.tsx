@@ -353,7 +353,7 @@ function VersionItem({ version, isSelected, isCompareSource, onSelect, onRestore
           e.currentTarget.style.borderColor = 'transparent';
         }
       }}
-      role="button"
+      role="listitem"
       tabIndex={0}
       aria-selected={isSelected}
       aria-label={`Version: ${version.name}`}

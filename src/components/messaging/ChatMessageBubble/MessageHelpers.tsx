@@ -118,15 +118,17 @@ export const AttachmentPreview: React.FC<{
   if (attachment.type === 'image') {
     return (
       <div className="mt-2 relative group/attach">
-        <img
-          src={attachment.thumbnailUrl || attachment.url}
-          alt={attachment.name}
-          role="button"
-          tabIndex={0}
-          className="max-w-full max-h-64 rounded-lg object-contain cursor-pointer hover:opacity-90 transition-opacity"
+        <button
+          type="button"
           onClick={onView}
-          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onView(); } }}
-        />
+          className="appearance-none bg-transparent border-none p-0 m-0 cursor-pointer"
+        >
+          <img
+            src={attachment.thumbnailUrl || attachment.url}
+            alt={attachment.name}
+            className="max-w-full max-h-64 rounded-lg object-contain hover:opacity-90 transition-opacity"
+          />
+        </button>
         <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover/attach:opacity-100 transition-opacity">
           <button
             onClick={(e) => { e.stopPropagation(); onView(); }}

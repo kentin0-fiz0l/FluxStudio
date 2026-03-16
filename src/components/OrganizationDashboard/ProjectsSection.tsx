@@ -2,8 +2,17 @@ import { FolderOpen, ChevronRight } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card';
 import { Badge } from '../ui/badge';
 
+interface ProjectData {
+  id: string;
+  name: string;
+  description?: string;
+  status: string;
+  priority: string;
+  createdAt: string;
+}
+
 interface ProjectsSectionProps {
-  filteredProjects: any[];
+  filteredProjects: ProjectData[];
   isLoadingProjects: boolean;
   viewMode: 'grid' | 'list';
   navigateTo: (view: 'organization' | 'team' | 'project', id: string) => void | Promise<void>;

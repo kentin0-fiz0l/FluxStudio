@@ -177,7 +177,6 @@ export const CoordinateSheetView: React.FC<CoordinateSheetViewProps> = ({
                 key={entry.set.id}
                 onClick={() => handleRowClick(entry.set.id)}
                 className="cursor-pointer hover:bg-blue-50 dark:hover:bg-blue-900/10 transition-colors print:hover:bg-transparent print:cursor-default"
-                role="button"
                 tabIndex={0}
                 aria-label={`Navigate to ${entry.set.name}`}
                 onKeyDown={(e) => {

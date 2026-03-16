@@ -39,6 +39,13 @@ const securityLogger = require('../lib/auth/securityLogger');
 const { captureAuthError } = require('../lib/monitoring/sentry');
 const { ingestEvent } = require('../lib/analytics/funnelTracker');
 const anomalyDetector = require('../lib/security/anomalyDetector');
+const { createCircuitBreaker } = require('../lib/circuitBreaker');
+
+const oauthBreaker = createCircuitBreaker({
+  name: 'oauth-provider',
+  failureThreshold: 5,
+  recoveryTimeout: 30000,
+});
 
 // Import email service for verification and password reset
 const { emailService } = require('../lib/email/emailService');
@@ -68,6 +75,7 @@ function uuidv4() {
 
 // Simple auth response without database (fallback when USE_DATABASE=false)
 function simpleAuthResponse(user) {
+  console.warn('[DEPRECATION] simpleAuthResponse: USE_DATABASE=false auth path is deprecated');
   const token = jwt.sign(
     {
       id: user.id,
@@ -76,7 +84,7 @@ function simpleAuthResponse(user) {
       type: 'access'  // Required by tokenService.verifyAccessToken()
     },
     JWT_SECRET,
-    { expiresIn: '7d' }
+    { expiresIn: '15m' }
   );
   const { password, googleId, ...userWithoutPassword } = user;
   return {
@@ -512,12 +520,14 @@ router.post('/google', async (req, res) => {
       return res.status(400).json({ success: false, error: 'Google credential is required', code: 'AUTH_MISSING_CREDENTIAL' });
     }
 
-    // Verify the Google ID token
+    // Verify the Google ID token (wrapped with circuit breaker)
     log.info('Attempting to verify Google ID token...');
-    const ticket = await googleClient.verifyIdToken({
-      idToken: credential,
-      audience: GOOGLE_CLIENT_ID,
-    });
+    const ticket = await oauthBreaker.execute(() =>
+      googleClient.verifyIdToken({
+        idToken: credential,
+        audience: GOOGLE_CLIENT_ID,
+      })
+    );
 
     const payload = ticket.getPayload();
     const { sub: googleId, email, name, email_verified } = payload;
@@ -676,12 +686,14 @@ router.post('/google/callback', async (req, res) => {
       log.error('Google OAuth failed to decode JWT', decodeError);
     }
 
-    // Verify the Google ID token
+    // Verify the Google ID token (wrapped with circuit breaker)
     log.info('Google OAuth calling verifyIdToken...');
-    const ticket = await googleClient.verifyIdToken({
-      idToken: credential,
-      audience: GOOGLE_CLIENT_ID,
-    });
+    const ticket = await oauthBreaker.execute(() =>
+      googleClient.verifyIdToken({
+        idToken: credential,
+        audience: GOOGLE_CLIENT_ID,
+      })
+    );
 
     const payload = ticket.getPayload();
     const { sub: googleId, email, name, email_verified } = payload;

@@ -9,16 +9,15 @@
  * Toolbar extracted to CanvasToolbar.tsx, PerformerPanel to PerformerPanel.tsx
  */
 
-import { useEffect, useState, useMemo, useCallback, useRef } from 'react';
+import { useEffect, useState, useMemo, useCallback, useRef, Suspense } from 'react';
 import { useTranslation } from 'react-i18next';
 import { FormationEditorSkeleton } from '../../loading/FeatureSkeletons';
 import { ErrorState } from '../../ui/error-state';
+import { lazyLoadWithRetry } from '../../../utils/lazyLoad';
 import { Timeline } from '../Timeline';
-import { ExportDialog } from '../ExportDialog';
 import { AudioUpload } from '../AudioUpload';
 import { TemplatePicker } from '../TemplatePicker';
 import { DrillAnalysisPanel } from '../DrillAnalysisPanel';
-import { DrillCritiquePanel } from '../DrillCritiquePanel';
 import { DrillCritiquePanelErrorBoundary, FormationVersionHistoryErrorBoundary } from '../../error/featureBoundaries';
 import { MovementToolsPanel } from '../MovementToolsPanel';
 import { CoordinatePanel } from '../CoordinatePanel';
@@ -26,17 +25,23 @@ import { StepSizeOverlay } from '../StepSizeOverlay';
 import { QuickStartWizard } from '../QuickStartWizard';
 import { MetMapSongSelector } from '../MetMapSongSelector';
 import { MeasurementOverlay } from '../MeasurementOverlay';
-import { MorphSliderDialog } from '../MorphDialog';
 import { GroupPanel } from '../GroupPanel';
 import { CollisionOverlay } from '../CollisionOverlay';
 import { GhostPreviewOverlay } from '../GhostPreviewOverlay';
 import { GhostPreviewControls } from '../GhostPreviewControls';
 import { FormationPromptBar } from '../FormationPromptBar';
 import { TransitionSuggester } from '../TransitionSuggester';
-import { ShowPacingGraph } from '../ShowPacingGraph';
-import { FormationVersionHistoryPanel } from '../FormationVersionHistory';
 import { CanvasEffectsLayer, CanvasEffectsPanel } from '../effects';
-import { RehearsalModePanel } from '../RehearsalModePanel';
+
+// Lazy-loaded heavy dialogs/panels
+/* eslint-disable @typescript-eslint/no-explicit-any */
+const { Component: ExportDialog } = lazyLoadWithRetry<any>(() => import('../ExportDialog').then(m => ({ default: m.ExportDialog })));
+const { Component: DrillCritiquePanel } = lazyLoadWithRetry<any>(() => import('../DrillCritiquePanel').then(m => ({ default: m.DrillCritiquePanel })));
+const { Component: MorphSliderDialog } = lazyLoadWithRetry<any>(() => import('../MorphDialog').then(m => ({ default: m.MorphSliderDialog })));
+const { Component: FormationVersionHistoryPanel } = lazyLoadWithRetry<any>(() => import('../FormationVersionHistory').then(m => ({ default: m.FormationVersionHistoryPanel })));
+const { Component: ShowPacingGraph } = lazyLoadWithRetry<any>(() => import('../ShowPacingGraph').then(m => ({ default: m.ShowPacingGraph })));
+const { Component: RehearsalModePanel } = lazyLoadWithRetry<any>(() => import('../RehearsalModePanel').then(m => ({ default: m.RehearsalModePanel })));
+/* eslint-enable @typescript-eslint/no-explicit-any */
 import { CanvasToolbar } from './CanvasToolbar';
 import { MobileCanvasToolbar } from './MobileCanvasToolbar';
 import { MobileSetNavigator } from './MobileSetNavigator';
@@ -49,9 +54,9 @@ import { useCanvasState } from './useCanvasState';
 import { useCanvasHandlers } from './useCanvasHandlers';
 import { useCanvasKeyboardHandlers } from './useCanvasKeyboardHandlers';
 import { useCanvasAccessibility } from './useCanvasAccessibility';
-import { useBreakpoint } from '../../../hooks/useBreakpoint';
+import { useBreakpoint } from '../../../hooks/ui/useBreakpoint';
 import { CollaboratorActivity } from '../CollaboratorActivity';
-import { useMetMapSongLink } from '../../../hooks/useMetMapSongLink';
+import { useMetMapSongLink } from '../../../hooks/metmap/useMetMapSongLink';
 import { NCAA_FOOTBALL_FIELD } from '../../../services/fieldConfigService';
 import { useGhostPreview } from '../../../store/slices/ghostPreviewSlice';
 import { executePromptCommand } from '../../../services/promptExecutor';
@@ -792,15 +797,17 @@ export function FormationCanvas(props: FormationCanvasProps) {
               onNavigateToSet={handleNavigateToSet}
             />
             <DrillCritiquePanelErrorBoundary>
-              <DrillCritiquePanel
-                formation={formation}
-                sets={drillSets}
-                currentPositions={currentPositions}
-                onHighlightPerformers={(ids) => setSelectedPerformerIds(new Set(ids))}
-                onAutoFixCollision={handleAutoFixCollision}
-                onAutoFixAllCollisions={handleAutoFixAllCollisions}
-                className="border-t border-gray-200 dark:border-gray-700"
-              />
+              <Suspense fallback={null}>
+                <DrillCritiquePanel
+                  formation={formation}
+                  sets={drillSets}
+                  currentPositions={currentPositions}
+                  onHighlightPerformers={(ids: string[]) => setSelectedPerformerIds(new Set(ids))}
+                  onAutoFixCollision={handleAutoFixCollision}
+                  onAutoFixAllCollisions={handleAutoFixAllCollisions}
+                  className="border-t border-gray-200 dark:border-gray-700"
+                />
+              </Suspense>
             </DrillCritiquePanelErrorBoundary>
           </div>
         )}
@@ -831,24 +838,28 @@ export function FormationCanvas(props: FormationCanvasProps) {
         {showVersionHistory && formation.id && (
           <div className={sidePanelClass}>
             <FormationVersionHistoryErrorBoundary>
-              <FormationVersionHistoryPanel
-                formationId={formation.id}
-                currentFormation={formation}
-                onRestore={handleVersionRestore}
-                onClose={() => setShowVersionHistory(false)}
-              />
+              <Suspense fallback={null}>
+                <FormationVersionHistoryPanel
+                  formationId={formation.id}
+                  currentFormation={formation}
+                  onRestore={handleVersionRestore}
+                  onClose={() => setShowVersionHistory(false)}
+                />
+              </Suspense>
             </FormationVersionHistoryErrorBoundary>
           </div>
         )}
         {showRehearsalMode && (
           <div className={isMobileView ? 'absolute inset-y-0 right-0 z-30 w-80 shadow-xl' : isTablet ? 'absolute inset-y-0 right-0 z-30 w-96 shadow-xl' : ''}>
-            <RehearsalModePanel
-              formation={formation}
-              sets={drillSets}
-              onClose={() => setShowRehearsalMode(false)}
-              onNavigateToSet={(setId) => handleNavigateToSet(setId)}
-              onHighlightPerformers={(ids) => setSelectedPerformerIds(new Set(ids))}
-            />
+            <Suspense fallback={null}>
+              <RehearsalModePanel
+                formation={formation}
+                sets={drillSets}
+                onClose={() => setShowRehearsalMode(false)}
+                onNavigateToSet={(setId: string) => handleNavigateToSet(setId)}
+                onHighlightPerformers={(ids: string[]) => setSelectedPerformerIds(new Set(ids))}
+              />
+            </Suspense>
           </div>
         )}
       </div>
@@ -992,13 +1003,15 @@ export function FormationCanvas(props: FormationCanvasProps) {
           />
 
           {showPacingGraph && drillSets.length > 0 && (
-            <ShowPacingGraph
-              formation={formation}
-              sets={drillSets}
-              tempoMap={metmapTempoMap ?? undefined}
-              onNavigateToSet={(setId) => handleNavigateToSet(setId)}
-              className="border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-4 py-2"
-            />
+            <Suspense fallback={null}>
+              <ShowPacingGraph
+                formation={formation}
+                sets={drillSets}
+                tempoMap={metmapTempoMap ?? undefined}
+                onNavigateToSet={(setId: string) => handleNavigateToSet(setId)}
+                className="border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-4 py-2"
+              />
+            </Suspense>
           )}
         </>
       )}
@@ -1032,16 +1045,18 @@ export function FormationCanvas(props: FormationCanvasProps) {
         />
       )}
 
-      <ExportDialog
-        isOpen={isExportDialogOpen}
-        formationName={formation.name}
-        formationId={formationId}
-        performers={formation.performers}
-        metmapLinked={!!linkedSong}
-        hasAudioTrack={!!formation.audioTrack || !!formation.musicTrackUrl}
-        onClose={() => setIsExportDialogOpen(false)}
-        onExport={handleExport}
-      />
+      <Suspense fallback={null}>
+        <ExportDialog
+          isOpen={isExportDialogOpen}
+          formationName={formation.name}
+          formationId={formationId}
+          performers={formation.performers}
+          metmapLinked={!!linkedSong}
+          hasAudioTrack={!!formation.audioTrack || !!formation.musicTrackUrl}
+          onClose={() => setIsExportDialogOpen(false)}
+          onExport={handleExport}
+        />
+      </Suspense>
       {showShortcutsDialog && <KeyboardShortcutsDialog onClose={() => setShowShortcutsDialog(false)} />}
       {(showTemplatePicker || formation.performers.length === 0) && (
         <TemplatePicker
@@ -1066,17 +1081,19 @@ export function FormationCanvas(props: FormationCanvasProps) {
 
       {/* Morph Slider Dialog */}
       {formation && (
-        <MorphSliderDialog
-          open={showMorphSlider}
-          onClose={() => setShowMorphSlider(false)}
-          performers={formation.performers}
-          currentPositions={currentPositions}
-          onApply={(positions) => {
-            setCurrentPositions(positions);
-            setHasUnsavedChanges(true);
-            setShowMorphSlider(false);
-          }}
-        />
+        <Suspense fallback={null}>
+          <MorphSliderDialog
+            open={showMorphSlider}
+            onClose={() => setShowMorphSlider(false)}
+            performers={formation.performers}
+            currentPositions={currentPositions}
+            onApply={(positions: Map<string, DrillPosition>) => {
+              setCurrentPositions(positions);
+              setHasUnsavedChanges(true);
+              setShowMorphSlider(false);
+            }}
+          />
+        </Suspense>
       )}
 
       {/* Quick Start Wizard (modal overlay) */}

@@ -2,8 +2,14 @@ import { Building2 } from 'lucide-react';
 import { Card, CardDescription, CardHeader, CardTitle } from '../ui/card';
 import { MobileOptimizedHeader } from '../MobileOptimizedHeader';
 
+interface OrgData {
+  id: string;
+  name: string;
+  description?: string;
+}
+
 interface OrgSelectorProps {
-  organizations: any[];
+  organizations: OrgData[];
   navigateTo: (view: 'organization' | 'team' | 'project', id: string) => void | Promise<void>;
 }
 

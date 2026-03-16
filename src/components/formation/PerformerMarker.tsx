@@ -221,10 +221,17 @@ export const PerformerMarker = React.memo<PerformerMarkerProps>(function Perform
       }}
       data-performer={performer.id}
       role="button"
+      tabIndex={0}
       aria-label={`${performer.name}${isSelected ? ' (selected)' : ''}${isLocked ? ' (locked)' : ''}`}
       aria-pressed={isSelected}
       onPointerDown={handlePointerDown}
       onContextMenu={handleContextMenu}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          onSelect?.(performer.id, e.shiftKey || e.metaKey || e.ctrlKey);
+        }
+      }}
     >
       {/* Selection Ring — thicker border + green for multi-select, blue for single */}
       {isSelected && (

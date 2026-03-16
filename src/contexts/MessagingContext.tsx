@@ -25,7 +25,9 @@ export function MessagingSocketBridge() {
   const updateUserPresence = useStore((s) => s.messaging.updateUserPresence);
 
   useEffect(() => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    // Socket delivers types/messaging.Message; store expects store/slices/messagingSlice.Message.
+    // The shapes overlap at runtime. Cast at the boundary.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- bridging two structurally different Message types
     const handleMessageReceived = (message: any) => {
       addMessage(message);
     };
@@ -73,7 +75,7 @@ export function MessagingSocketBridge() {
 /**
  * Legacy exports for backward compatibility.
  * Components that imported MessagingProvider or useMessaging from this file
- * should migrate to importing from '@/hooks/useMessaging' or '@/store'.
+ * should migrate to importing from '@/hooks/messaging/useMessaging' or '@/store'.
  */
 
  
@@ -84,7 +86,7 @@ export function MessagingProvider({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
-/** @deprecated Import useMessaging from '@/hooks/useMessaging' instead. */
+/** @deprecated Import useMessaging from '@/hooks/messaging/useMessaging' instead. */
 export function useMessaging() {
   const store = useStore((s) => s.messaging);
   // Return shape matching the old Context API for backward compat
@@ -130,7 +132,7 @@ export function useMessaging() {
   };
 }
 
-/** @deprecated Import useMessagingOptional from '@/hooks/useMessaging' instead. */
+/** @deprecated Import useMessagingOptional from '@/hooks/messaging/useMessaging' instead. */
 export function useMessagingOptional() {
   return useMessaging();
 }

@@ -251,36 +251,34 @@ function FlatRowComponent({
   return (
     <div style={style}>
       <div
-        role="button"
-        tabIndex={0}
-        className={`flex items-center gap-2.5 px-2 py-1.5 rounded-lg cursor-pointer ml-4 ${
+        className={`flex items-center gap-2.5 px-2 py-1.5 rounded-lg ml-4 ${
           isSelected
             ? 'bg-blue-50 dark:bg-blue-900/20'
             : 'hover:bg-gray-50 dark:hover:bg-gray-700'
         }`}
-        onClick={(e) => onSelectPerformer(performer.id, e.metaKey || e.ctrlKey || e.shiftKey)}
-        onKeyDown={(e) => {
-          if (e.key === 'Enter' || e.key === ' ') {
-            e.preventDefault();
-            onSelectPerformer(performer.id, false);
-          }
-        }}
       >
-        <div
-          className="w-7 h-7 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0"
-          style={{ backgroundColor: performer.color }}
-        >
-          {performer.drillNumber || performer.label}
-        </div>
-        <div className="flex-1 min-w-0">
-          <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
-            {performer.name}
-          </p>
-          <p className="text-[10px] text-gray-400 dark:text-gray-500 truncate">
-            {[performer.instrument, performer.drillNumber].filter(Boolean).join(' · ') || performer.group || ''}
-          </p>
-        </div>
         <button
+          type="button"
+          className="appearance-none bg-transparent border-none p-0 m-0 cursor-pointer flex items-center gap-2.5 flex-1 min-w-0 text-left"
+          onClick={(e) => onSelectPerformer(performer.id, e.metaKey || e.ctrlKey || e.shiftKey)}
+        >
+          <div
+            className="w-7 h-7 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0"
+            style={{ backgroundColor: performer.color }}
+          >
+            {performer.drillNumber || performer.label}
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
+              {performer.name}
+            </p>
+            <p className="text-[10px] text-gray-400 dark:text-gray-500 truncate">
+              {[performer.instrument, performer.drillNumber].filter(Boolean).join(' · ') || performer.group || ''}
+            </p>
+          </div>
+        </button>
+        <button
+          type="button"
           onClick={(e) => {
             e.stopPropagation();
             onRemovePerformer(performer.id);

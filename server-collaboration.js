@@ -1106,6 +1106,7 @@ wss.on('connection', async (ws, req) => {
         setTimeout(() => {
           if (!stats.rooms.has(roomName)) {
             docs.delete(roomName);
+            awarenesses.delete(roomName);
             log.info('Document removed from memory', { roomName });
           }
         }, 300000); // 5 minutes

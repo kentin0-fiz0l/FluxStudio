@@ -103,10 +103,9 @@ export function ClipComponent({
   };
 
   return (
-    <div
-      role="button"
-      tabIndex={0}
-      className={`absolute rounded overflow-hidden transition-shadow ${
+    <button
+      type="button"
+      className={`appearance-none bg-transparent border-none p-0 m-0 absolute rounded overflow-hidden transition-shadow ${
         isSelected ? 'ring-2 ring-white ring-offset-1 ring-offset-gray-900 shadow-lg' : ''
       } ${isLocked ? 'opacity-60 cursor-not-allowed' : 'cursor-move'}`}
       style={{
@@ -117,7 +116,6 @@ export function ClipComponent({
       }}
       onMouseDown={handleMoveMouseDown}
       onClick={onClick}
-      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick(e as unknown as React.MouseEvent); } }}
     >
       {/* Clip background */}
       <div className={`absolute inset-0 ${colorClass} ${track.muted ? 'opacity-50' : ''}`} />
@@ -169,7 +167,7 @@ export function ClipComponent({
       {isSelected && (
         <div className="absolute inset-0 border-2 border-white/50 rounded pointer-events-none" />
       )}
-    </div>
+    </button>
   );
 }
 

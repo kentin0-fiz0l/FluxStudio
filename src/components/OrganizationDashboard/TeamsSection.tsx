@@ -2,8 +2,16 @@ import { Users, ChevronRight } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card';
 import { Badge } from '../ui/badge';
 
+interface TeamData {
+  id: string;
+  name: string;
+  description?: string;
+  createdAt: string;
+  settings?: { isPrivate?: boolean };
+}
+
 interface TeamsSectionProps {
-  filteredTeams: any[];
+  filteredTeams: TeamData[];
   isLoadingTeams: boolean;
   viewMode: 'grid' | 'list';
   navigateTo: (view: 'organization' | 'team' | 'project', id: string) => void | Promise<void>;

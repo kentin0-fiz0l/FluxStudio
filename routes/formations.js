@@ -1,13 +1,8 @@
 /**
  * Formations Routes - Drill Writer API
  *
- * Provides endpoints for:
- * - Formation CRUD operations
- * - Performer management
- * - Keyframe management
- * - Bulk save operations
- *
- * All endpoints require authentication.
+ * Formation CRUD + aggregator that mounts performer and keyframe sub-routers.
+ * All endpoints require authentication unless noted.
  */
 
 const express = require('express');
@@ -17,42 +12,23 @@ const sceneObjectsAdapter = require('../database/scene-objects-adapter');
 const { createLogger } = require('../lib/logger');
 const log = createLogger('Formations');
 const { zodValidate } = require('../middleware/zodValidate');
+const { canUserAccessProject } = require('../middleware/requireProjectAccess');
 const { query } = require('../database/config');
 const {
   createFormationSchema,
   updateFormationSchema,
   saveFormationSchema,
   formationAudioSchema,
-  addPerformerSchema,
-  updatePerformerSchema,
-  addKeyframeSchema,
-  updateKeyframeSchema,
-  setPositionSchema,
   createSceneObjectSchema,
   updateSceneObjectSchema,
   bulkSyncSceneObjectsSchema,
 } = require('../lib/schemas');
 
-const router = express.Router();
+// Mount sub-routers
+const performers = require('./formations/performers');
+const keyframes = require('./formations/keyframes');
 
-/**
- * Verify user has access to a project (is a member or manager).
- */
-async function canUserAccessProject(userId, projectId) {
-  try {
-    const result = await query(`
-      SELECT 1 FROM project_members
-      WHERE project_id = $1 AND user_id = $2
-      UNION
-      SELECT 1 FROM projects
-      WHERE id = $1 AND manager_id = $2
-    `, [projectId, userId]);
-    return result.rows.length > 0;
-  } catch (error) {
-    log.error('Error checking project access', error);
-    return false;
-  }
-}
+const router = express.Router();
 
 /**
  * Verify user has access to a formation via its parent project.
@@ -77,6 +53,8 @@ async function verifyFormationAccess(formationId, userId, res) {
 
   return formation;
 }
+
+// ==================== Formation CRUD ====================
 
 /**
  * GET /api/projects/:projectId/formations
@@ -223,7 +201,7 @@ router.put('/formations/:formationId/save', authenticateToken, rateLimitByUser(1
   try {
     const { formationId } = req.params;
     const {
-      name, performers, keyframes,
+      name, performers: performersData, keyframes: keyframesData,
       drillSettings, sets, fieldConfig,
       groups, sectionShapeMap,
       metmapSongId, tempoMap, useConstantTempo
@@ -237,8 +215,8 @@ router.put('/formations/:formationId/save', authenticateToken, rateLimitByUser(1
 
     const formation = await formationsAdapter.saveFormation(formationId, {
       name,
-      performers: performers || [],
-      keyframes: keyframes || [],
+      performers: performersData || [],
+      keyframes: keyframesData || [],
       drillSettings,
       sets,
       fieldConfig,
@@ -312,211 +290,10 @@ router.delete('/formations/:formationId/audio', authenticateToken, rateLimitByUs
   }
 });
 
-// ==================== Performer Endpoints ====================
+// ==================== Mount Sub-Routers ====================
 
-/**
- * POST /api/formations/:formationId/performers
- * Add a performer to a formation
- */
-router.post('/formations/:formationId/performers', authenticateToken, rateLimitByUser(10, 60000), zodValidate(addPerformerSchema), async (req, res) => {
-  try {
-    const { formationId } = req.params;
-    const { name, label, color, groupName } = req.body;
-
-    const formation = await verifyFormationAccess(formationId, req.user.id, res);
-    if (formation === undefined) return;
-    if (!formation) {
-      return res.status(404).json({ success: false, error: 'Formation not found', code: 'FORMATION_NOT_FOUND' });
-    }
-
-    const performer = await formationsAdapter.addPerformer({
-      formationId,
-      name,
-      label,
-      color,
-      groupName
-    });
-
-    res.status(201).json({ success: true, performer });
-  } catch (error) {
-    log.error('Error adding performer', error);
-    res.status(500).json({ success: false, error: 'Failed to add performer', code: 'FORMATION_ADD_PERFORMER_ERROR' });
-  }
-});
-
-/**
- * PATCH /api/formations/:formationId/performers/:performerId
- * Update a performer
- */
-router.patch('/formations/:formationId/performers/:performerId', authenticateToken, rateLimitByUser(10, 60000), zodValidate(updatePerformerSchema), async (req, res) => {
-  try {
-    const { formationId, performerId } = req.params;
-    const { name, label, color, groupName } = req.body;
-
-    const formation = await verifyFormationAccess(formationId, req.user.id, res);
-    if (formation === undefined) return;
-    if (!formation) {
-      return res.status(404).json({ success: false, error: 'Formation not found', code: 'FORMATION_NOT_FOUND' });
-    }
-
-    const performer = await formationsAdapter.updatePerformer(performerId, {
-      name,
-      label,
-      color,
-      groupName
-    });
-
-    if (!performer) {
-      return res.status(404).json({ success: false, error: 'Performer not found', code: 'FORMATION_PERFORMER_NOT_FOUND' });
-    }
-
-    res.json({ success: true, performer });
-  } catch (error) {
-    log.error('Error updating performer', error);
-    res.status(500).json({ success: false, error: 'Failed to update performer', code: 'FORMATION_UPDATE_PERFORMER_ERROR' });
-  }
-});
-
-/**
- * DELETE /api/formations/:formationId/performers/:performerId
- * Delete a performer
- */
-router.delete('/formations/:formationId/performers/:performerId', authenticateToken, rateLimitByUser(10, 60000), async (req, res) => {
-  try {
-    const { formationId, performerId } = req.params;
-
-    const formation = await verifyFormationAccess(formationId, req.user.id, res);
-    if (formation === undefined) return;
-    if (!formation) {
-      return res.status(404).json({ success: false, error: 'Formation not found', code: 'FORMATION_NOT_FOUND' });
-    }
-
-    await formationsAdapter.deletePerformer(performerId);
-
-    res.json({ success: true, message: 'Performer deleted' });
-  } catch (error) {
-    log.error('Error deleting performer', error);
-    res.status(500).json({ success: false, error: 'Failed to delete performer', code: 'FORMATION_DELETE_PERFORMER_ERROR' });
-  }
-});
-
-// ==================== Keyframe Endpoints ====================
-
-/**
- * POST /api/formations/:formationId/keyframes
- * Add a keyframe to a formation
- */
-router.post('/formations/:formationId/keyframes', authenticateToken, rateLimitByUser(10, 60000), zodValidate(addKeyframeSchema), async (req, res) => {
-  try {
-    const { formationId } = req.params;
-    const { timestampMs, transition, duration } = req.body;
-
-    const formation = await verifyFormationAccess(formationId, req.user.id, res);
-    if (formation === undefined) return;
-    if (!formation) {
-      return res.status(404).json({ success: false, error: 'Formation not found', code: 'FORMATION_NOT_FOUND' });
-    }
-
-    const keyframe = await formationsAdapter.addKeyframe({
-      formationId,
-      timestampMs: timestampMs || 0,
-      transition,
-      duration
-    });
-
-    res.status(201).json({ success: true, keyframe });
-  } catch (error) {
-    log.error('Error adding keyframe', error);
-    res.status(500).json({ success: false, error: 'Failed to add keyframe', code: 'FORMATION_ADD_KEYFRAME_ERROR' });
-  }
-});
-
-/**
- * PATCH /api/formations/:formationId/keyframes/:keyframeId
- * Update a keyframe
- */
-router.patch('/formations/:formationId/keyframes/:keyframeId', authenticateToken, rateLimitByUser(10, 60000), zodValidate(updateKeyframeSchema), async (req, res) => {
-  try {
-    const { formationId, keyframeId } = req.params;
-    const { timestampMs, transition, duration } = req.body;
-
-    const formation = await verifyFormationAccess(formationId, req.user.id, res);
-    if (formation === undefined) return;
-    if (!formation) {
-      return res.status(404).json({ success: false, error: 'Formation not found', code: 'FORMATION_NOT_FOUND' });
-    }
-
-    const keyframe = await formationsAdapter.updateKeyframe(keyframeId, {
-      timestampMs,
-      transition,
-      duration
-    });
-
-    if (!keyframe) {
-      return res.status(404).json({ success: false, error: 'Keyframe not found', code: 'FORMATION_KEYFRAME_NOT_FOUND' });
-    }
-
-    res.json({ success: true, keyframe });
-  } catch (error) {
-    log.error('Error updating keyframe', error);
-    res.status(500).json({ success: false, error: 'Failed to update keyframe', code: 'FORMATION_UPDATE_KEYFRAME_ERROR' });
-  }
-});
-
-/**
- * DELETE /api/formations/:formationId/keyframes/:keyframeId
- * Delete a keyframe
- */
-router.delete('/formations/:formationId/keyframes/:keyframeId', authenticateToken, rateLimitByUser(10, 60000), async (req, res) => {
-  try {
-    const { formationId, keyframeId } = req.params;
-
-    const formation = await verifyFormationAccess(formationId, req.user.id, res);
-    if (formation === undefined) return;
-    if (!formation) {
-      return res.status(404).json({ success: false, error: 'Formation not found', code: 'FORMATION_NOT_FOUND' });
-    }
-
-    await formationsAdapter.deleteKeyframe(keyframeId);
-
-    res.json({ success: true, message: 'Keyframe deleted' });
-  } catch (error) {
-    log.error('Error deleting keyframe', error);
-    res.status(500).json({ success: false, error: 'Failed to delete keyframe', code: 'FORMATION_DELETE_KEYFRAME_ERROR' });
-  }
-});
-
-// ==================== Position Endpoints ====================
-
-/**
- * PUT /api/formations/:formationId/keyframes/:keyframeId/positions/:performerId
- * Set performer position at a keyframe
- */
-router.put('/formations/:formationId/keyframes/:keyframeId/positions/:performerId', authenticateToken, rateLimitByUser(10, 60000), zodValidate(setPositionSchema), async (req, res) => {
-  try {
-    const { formationId, keyframeId, performerId } = req.params;
-    const { x, y, rotation } = req.body;
-
-    const formation = await verifyFormationAccess(formationId, req.user.id, res);
-    if (formation === undefined) return;
-    if (!formation) {
-      return res.status(404).json({ success: false, error: 'Formation not found', code: 'FORMATION_NOT_FOUND' });
-    }
-
-    const position = await formationsAdapter.setPosition({
-      keyframeId,
-      performerId,
-      x,
-      y,
-      rotation: rotation || 0
-    });
-
-    res.json({ success: true, position });
-  } catch (error) {
-    log.error('Error setting position', error);
-    res.status(500).json({ success: false, error: 'Failed to set position', code: 'FORMATION_SET_POSITION_ERROR' });
-  }
-});
+router.use('/', performers);
+router.use('/', keyframes);
 
 // ==================== Scene Object Endpoints ====================
 

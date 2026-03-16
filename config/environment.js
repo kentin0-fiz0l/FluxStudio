@@ -25,6 +25,27 @@ function validateEnvironment() {
     }
   }
 
+  // Production-specific validation
+  if (process.env.NODE_ENV === 'production') {
+    if (!process.env.DATABASE_URL) {
+      throw new Error('FATAL: DATABASE_URL is required in production');
+    }
+    if (!process.env.REDIS_URL) {
+      throw new Error('FATAL: REDIS_URL is required in production');
+    }
+    if (missing.includes('JWT_SECRET')) {
+      throw new Error('FATAL: JWT_SECRET must be explicitly set in production (auto-generated secrets are not allowed)');
+    }
+    if (!process.env.SESSION_SECRET || process.env.SESSION_SECRET === 'your-secret-key-change-in-production') {
+      throw new Error('FATAL: SESSION_SECRET must be explicitly set in production (auto-generated secrets are not allowed)');
+    }
+  }
+
+  // Validate AI config consistency
+  if (process.env.AI_SUMMARIES_ENABLED === 'true' && !process.env.ANTHROPIC_API_KEY) {
+    throw new Error('ANTHROPIC_API_KEY is required when AI_SUMMARIES_ENABLED is true');
+  }
+
   if (missing.length > 0) {
     console.warn('⚠️  Missing or insecure environment variables:', missing.join(', '));
     console.warn('⚠️  Using auto-generated secrets for development. Set proper values in production!');

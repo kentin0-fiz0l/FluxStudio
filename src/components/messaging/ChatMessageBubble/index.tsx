@@ -276,7 +276,6 @@ function ChatMessageBubbleComponent({
                 </div>
               ) : (
                 <div
-                  role="button"
                   tabIndex={0}
                   onClick={() => onViewInFiles?.(message.asset!.id)}
                   onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onViewInFiles?.(message.asset!.id); } }}

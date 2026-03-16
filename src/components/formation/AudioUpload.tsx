@@ -402,10 +402,9 @@ export function AudioUpload({
   // No audio - show upload zone
   return (
     <div className={className}>
-      <div
-        role="button"
-        tabIndex={0}
-        className={`relative border-2 border-dashed rounded-lg p-6 text-center transition-all duration-200 ${
+      <button
+        type="button"
+        className={`appearance-none bg-transparent border-2 border-dashed rounded-lg p-6 text-center transition-all duration-200 w-full ${
           dragActive
             ? 'border-blue-400 bg-blue-50 dark:bg-blue-900/20'
             : 'border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500'
@@ -415,7 +414,7 @@ export function AudioUpload({
         onDragOver={handleDrag}
         onDrop={handleDrop}
         onClick={() => !disabled && !isUploading && fileInputRef.current?.click()}
-        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); if (!disabled && !isUploading) fileInputRef.current?.click(); } }}
+        disabled={disabled || isUploading}
         aria-label="Upload audio file"
       >
         <input
@@ -450,7 +449,7 @@ export function AudioUpload({
             </div>
           </div>
         )}
-      </div>
+      </button>
 
       {error && (
         <div className="mt-2 flex items-center gap-2 text-red-500 text-sm">

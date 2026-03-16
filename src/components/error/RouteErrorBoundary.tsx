@@ -8,8 +8,7 @@ import { Button } from '../ui/button';
 import { AlertTriangle, RefreshCw, Home } from 'lucide-react';
 
 export function RouteErrorBoundary() {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  let routeError: any = null;
+  let routeError: unknown = null;
   try {
     // Dynamic import to avoid hard dependency when component is used outside router
     // useRouteError is only available inside a RouterProvider context
@@ -21,7 +20,7 @@ export function RouteErrorBoundary() {
   }
 
   const error = routeError instanceof Error ? routeError : new Error(String(routeError ?? 'Unknown route error'));
-  const is404 = routeError && typeof routeError === 'object' && 'status' in routeError && routeError.status === 404;
+  const is404 = routeError && typeof routeError === 'object' && 'status' in routeError && (routeError as { status: number }).status === 404;
 
   if (is404) {
     return (
