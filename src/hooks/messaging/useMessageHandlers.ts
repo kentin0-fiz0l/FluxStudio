@@ -7,7 +7,7 @@
 
 import { useState, useRef, useCallback } from 'react';
 import type { Message } from '@/components/messaging/types';
-import type { UseConversationRealtimeReturn } from '@/hooks/useConversationRealtime';
+import type { UseConversationRealtimeReturn } from '@/hooks/messaging/useConversationRealtime';
 import { toast } from '@/lib/toast';
 import { observability } from '@/services/observability';
 

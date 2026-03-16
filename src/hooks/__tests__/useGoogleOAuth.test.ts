@@ -28,7 +28,7 @@ describe('useGoogleOAuth', () => {
   });
 
   it('should initialize Google OAuth', async () => {
-    const { useGoogleOAuth } = await import('../useGoogleOAuth');
+    const { useGoogleOAuth } = await import('../auth/useGoogleOAuth');
     const { result } = renderHook(() => useGoogleOAuth({ clientId: 'test-client-id' }));
 
     expect(result.current.isLoading).toBe(true);
@@ -40,7 +40,7 @@ describe('useGoogleOAuth', () => {
   });
 
   it('should preload when option is set', async () => {
-    const { useGoogleOAuth } = await import('../useGoogleOAuth');
+    const { useGoogleOAuth } = await import('../auth/useGoogleOAuth');
     const { result } = renderHook(() => useGoogleOAuth({ clientId: 'test-id', preload: true }));
 
     await waitFor(() => expect(result.current.isReady).toBe(true));
@@ -50,7 +50,7 @@ describe('useGoogleOAuth', () => {
   it('should handle initialization error', async () => {
     mockManager.initialize.mockRejectedValue(new Error('GSI script failed'));
 
-    const { useGoogleOAuth } = await import('../useGoogleOAuth');
+    const { useGoogleOAuth } = await import('../auth/useGoogleOAuth');
     const { result } = renderHook(() => useGoogleOAuth({ clientId: 'bad-id' }));
 
     await waitFor(() => expect(result.current.isLoading).toBe(false));
@@ -61,7 +61,7 @@ describe('useGoogleOAuth', () => {
   it('should create and remove button', async () => {
     mockManager.createButton.mockResolvedValue('button-123');
 
-    const { useGoogleOAuth } = await import('../useGoogleOAuth');
+    const { useGoogleOAuth } = await import('../auth/useGoogleOAuth');
     const { result } = renderHook(() => useGoogleOAuth({ clientId: 'test-id' }));
 
     await waitFor(() => expect(result.current.isReady).toBe(true));
@@ -85,7 +85,7 @@ describe('useGoogleOAuth', () => {
   it('should throw when creating button before ready', async () => {
     mockManager.initialize.mockImplementation(() => new Promise(() => {})); // Never resolves
 
-    const { useGoogleOAuth } = await import('../useGoogleOAuth');
+    const { useGoogleOAuth } = await import('../auth/useGoogleOAuth');
     const { result } = renderHook(() => useGoogleOAuth({ clientId: 'test-id' }));
 
     await expect(
@@ -94,7 +94,7 @@ describe('useGoogleOAuth', () => {
   });
 
   it('should cleanup manager', async () => {
-    const { useGoogleOAuth } = await import('../useGoogleOAuth');
+    const { useGoogleOAuth } = await import('../auth/useGoogleOAuth');
     const { result } = renderHook(() => useGoogleOAuth({ clientId: 'test-id' }));
 
     await waitFor(() => expect(result.current.isReady).toBe(true));
@@ -108,7 +108,7 @@ describe('useGoogleOAuth', () => {
   });
 
   it('should get status from manager', async () => {
-    const { useGoogleOAuth } = await import('../useGoogleOAuth');
+    const { useGoogleOAuth } = await import('../auth/useGoogleOAuth');
     const { result } = renderHook(() => useGoogleOAuth({ clientId: 'test-id' }));
 
     await waitFor(() => expect(result.current.isReady).toBe(true));

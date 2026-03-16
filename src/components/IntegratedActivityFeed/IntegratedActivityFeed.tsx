@@ -9,7 +9,7 @@ import { ScrollArea } from '../ui/scroll-area';
 import { useWorkspace } from '@/store';
 import { useAuth } from '@/store/slices/authSlice';
 import { useOrganization } from '../../contexts/OrganizationContext';
-import { useMessaging } from '../../hooks/useMessaging';
+import { useMessaging } from '../../hooks/messaging/useMessaging';
 import type { ActivityFilter } from './activity-feed-types';
 import { FILTER_OPTIONS, ACTIVITY_TYPE_MAP } from './activity-feed-utils';
 import { useActivityData } from './useActivityData';

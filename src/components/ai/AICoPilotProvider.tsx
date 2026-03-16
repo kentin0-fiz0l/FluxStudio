@@ -13,8 +13,8 @@ import * as React from 'react';
 import { AIChatPanel } from './AIChatPanel';
 import { AICommandPalette } from './AICommandPalette';
 import { AISuggestionsBar } from './AISuggestionsBar';
-import { useAIShortcuts } from '@/hooks/useAIShortcuts';
-import { useAIContext } from '@/hooks/useAIContext';
+import { useAIShortcuts } from '@/hooks/ai/useAIShortcuts';
+import { useAIContext } from '@/hooks/ai/useAIContext';
 import { useAI } from '@/store';
 
 interface AICoPilotContextValue {

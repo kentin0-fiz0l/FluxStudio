@@ -1,8 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen } from '@/test/utils';
 import { BranchSwitcher } from '../BranchSwitcher';
-import type { MetMapBranch } from '../../../hooks/useMetMapBranches';
-import type { MetMapSnapshot } from '../../../hooks/useMetMapSnapshots';
+import type { MetMapBranch } from '../../../hooks/metmap/useMetMapBranches';
+import type { MetMapSnapshot } from '../../../hooks/collaboration/useMetMapSnapshots';
 
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({ t: (key: string, fallback?: string) => fallback || key }),

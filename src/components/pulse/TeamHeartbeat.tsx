@@ -11,7 +11,7 @@
 
 import { Users, Circle, Eye, Clock } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { TeamMember } from '@/hooks/useProjectPulse';
+import { TeamMember } from '@/hooks/project/useProjectPulse';
 
 export interface TeamHeartbeatProps {
   /** Team members data */

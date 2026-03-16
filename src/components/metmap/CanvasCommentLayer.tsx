@@ -7,8 +7,8 @@
 
 import React, { useState, useCallback, useRef, useEffect, useMemo } from 'react';
 import { MessageCircle, Check, Trash2, X } from 'lucide-react';
-import type { CanvasComment } from '../../hooks/useMetMapComments';
-import { REACTION_EMOJIS } from '../../hooks/useMetMapComments';
+import type { CanvasComment } from '../../hooks/collaboration/useMetMapComments';
+import { REACTION_EMOJIS } from '../../hooks/collaboration/useMetMapComments';
 
 interface CanvasCommentLayerProps {
   comments: CanvasComment[];

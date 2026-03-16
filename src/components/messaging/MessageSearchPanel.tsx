@@ -5,7 +5,7 @@
 
 import React, { useRef, useEffect } from 'react';
 import { Search, X, Loader2, Globe, MessageCircle, ChevronRight, Hash } from 'lucide-react';
-import { useMessageSearch, MessageSearchResult } from '../../hooks/useMessageSearch';
+import { useMessageSearch, MessageSearchResult } from '../../hooks/messaging/useMessageSearch';
 import { cn } from '../../lib/utils';
 
 interface MessageSearchPanelProps {

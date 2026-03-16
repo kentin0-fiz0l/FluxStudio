@@ -42,7 +42,7 @@ import {
   MessageListView,
   ConversationOptionsMenu,
 } from '../components/messaging';
-import { useMessagesPageState } from '../hooks/useMessagesPageState';
+import { useMessagesPageState } from '../hooks/messaging/useMessagesPageState';
 
 // Lazy-load conditionally rendered panels to reduce page-messages chunk size
 const MessageSearchPanel = lazy(() =>

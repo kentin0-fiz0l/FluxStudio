@@ -23,7 +23,7 @@ vi.mock('@/store/slices/authSlice', () => ({
   })),
 }));
 
-vi.mock('@/hooks/useProjects', () => ({
+vi.mock('@/hooks/project/useProjects', () => ({
   useProjects: vi.fn(() => ({
     projects: [
       {
@@ -57,13 +57,13 @@ vi.mock('@/hooks/useTaskRealtime', () => ({
   })),
 }));
 
-vi.mock('@/hooks/useProjectCounts', () => ({
+vi.mock('@/hooks/project/useProjectCounts', () => ({
   useProjectCounts: vi.fn(() => ({
     counts: { messages: 0, tasks: 0 },
   })),
 }));
 
-vi.mock('@/hooks/useFormations', () => ({
+vi.mock('@/hooks/formation/useFormations', () => ({
   useFormations: vi.fn(() => ({
     formations: [],
     loading: false,
@@ -213,7 +213,7 @@ describe('ProjectDetail', () => {
   });
 
   test('shows project not found for invalid project', async () => {
-    const { useProjects } = await import('@/hooks/useProjects');
+    const { useProjects } = await import('@/hooks/project/useProjects');
     vi.mocked(useProjects).mockReturnValue({
       projects: [],
       loading: false,
@@ -225,7 +225,7 @@ describe('ProjectDetail', () => {
   });
 
   test('shows loading skeleton when projects are loading', async () => {
-    const { useProjects } = await import('@/hooks/useProjects');
+    const { useProjects } = await import('@/hooks/project/useProjects');
     vi.mocked(useProjects).mockReturnValue({
       projects: [],
       loading: true,

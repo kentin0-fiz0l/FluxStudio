@@ -22,7 +22,7 @@ import {
 } from 'lucide-react';
 import { Button, Badge } from '@/components/ui';
 import { cn } from '@/lib/utils';
-import { useProjectPulse } from '@/hooks/useProjectPulse';
+import { useProjectPulse } from '@/hooks/project/useProjectPulse';
 import { useActiveProject } from '@/store';
 import { ActivityStream } from './ActivityStream';
 import { AttentionInbox } from './AttentionInbox';

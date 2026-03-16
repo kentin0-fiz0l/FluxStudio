@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useMessaging } from '../../hooks/useMessaging';
+import { useMessaging } from '../../hooks/messaging/useMessaging';
 import { useAuth } from '@/store/slices/authSlice';
 import { BaseWidget } from './BaseWidget';
 import { Button } from '../ui/button';

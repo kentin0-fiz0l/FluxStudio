@@ -11,7 +11,7 @@ import * as Y from 'yjs';
 
 describe('useCollaborativeDocument', () => {
   it('should export the useCollaborativeDocument hook', async () => {
-    const mod = await import('../useCollaborativeDocument');
+    const mod = await import('../collaboration/useCollaborativeDocument');
     expect(typeof mod.useCollaborativeDocument).toBe('function');
     expect(mod.default).toBe(mod.useCollaborativeDocument);
   });

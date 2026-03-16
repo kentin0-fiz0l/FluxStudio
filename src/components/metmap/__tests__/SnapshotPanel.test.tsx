@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen } from '@/test/utils';
 import { SnapshotPanel } from '../SnapshotPanel';
-import type { MetMapSnapshot } from '../../../hooks/useMetMapSnapshots';
+import type { MetMapSnapshot } from '../../../hooks/collaboration/useMetMapSnapshots';
 
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({ t: (key: string, fallback?: string) => fallback || key }),

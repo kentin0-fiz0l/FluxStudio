@@ -7,7 +7,7 @@
 
 import { useNavigate } from 'react-router-dom';
 import { Clock, Sparkles } from 'lucide-react';
-import { useSubscription } from '@/hooks/useSubscription';
+import { useSubscription } from '@/hooks/auth/useSubscription';
 
 export function TrialBanner() {
   const { trial } = useSubscription();

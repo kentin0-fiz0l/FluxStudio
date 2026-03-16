@@ -337,3 +337,91 @@ export function FormationVersionHistoryErrorBoundary({ children }: { children: R
     </ResettableFeatureBoundary>
   );
 }
+
+export function AgentPanelErrorBoundary({ children }: { children: ReactNode }) {
+  return (
+    <ResettableFeatureBoundary message="AI agent temporarily unavailable" logLabel="AgentPanel">
+      {children}
+    </ResettableFeatureBoundary>
+  );
+}
+
+export function AdminErrorBoundary({ children }: { children: ReactNode }) {
+  return (
+    <ErrorBoundary
+      onError={(error) => boundaryLogger.error('Admin page error', error)}
+      fallback={
+        <PageErrorFallback
+          iconBgColor="bg-red-100"
+          icon={<AlertTriangle className="h-6 w-6 text-red-600" aria-hidden="true" />}
+          title="Admin Panel Unavailable"
+          message="We're having trouble loading the admin panel. Please try again."
+          primaryAction={{ label: 'Reload', onClick: () => window.location.reload(), icon: <RefreshCw className="h-4 w-4 mr-2" aria-hidden="true" /> }}
+          secondaryAction={{ label: 'Projects', onClick: () => { window.location.href = '/projects'; }, icon: <Home className="h-4 w-4 mr-2" aria-hidden="true" /> }}
+        />
+      }
+    >
+      {children}
+    </ErrorBoundary>
+  );
+}
+
+export function PrintingErrorBoundary({ children }: { children: ReactNode }) {
+  return (
+    <ErrorBoundary
+      isolateComponent
+      retryable
+      onError={(error) => boundaryLogger.error('Printing dashboard error', error)}
+      fallback={
+        <InlineErrorFallback
+          title="Printing Dashboard Unavailable"
+          message="3D printing features encountered an error. Please try again."
+        />
+      }
+    >
+      {children}
+    </ErrorBoundary>
+  );
+}
+
+export function DesignBoardErrorBoundary({ children }: { children: ReactNode }) {
+  return (
+    <ErrorBoundary
+      isolateComponent
+      retryable
+      onError={(error) => boundaryLogger.error('Design board error', error)}
+      fallback={
+        <PageErrorFallback
+          iconBgColor="bg-indigo-100"
+          icon={<AlertTriangle className="h-6 w-6 text-indigo-600" aria-hidden="true" />}
+          title="Design Board Unavailable"
+          message="The design board encountered an error. Your work has been preserved."
+          primaryAction={{ label: 'Reload', onClick: () => window.location.reload(), icon: <RefreshCw className="h-4 w-4 mr-2" aria-hidden="true" /> }}
+          secondaryAction={{ label: 'Projects', onClick: () => { window.location.href = '/projects'; }, icon: <Home className="h-4 w-4 mr-2" aria-hidden="true" /> }}
+        />
+      }
+    >
+      {children}
+    </ErrorBoundary>
+  );
+}
+
+export function TemplateErrorBoundary({ children }: { children: ReactNode }) {
+  return (
+    <ErrorBoundary
+      onError={(error) => boundaryLogger.error('Template page error', error)}
+      fallback={
+        <PageErrorFallback
+          iconBgColor="bg-teal-100"
+          icon={<AlertTriangle className="h-6 w-6 text-teal-600" aria-hidden="true" />}
+          title="Templates Unavailable"
+          message="We're having trouble loading templates. Please try again."
+          primaryAction={{ label: 'Reload', onClick: () => window.location.reload(), icon: <RefreshCw className="h-4 w-4 mr-2" aria-hidden="true" /> }}
+          secondaryAction={{ label: 'Home', onClick: () => { window.location.href = '/'; }, icon: <Home className="h-4 w-4 mr-2" aria-hidden="true" /> }}
+        />
+      }
+    >
+      {children}
+    </ErrorBoundary>
+  );
+}

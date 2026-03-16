@@ -19,13 +19,13 @@
 
 import * as React from 'react';
 import { Send, Users, AlertCircle, RefreshCw } from 'lucide-react';
-import { useProjectChannel } from '@/hooks/useProjectChannel';
-import { useMessaging } from '@/hooks/useMessaging';
+import { useProjectChannel } from '@/hooks/project/useProjectChannel';
+import { useMessaging } from '@/hooks/messaging/useMessaging';
 import { ChatMessage, ChatMessageSender } from '@/components/molecules/ChatMessage';
 import { Button, Card, Badge } from '@/components/ui';
 import { cn } from '@/lib/utils';
 import { toast } from '@/lib/toast';
-import { Project } from '@/hooks/useProjects';
+import { Project } from '@/hooks/project/useProjects';
 import { Message } from '@/types/messaging';
 
 export interface ProjectMessagesTabProps {

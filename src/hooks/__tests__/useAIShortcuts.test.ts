@@ -4,7 +4,7 @@
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
-import { useAIShortcuts } from '../useAIShortcuts';
+import { useAIShortcuts } from '../ai/useAIShortcuts';
 
 describe('useAIShortcuts', () => {
   const mockHandlers = {

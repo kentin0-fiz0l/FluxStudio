@@ -11,7 +11,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from './dropdown-menu';
-import { useTheme, Theme } from '@/hooks/useTheme';
+import { useTheme, Theme } from '@/hooks/ui/useTheme';
 import { cn } from '@/lib/utils';
 
 export function ThemeToggle() {

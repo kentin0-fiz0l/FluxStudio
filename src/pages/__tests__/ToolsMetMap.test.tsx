@@ -128,12 +128,12 @@ vi.mock('../../components/metmap/MetronomeAudio', () => ({
   useMetronomeAudio: vi.fn(() => ({ playClick: vi.fn() })),
 }));
 
-vi.mock('../../hooks/useMetMapKeyboardShortcuts', () => ({
+vi.mock('../../hooks/metmap/useMetMapKeyboardShortcuts', () => ({
   useMetMapKeyboardShortcuts: vi.fn(),
   ShortcutsHelp: () => <div data-testid="shortcuts-help" />,
 }));
 
-vi.mock('../../hooks/useMetMapHistory', () => ({
+vi.mock('../../hooks/metmap/useMetMapHistory', () => ({
   useMetMapHistory: vi.fn(() => ({
     saveSnapshot: vi.fn(),
     undo: vi.fn(),
@@ -143,7 +143,7 @@ vi.mock('../../hooks/useMetMapHistory', () => ({
   })),
 }));
 
-vi.mock('../../hooks/useMetMapCollaboration', () => ({
+vi.mock('../../hooks/collaboration/useMetMapCollaboration', () => ({
   useMetMapCollaboration: vi.fn(() => ({
     status: 'disconnected',
     peerCount: 0,
@@ -154,7 +154,7 @@ vi.mock('../../hooks/useMetMapCollaboration', () => ({
   })),
 }));
 
-vi.mock('../../hooks/useMetMapPresence', () => ({
+vi.mock('../../hooks/collaboration/useMetMapPresence', () => ({
   useMetMapPresence: vi.fn(() => ({
     peers: [],
     remotePeers: [],
@@ -163,7 +163,7 @@ vi.mock('../../hooks/useMetMapPresence', () => ({
   })),
 }));
 
-vi.mock('../../hooks/useMetMapUndo', () => ({
+vi.mock('../../hooks/metmap/useMetMapUndo', () => ({
   useMetMapUndo: vi.fn(() => ({
     canUndo: false,
     canRedo: false,
@@ -172,11 +172,11 @@ vi.mock('../../hooks/useMetMapUndo', () => ({
   })),
 }));
 
-vi.mock('../../hooks/useConflictDetection', () => ({
+vi.mock('../../hooks/collaboration/useConflictDetection', () => ({
   useConflictDetection: vi.fn(),
 }));
 
-vi.mock('../../hooks/useMetMapComments', () => ({
+vi.mock('../../hooks/collaboration/useMetMapComments', () => ({
   useMetMapComments: vi.fn(() => ({
     comments: [],
     addComment: vi.fn(),
@@ -187,7 +187,7 @@ vi.mock('../../hooks/useMetMapComments', () => ({
   })),
 }));
 
-vi.mock('../../hooks/useMetMapSnapshots', () => ({
+vi.mock('../../hooks/collaboration/useMetMapSnapshots', () => ({
   useMetMapSnapshots: vi.fn(() => ({
     snapshots: [],
     isLoading: false,
@@ -199,7 +199,7 @@ vi.mock('../../hooks/useMetMapSnapshots', () => ({
   })),
 }));
 
-vi.mock('../../hooks/useMetMapBranches', () => ({
+vi.mock('../../hooks/metmap/useMetMapBranches', () => ({
   useMetMapBranches: vi.fn(() => ({
     branches: [],
     isLoading: false,

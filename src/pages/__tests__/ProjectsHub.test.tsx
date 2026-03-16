@@ -27,7 +27,7 @@ vi.mock('@/store/slices/authSlice', () => ({
   })),
 }));
 
-vi.mock('@/hooks/useProjects', () => ({
+vi.mock('@/hooks/project/useProjects', () => ({
   useProjects: vi.fn(() => ({
     projects: [
       { id: '1', name: 'Project Alpha', description: 'First project', status: 'active' },
@@ -125,7 +125,7 @@ describe('ProjectsHub', () => {
   });
 
   test('shows loading skeletons when loading', async () => {
-    const { useProjects } = await import('@/hooks/useProjects');
+    const { useProjects } = await import('@/hooks/project/useProjects');
     vi.mocked(useProjects).mockReturnValue({
       projects: [],
       loading: true,

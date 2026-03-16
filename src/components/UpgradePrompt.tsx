@@ -6,7 +6,7 @@
 
 import { useNavigate } from 'react-router-dom';
 import { Sparkles, ArrowRight } from 'lucide-react';
-import type { Tier } from '@/hooks/useSubscription';
+import type { Tier } from '@/hooks/auth/useSubscription';
 
 interface UpgradePromptProps {
   /** The feature the user tried to access */

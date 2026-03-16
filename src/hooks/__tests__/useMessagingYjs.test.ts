@@ -11,7 +11,7 @@ import * as Y from 'yjs';
 
 describe('useMessagingYjs', () => {
   it('should export the useMessagingYjs hook', async () => {
-    const mod = await import('../useMessagingYjs');
+    const mod = await import('../messaging/useMessagingYjs');
     expect(typeof mod.useMessagingYjs).toBe('function');
     expect(mod.default).toBe(mod.useMessagingYjs);
   });

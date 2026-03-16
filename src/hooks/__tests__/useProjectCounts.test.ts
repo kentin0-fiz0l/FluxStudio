@@ -38,7 +38,7 @@ describe('useProjectCounts', () => {
       }),
     }));
 
-    const { useProjectCounts } = await import('../useProjectCounts');
+    const { useProjectCounts } = await import('../project/useProjectCounts');
     const { result } = renderHook(() => useProjectCounts('proj-1'), { wrapper: createWrapper() });
 
     // placeholderData makes isLoading false immediately — wait for actual data
@@ -50,7 +50,7 @@ describe('useProjectCounts', () => {
     const fetchMock = vi.fn();
     vi.stubGlobal('fetch', fetchMock);
 
-    const { useProjectCounts } = await import('../useProjectCounts');
+    const { useProjectCounts } = await import('../project/useProjectCounts');
     const { result } = renderHook(() => useProjectCounts(undefined), { wrapper: createWrapper() });
 
     // Hook uses placeholderData: defaultCounts, so disabled query returns defaults
@@ -64,7 +64,7 @@ describe('useProjectCounts', () => {
       status: 500,
     }));
 
-    const { useProjectCounts } = await import('../useProjectCounts');
+    const { useProjectCounts } = await import('../project/useProjectCounts');
     const { result } = renderHook(() => useProjectCounts('proj-1'), { wrapper: createWrapper() });
 
     await waitFor(() => expect(result.current.error).toBeTruthy());
@@ -78,7 +78,7 @@ describe('useProjectCounts', () => {
       json: () => Promise.resolve({ success: false, error: 'Invalid project' }),
     }));
 
-    const { useProjectCounts } = await import('../useProjectCounts');
+    const { useProjectCounts } = await import('../project/useProjectCounts');
     const { result } = renderHook(() => useProjectCounts('proj-1'), { wrapper: createWrapper() });
 
     await waitFor(() => expect(result.current.error).toBe('Invalid project'));

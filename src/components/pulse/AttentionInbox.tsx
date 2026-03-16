@@ -21,7 +21,7 @@ import {
 } from 'lucide-react';
 import { Badge } from '@/components/ui';
 import { cn } from '@/lib/utils';
-import { AttentionItem } from '@/hooks/useProjectPulse';
+import { AttentionItem } from '@/hooks/project/useProjectPulse';
 
 export interface AttentionInboxProps {
   /** Attention items to display */

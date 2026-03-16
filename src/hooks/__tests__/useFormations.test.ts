@@ -54,7 +54,7 @@ const mockFormation = {
   keyframes: [],
 };
 
-import { useFormations, useFormation, useCreateFormation, useSaveFormation } from '../useFormations';
+import { useFormations, useFormation, useCreateFormation, useSaveFormation } from '../formation/useFormations';
 
 function createWrapper() {
   const queryClient = createTestQueryClient();

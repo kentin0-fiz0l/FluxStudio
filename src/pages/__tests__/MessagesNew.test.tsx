@@ -27,7 +27,7 @@ vi.mock('@/store/slices/authSlice', () => ({
   })),
 }));
 
-vi.mock('@/hooks/useMessagesPageState', () => ({
+vi.mock('@/hooks/messaging/useMessagesPageState', () => ({
   useMessagesPageState: vi.fn(() => ({
     user: { id: 'user-1', name: 'Test User', email: 'test@example.com' },
     logout: vi.fn(),
@@ -190,7 +190,7 @@ describe('MessagesNew', () => {
   });
 
   test('returns null when user is not authenticated', async () => {
-    const { useMessagesPageState } = await import('@/hooks/useMessagesPageState');
+    const { useMessagesPageState } = await import('@/hooks/messaging/useMessagesPageState');
     vi.mocked(useMessagesPageState).mockReturnValue({
       user: null,
     } as any);

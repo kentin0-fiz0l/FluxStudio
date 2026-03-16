@@ -15,7 +15,7 @@ vi.mock('@/store/slices/authSlice', () => ({
   useAuth: () => ({ token: 'test-token', user: { id: 'u1' } }),
 }))
 
-import { useMetMapSnapshots } from '../useMetMapSnapshots'
+import { useMetMapSnapshots } from '../collaboration/useMetMapSnapshots'
 import { apiService } from '@/services/apiService'
 
 function createWrapper() {

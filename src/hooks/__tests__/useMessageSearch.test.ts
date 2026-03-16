@@ -64,7 +64,7 @@ describe('useMessageSearch', () => {
   });
 
   it('should initialize with empty state', async () => {
-    const { useMessageSearch } = await import('../useMessageSearch');
+    const { useMessageSearch } = await import('../messaging/useMessageSearch');
     const { result } = renderHook(() => useMessageSearch(), { wrapper: createWrapper() });
 
     expect(result.current.query).toBe('');
@@ -74,7 +74,7 @@ describe('useMessageSearch', () => {
   });
 
   it('should update query without immediate search', async () => {
-    const { useMessageSearch } = await import('../useMessageSearch');
+    const { useMessageSearch } = await import('../messaging/useMessageSearch');
     const { result } = renderHook(() => useMessageSearch(), { wrapper: createWrapper() });
 
     act(() => {
@@ -92,7 +92,7 @@ describe('useMessageSearch', () => {
       data: { success: true, results: mockResults },
     });
 
-    const { useMessageSearch } = await import('../useMessageSearch');
+    const { useMessageSearch } = await import('../messaging/useMessageSearch');
     const { result } = renderHook(() => useMessageSearch({ debounceDelay: 100 }), { wrapper: createWrapper() });
 
     act(() => {
@@ -113,7 +113,7 @@ describe('useMessageSearch', () => {
   });
 
   it('should not search if query is too short', async () => {
-    const { useMessageSearch } = await import('../useMessageSearch');
+    const { useMessageSearch } = await import('../messaging/useMessageSearch');
     const { result } = renderHook(() => useMessageSearch({ debounceDelay: 50 }), { wrapper: createWrapper() });
 
     act(() => {
@@ -134,7 +134,7 @@ describe('useMessageSearch', () => {
       data: { success: false, error: 'Search failed' },
     });
 
-    const { useMessageSearch } = await import('../useMessageSearch');
+    const { useMessageSearch } = await import('../messaging/useMessageSearch');
     const { result } = renderHook(() => useMessageSearch({ debounceDelay: 50 }), { wrapper: createWrapper() });
 
     act(() => {
@@ -153,7 +153,7 @@ describe('useMessageSearch', () => {
   });
 
   it('should clear search', async () => {
-    const { useMessageSearch } = await import('../useMessageSearch');
+    const { useMessageSearch } = await import('../messaging/useMessageSearch');
     const { result } = renderHook(() => useMessageSearch(), { wrapper: createWrapper() });
 
     act(() => {
@@ -170,7 +170,7 @@ describe('useMessageSearch', () => {
   });
 
   it('should scope search to conversation', async () => {
-    const { useMessageSearch } = await import('../useMessageSearch');
+    const { useMessageSearch } = await import('../messaging/useMessageSearch');
     renderHook(() => useMessageSearch({
       conversationId: 'conv-1',
       debounceDelay: 50,

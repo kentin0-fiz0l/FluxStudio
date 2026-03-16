@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo, useCallback } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { Eye, EyeOff, Check, X } from 'lucide-react';
 import { useAuth } from '@/store/slices/authSlice';
-import { useGoogleOAuth } from '../hooks/useGoogleOAuth';
+import { useGoogleOAuth } from '../hooks/auth/useGoogleOAuth';
 import { SEOHead } from '../components/SEOHead';
 import { observability } from '@/services/observability';
 

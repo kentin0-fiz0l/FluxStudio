@@ -211,7 +211,8 @@ export default function TryEditor() {
             </button>
             <button
               onClick={() => setShowBanner(false)}
-              className="p-1 text-indigo-300 hover:text-white"
+              className="p-2 min-h-[44px] min-w-[44px] flex items-center justify-center text-indigo-300 hover:text-white"
+              aria-label="Dismiss banner"
             >
               <X className="w-4 h-4" aria-hidden="true" />
             </button>
@@ -240,6 +241,7 @@ export default function TryEditor() {
             selectedPerformerIds={[]}
             onApplyPositions={handlePromptApply}
             initialPrompt={initialPrompt}
+            onSandboxLimit={() => setShowSandboxLimit(true)}
           />
         </div>
       </div>
@@ -262,7 +264,7 @@ export default function TryEditor() {
               Create free account
               <ArrowRight className="w-3.5 h-3.5" aria-hidden="true" />
             </button>
-            <button onClick={() => setShowAiCTA(false)} className="p-1 text-green-300 hover:text-white">
+            <button onClick={() => setShowAiCTA(false)} className="p-2 min-h-[44px] min-w-[44px] flex items-center justify-center text-green-300 hover:text-white" aria-label="Dismiss AI suggestion">
               <X className="w-4 h-4" aria-hidden="true" />
             </button>
           </div>
@@ -287,7 +289,7 @@ export default function TryEditor() {
               Sign up free
               <ArrowRight className="w-3.5 h-3.5" aria-hidden="true" />
             </button>
-            <button onClick={() => setShowSandboxLimit(false)} className="p-1 text-amber-200 hover:text-white">
+            <button onClick={() => setShowSandboxLimit(false)} className="p-2 min-h-[44px] min-w-[44px] flex items-center justify-center text-amber-200 hover:text-white" aria-label="Dismiss limit notice">
               <X className="w-4 h-4" aria-hidden="true" />
             </button>
           </div>
@@ -307,7 +309,7 @@ export default function TryEditor() {
           >
             Sign up
           </button>
-          <button onClick={() => setShowSaveBanner(false)} className="text-gray-400 hover:text-gray-600">
+          <button onClick={() => setShowSaveBanner(false)} className="p-2 min-h-[44px] min-w-[44px] flex items-center justify-center text-gray-400 hover:text-gray-600" aria-label="Dismiss save reminder">
             <X className="w-4 h-4" aria-hidden="true" />
           </button>
         </div>

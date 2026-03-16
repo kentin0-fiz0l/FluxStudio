@@ -22,6 +22,7 @@ import { executePromptCommand } from '@/services/promptExecutor';
 import { useGhostPreview } from '@/store/slices/ghostPreviewSlice';
 import { VoiceInputButton } from './VoiceInputButton';
 import { FORMATION_TEMPLATES, snapToTemplate } from '@/services/formationTemplates';
+import { buildApiUrl } from '@/config/environment';
 
 // Template chips for quick template access (pick 6 popular ones)
 const TEMPLATE_CHIPS = FORMATION_TEMPLATES.filter(t =>
@@ -45,6 +46,8 @@ interface FormationPromptBarProps {
   fieldConfig?: FieldConfig;
   /** Pre-fill the prompt input (e.g. from a ?prompt= query param) */
   initialPrompt?: string;
+  /** Called when the sandbox AI rate limit (429) is hit */
+  onSandboxLimit?: () => void;
   /** Optional class name */
   className?: string;
 }
@@ -75,6 +78,7 @@ export function FormationPromptBar({
   onApplyPositions: _onApplyPositions,
   fieldConfig,
   initialPrompt = '',
+  onSandboxLimit,
   className = '',
 }: FormationPromptBarProps) {
   const [prompt, setPrompt] = useState(initialPrompt);
@@ -89,6 +93,27 @@ export function FormationPromptBar({
   const hasActivePreview = ghostPreview.activePreview !== null;
   const canGenerate = prompt.trim().length > 0 && performers.length > 0;
 
+  /** Run local prompt parsing and show result via ghost preview */
+  const generateLocal = useCallback(
+    (description: string) => {
+      const command = parsePrompt(description, selectedPerformerIds);
+      const result = executePromptCommand(command, performers, currentPositions, fieldConfig);
+
+      if (result.affectedPerformerIds.length > 0) {
+        ghostPreview.setPreview({
+          id: `prompt-${Date.now()}`,
+          source: 'prompt',
+          sourceLabel: description.length > 30 ? description.slice(0, 27) + '...' : description,
+          proposedPositions: result.proposedPositions,
+          affectedPerformerIds: result.affectedPerformerIds,
+        });
+      } else {
+        setError('No performers matched');
+      }
+    },
+    [selectedPerformerIds, performers, currentPositions, fieldConfig, ghostPreview],
+  );
+
   const handleGenerate = useCallback(
     (text?: string) => {
       const description = (text ?? prompt).trim();
@@ -98,34 +123,71 @@ export function FormationPromptBar({
       setError(null);
       setShowSuggestions(false);
 
-      // Use setTimeout for UI responsiveness (generation is synchronous)
+      // When onSandboxLimit is provided we are in sandbox mode —
+      // call the sandbox API to get AI-generated positions and track usage.
+      if (onSandboxLimit) {
+        fetch(buildApiUrl('/ai/sandbox-generate'), {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            prompt: description,
+            performers: performers.map(p => ({ id: p.id, name: p.name })),
+          }),
+        })
+          .then(async (resp) => {
+            if (resp.status === 429) {
+              const body = await resp.json().catch(() => ({}));
+              if (body.code === 'SANDBOX_LIMIT') {
+                onSandboxLimit();
+              }
+              // Fall back to local generation
+              generateLocal(description);
+              setIsGenerating(false);
+              return;
+            }
+            if (!resp.ok) {
+              // Non-429 error — fall back to local
+              generateLocal(description);
+              setIsGenerating(false);
+              return;
+            }
+            const data = await resp.json();
+            if (data.positions && typeof data.positions === 'object') {
+              const proposed = new Map<string, Position>();
+              const affected: string[] = [];
+              for (const [id, pos] of Object.entries(data.positions)) {
+                const p = pos as { x: number; y: number };
+                proposed.set(id, { x: p.x, y: p.y, rotation: 0 });
+                affected.push(id);
+              }
+              if (affected.length > 0) {
+                ghostPreview.setPreview({
+                  id: `prompt-${Date.now()}`,
+                  source: 'prompt',
+                  sourceLabel: description.length > 30 ? description.slice(0, 27) + '...' : description,
+                  proposedPositions: proposed,
+                  affectedPerformerIds: affected,
+                });
+              } else {
+                generateLocal(description);
+              }
+            } else {
+              generateLocal(description);
+            }
+            setIsGenerating(false);
+          })
+          .catch(() => {
+            // Network error — fall back to local generation
+            generateLocal(description);
+            setIsGenerating(false);
+          });
+        return;
+      }
+
+      // Non-sandbox: local-only generation
       setTimeout(() => {
         try {
-          // Parse natural language into structured command
-          const command = parsePrompt(description, selectedPerformerIds);
-
-          // Execute command to get proposed positions
-          const result = executePromptCommand(
-            command,
-            performers,
-            currentPositions,
-            fieldConfig,
-          );
-
-          if (result.affectedPerformerIds.length > 0) {
-            // Route through ghost preview instead of applying directly
-            ghostPreview.setPreview({
-              id: `prompt-${Date.now()}`,
-              source: 'prompt',
-              sourceLabel: description.length > 30
-                ? description.slice(0, 27) + '...'
-                : description,
-              proposedPositions: result.proposedPositions,
-              affectedPerformerIds: result.affectedPerformerIds,
-            });
-          } else {
-            setError('No performers matched');
-          }
+          generateLocal(description);
           setIsGenerating(false);
         } catch (err) {
           setError(err instanceof Error ? err.message : 'Generation failed');
@@ -133,7 +195,7 @@ export function FormationPromptBar({
         }
       }, 100);
     },
-    [prompt, performers, currentPositions, selectedPerformerIds, fieldConfig, ghostPreview],
+    [prompt, performers, currentPositions, selectedPerformerIds, fieldConfig, ghostPreview, onSandboxLimit, generateLocal],
   );
 
   // Auto-submit when initialPrompt is provided (e.g. from ?prompt= query param)

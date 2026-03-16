@@ -5,7 +5,7 @@
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
-import { useReducedMotion } from '../useReducedMotion';
+import { useReducedMotion } from '../ui/useReducedMotion';
 
 describe('useReducedMotion', () => {
   let changeHandler: ((e: MediaQueryListEvent) => void) | null = null;

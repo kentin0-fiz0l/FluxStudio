@@ -11,7 +11,7 @@ vi.mock('@/store/slices/authSlice', () => ({
   useAuth: () => mockUseAuth(),
 }))
 
-vi.mock('../../../hooks/useWidgetLayout', () => ({
+vi.mock('../../../hooks/ui/useWidgetLayout', () => ({
   useWidgetLayout: () => mockUseWidgetLayout(),
 }))
 

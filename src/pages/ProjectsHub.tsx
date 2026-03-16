@@ -49,7 +49,7 @@ import { ProjectCard } from '@/components/molecules';
 import { SortableProjectCard } from '@/components/projects/SortableProjectCard';
 import { ProjectCardSkeleton } from '@/components/loading/LoadingStates';
 import { UniversalEmptyState, emptyStateConfigs } from '@/components/ui/UniversalEmptyState';
-import { useProjects } from '@/hooks/useProjects';
+import { useProjects } from '@/hooks/project/useProjects';
 import { useDashboardActivities } from '@/hooks/useActivities';
 import { useAuth } from '@/store/slices/authSlice';
 import { cn } from '@/lib/utils';

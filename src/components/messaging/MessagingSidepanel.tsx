@@ -30,7 +30,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '../ui/dropdown-menu';
-import { useMessaging } from '../../hooks/useMessaging';
+import { useMessaging } from '../../hooks/messaging/useMessaging';
 import { useAuth } from '@/store/slices/authSlice';
 import { cn } from '../../lib/utils';
 

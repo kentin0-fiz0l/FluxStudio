@@ -108,22 +108,22 @@ export const useStore = create<FluxStore>()(
           }),
           // Deep merge to preserve action functions inside nested slice objects
           merge: (persistedState, currentState) => {
-            const persisted = persistedState as Record<string, unknown> | undefined;
+            const persisted = persistedState as Partial<FluxStore> | undefined;
             if (!persisted) return currentState;
-            const merged = { ...currentState } as Record<string, unknown>;
-            for (const key of Object.keys(persisted)) {
+            const merged = { ...currentState };
+            for (const key of Object.keys(persisted) as Array<keyof FluxStore>) {
               const currentVal = merged[key];
               const persistedVal = persisted[key];
               if (
                 currentVal && typeof currentVal === 'object' && !Array.isArray(currentVal) &&
                 persistedVal && typeof persistedVal === 'object' && !Array.isArray(persistedVal)
               ) {
-                merged[key] = { ...currentVal, ...(persistedVal as Record<string, unknown>) };
-              } else {
-                merged[key] = persistedVal;
+                (merged[key] as typeof currentVal) = { ...currentVal, ...persistedVal } as typeof currentVal;
+              } else if (persistedVal !== undefined) {
+                (merged[key] as typeof currentVal) = persistedVal as typeof currentVal;
               }
             }
-            return merged as unknown as FluxStore;
+            return merged;
           },
           // Apply theme on hydration so dark mode works on initial page load
           onRehydrateStorage: () => (state) => {

@@ -57,7 +57,7 @@ const mockProjects = [
   },
 ];
 
-import { useProjects } from '../useProjects';
+import { useProjects } from '../project/useProjects';
 
 describe('useProjects', () => {
   beforeEach(() => {

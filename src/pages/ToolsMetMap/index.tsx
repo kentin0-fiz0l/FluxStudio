@@ -26,14 +26,14 @@ import { useAuth } from '@/store/slices/authSlice';
 import { type PracticeStartInfo } from '../../components/metmap/PracticeMode';
 import { usePlayback, useMetMapCore, usePractice } from '../../contexts/metmap';
 import { useMetronomeAudio, ClickSound } from '../../components/metmap/MetronomeAudio';
-import { useMetMapHistory } from '../../hooks/useMetMapHistory';
-import { useMetMapCollaboration } from '../../hooks/useMetMapCollaboration';
-import { useMetMapPresence } from '../../hooks/useMetMapPresence';
-import { useMetMapUndo } from '../../hooks/useMetMapUndo';
-import { useConflictDetection } from '../../hooks/useConflictDetection';
-import { useMetMapComments } from '../../hooks/useMetMapComments';
-import { useMetMapSnapshots } from '../../hooks/useMetMapSnapshots';
-import { useMetMapBranches } from '../../hooks/useMetMapBranches';
+import { useMetMapHistory } from '../../hooks/metmap/useMetMapHistory';
+import { useMetMapCollaboration } from '../../hooks/collaboration/useMetMapCollaboration';
+import { useMetMapPresence } from '../../hooks/collaboration/useMetMapPresence';
+import { useMetMapUndo } from '../../hooks/metmap/useMetMapUndo';
+import { useConflictDetection } from '../../hooks/collaboration/useConflictDetection';
+import { useMetMapComments } from '../../hooks/collaboration/useMetMapComments';
+import { useMetMapSnapshots } from '../../hooks/collaboration/useMetMapSnapshots';
+import { useMetMapBranches } from '../../hooks/metmap/useMetMapBranches';
 import { ConnectionStatus } from '../../components/metmap/ConnectionStatus';
 
 // Decomposed sub-components

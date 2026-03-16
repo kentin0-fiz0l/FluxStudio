@@ -25,7 +25,7 @@ import {
 } from 'lucide-react';
 import { Button, Badge } from '@/components/ui';
 import { cn } from '@/lib/utils';
-import { useMessagingOptional } from '@/hooks/useMessaging';
+import { useMessagingOptional } from '@/hooks/messaging/useMessaging';
 import { ProjectSwitcher } from '@/components/projects/ProjectSwitcher';
 
 export interface NavigationItem {

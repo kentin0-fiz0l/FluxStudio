@@ -46,7 +46,7 @@ import { QuickPrintDialog } from '../printing/QuickPrintDialog';
 import { Alert, AlertDescription } from '../ui/alert';
 import { cn } from '@/lib/utils';
 import type { QuickPrintConfig } from '@/types/printing';
-import { useProjectFiles } from '@/hooks/useProjectFiles';
+import { useProjectFiles } from '@/hooks/project/useProjectFiles';
 import { toast } from '@/lib/toast';
 import { apiService } from '@/services/apiService';
 import { config } from '@/config/environment';

@@ -1,6 +1,6 @@
 import { describe, test, expect, vi, beforeEach } from 'vitest'
 import { renderHook, act } from '@testing-library/react'
-import { useMetMapHistory } from '../useMetMapHistory'
+import { useMetMapHistory } from '../metmap/useMetMapHistory'
 
 describe('useMetMapHistory', () => {
   beforeEach(() => {

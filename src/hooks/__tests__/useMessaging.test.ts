@@ -102,7 +102,7 @@ vi.mock('../../lib/toast', () => ({
   toast: { success: vi.fn(), error: vi.fn(), info: vi.fn(), warning: vi.fn() },
 }));
 
-import { useMessaging } from '../useMessaging';
+import { useMessaging } from '../messaging/useMessaging';
 
 describe('useMessaging', () => {
   beforeEach(() => {

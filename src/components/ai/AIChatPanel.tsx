@@ -25,7 +25,7 @@ import {
 } from 'lucide-react';
 import { useAI, useActiveConversation, useAIUsage, type AIMessage } from '@/store';
 import { useProjectContext } from '@/store';
-import { useAIContext } from '@/hooks/useAIContext';
+import { useAIContext } from '@/hooks/ai/useAIContext';
 import { cn } from '@/lib/utils';
 
 interface AIChatPanelProps {

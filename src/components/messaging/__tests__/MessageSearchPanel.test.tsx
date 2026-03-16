@@ -7,7 +7,7 @@
 import { describe, test, expect, vi } from 'vitest';
 import { render, screen } from '@/test/utils';
 
-vi.mock('../../../hooks/useMessageSearch', () => ({
+vi.mock('../../../hooks/messaging/useMessageSearch', () => ({
   useMessageSearch: () => ({
     query: '',
     setQuery: vi.fn(),

@@ -27,7 +27,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import type { IntegrationProvider, Integration } from '@/types/integrations';
 import { INTEGRATION_CONFIGS } from '@/types/integrations';
-import { useOAuth } from '@/hooks/useOAuth';
+import { useOAuth } from '@/hooks/auth/useOAuth';
 
 // Status indicator component - extracted to module level
 interface StatusIndicatorProps {

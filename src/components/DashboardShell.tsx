@@ -1,6 +1,6 @@
 import { forwardRef, lazy, Suspense, useState } from 'react';
 import { useAuth } from '@/store/slices/authSlice';
-import { useCommandPalette } from '../hooks/useCommandPalette';
+import { useCommandPalette } from '../hooks/ui/useCommandPalette';
 import { useKeyboardShortcuts } from '../hooks/useKeyboardShortcuts';
 import { FloatingMessageButton } from './messaging/FloatingMessageButton';
 

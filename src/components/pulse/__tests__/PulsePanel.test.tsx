@@ -20,7 +20,7 @@ const mockPulseData = {
   markAllSeen: vi.fn(),
   getAttentionByType: vi.fn().mockReturnValue([]),
 }
-vi.mock('@/hooks/useProjectPulse', () => ({
+vi.mock('@/hooks/project/useProjectPulse', () => ({
   useProjectPulse: () => mockPulseData,
 }))
 

@@ -9,7 +9,7 @@ import { ArrowLeft } from 'lucide-react';
 import { DashboardLayout } from '@/components/templates/DashboardLayout';
 import { Badge, Button } from '@/components/ui';
 import { useAuth } from '@/store/slices/authSlice';
-import { Project } from '@/hooks/useProjects';
+import { Project } from '@/hooks/project/useProjects';
 import { AssetRecord } from '@/contexts/AssetsContext';
 import { useMetMap } from '@/contexts/MetMapContext';
 import { apiService } from '@/services/apiService';

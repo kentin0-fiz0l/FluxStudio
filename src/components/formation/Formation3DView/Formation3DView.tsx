@@ -11,12 +11,10 @@
 
 import { Suspense, useMemo, useRef, useEffect } from 'react';
 import { Canvas, useThree, useFrame } from '@react-three/fiber';
-import {
-  OrbitControls,
-  TransformControls,
-  Html,
-  PerspectiveCamera,
-} from '@react-three/drei';
+import { OrbitControls } from '@react-three/drei/core/OrbitControls';
+import { TransformControls } from '@react-three/drei/core/TransformControls';
+import { Html } from '@react-three/drei/web/Html';
+import { PerspectiveCamera } from '@react-three/drei/core/PerspectiveCamera';
 import * as THREE from 'three';
 import type { Position, Performer, Keyframe, TransitionType } from '../../../services/formationTypes';
 import type { SceneObject, Scene3DTool, CameraPreset, FieldType } from '../../../services/scene3d/types';
@@ -408,7 +406,7 @@ function TransformGizmo({
   fieldWidth,
   onUpdate,
 }: TransformGizmoProps) {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- @types/three version mismatch between drei and three
   const meshRef = useRef<any>(null!);
 
   const worldPos = useMemo(() => {

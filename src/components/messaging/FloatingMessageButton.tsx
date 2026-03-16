@@ -7,7 +7,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { MessageSquare } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
-import { useMessaging } from '../../hooks/useMessaging';
+import { useMessaging } from '../../hooks/messaging/useMessaging';
 import { cn } from '../../lib/utils';
 
 interface FloatingMessageButtonProps {

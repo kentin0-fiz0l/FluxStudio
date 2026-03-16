@@ -319,7 +319,7 @@ vi.mock('@/store/slices/authSlice', () => ({
 // Import hook after mocks are set up
 // ============================================================================
 
-import { useFormationYjs } from '../useFormationYjs';
+import { useFormationYjs } from '../formation/useFormationYjs';
 
 // ============================================================================
 // Helpers

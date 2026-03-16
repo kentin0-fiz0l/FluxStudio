@@ -1,7 +1,7 @@
 import { describe, test, expect, vi, beforeEach } from 'vitest'
 import { render, screen } from '@/test/utils'
 import { TeamHeartbeat } from '../TeamHeartbeat'
-import type { TeamMember } from '@/hooks/useProjectPulse'
+import type { TeamMember } from '@/hooks/project/useProjectPulse'
 
 vi.mock('@/lib/utils', async () => {
   const actual = await vi.importActual('@/lib/utils')

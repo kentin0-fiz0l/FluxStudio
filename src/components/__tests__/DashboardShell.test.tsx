@@ -13,7 +13,7 @@ vi.mock('@/store/slices/authSlice', () => ({
   useAuth: vi.fn(() => ({ user: { id: 'u1', name: 'Test User' } })),
 }));
 
-vi.mock('../../hooks/useCommandPalette', () => ({
+vi.mock('../../hooks/ui/useCommandPalette', () => ({
   useCommandPalette: vi.fn(() => ({
     isOpen: false,
     open: vi.fn(),

@@ -3,7 +3,7 @@
  */
 
 import { useCallback, useEffect, useState } from 'react';
-import { useTouchGestures } from '../../../hooks/useTouchGestures';
+import { useTouchGestures } from '../../../hooks/ui/useTouchGestures';
 import { useKeybindingStore, bindingMatchesEvent } from '../../../hooks/useKeybindingStore';
 import type { Formation, Position, PlaybackState } from '../../../services/formationService';
 

@@ -27,7 +27,7 @@ vi.mock('@/store/slices/authSlice', async (importOriginal) => {
   };
 });
 
-vi.mock('@/hooks/useProjects', () => ({
+vi.mock('@/hooks/project/useProjects', () => ({
   useProjects: vi.fn(() => ({
     projects: [],
     loading: false,

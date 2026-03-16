@@ -3,7 +3,7 @@
 
 import * as React from "react";
 
-import { useBreakpoint } from "../../hooks/useBreakpoint";
+import { useBreakpoint } from "../../hooks/ui/useBreakpoint";
 import { TooltipProvider } from "./tooltip";
 import { cn } from "../../lib/utils";
 

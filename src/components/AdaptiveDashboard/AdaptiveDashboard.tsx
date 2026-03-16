@@ -14,8 +14,8 @@ const DraggableWidgetGrid = lazy(() => import('../widgets/DraggableWidgetGrid').
 const AIWorkflowAssistant = lazy(() => import('../workflows/AIWorkflowAssistant').then(m => ({ default: m.AIWorkflowAssistant })));
 import { GettingStartedCard } from '../common/GettingStartedCard';
 import { useFirstTimeExperience } from '../../hooks/useFirstTimeExperience';
-import { useProjects } from '../../hooks/useProjects';
-import { useMessaging } from '../../hooks/useMessaging';
+import { useProjects } from '../../hooks/project/useProjects';
+import { useMessaging } from '../../hooks/messaging/useMessaging';
 import { useFiles } from '../../hooks/useFiles';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';

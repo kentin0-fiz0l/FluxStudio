@@ -2,7 +2,7 @@ import React from 'react';
 import { ProjectCard } from '../molecules';
 import { Target, FolderOpen } from 'lucide-react';
 import { EmptyState, emptyStateConfigs } from '../common/EmptyState';
-import { Project } from '../../hooks/useProjects';
+import { Project } from '../../hooks/project/useProjects';
 
 type ViewMode = 'grid' | 'list';
 type CardStatus = 'active' | 'completed' | 'archived' | 'on-hold';

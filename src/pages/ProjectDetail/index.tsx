@@ -24,7 +24,7 @@ import { DashboardLayout } from '@/components/templates/DashboardLayout';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button, Badge, Card } from '@/components/ui';
 import { useAuth } from '@/store/slices/authSlice';
-import { useProjects } from '@/hooks/useProjects';
+import { useProjects } from '@/hooks/project/useProjects';
 import { ProjectOverviewTab } from '@/components/projects/ProjectOverviewTab';
 import { ProjectMessagesTab } from '@/components/projects/ProjectMessagesTab';
 import { ProjectFilesTab } from '@/components/projects/ProjectFilesTab';
@@ -39,11 +39,11 @@ import {
 import { useTaskRealtime } from '@/hooks/useTaskRealtime';
 import { useAssets, AssetRecord } from '@/contexts/AssetsContext';
 import { AssetDetailDrawer } from '@/components/assets/AssetDetailDrawer';
-import { useProjectCounts } from '@/hooks/useProjectCounts';
+import { useProjectCounts } from '@/hooks/project/useProjectCounts';
 import { useActiveProject } from '@/store';
 import { cn } from '@/lib/utils';
 import { toast } from '@/lib/toast';
-import { useFormations } from '@/hooks/useFormations';
+import { useFormations } from '@/hooks/formation/useFormations';
 
 // Lazy-load tab content that is conditionally rendered to reduce page-project-detail chunk size
 const DocumentList = React.lazy(() =>

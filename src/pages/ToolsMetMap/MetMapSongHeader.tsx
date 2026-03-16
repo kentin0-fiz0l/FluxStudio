@@ -1,10 +1,10 @@
 import type { Song, Section, CollaborationStatus } from '../../contexts/metmap/types';
 import type { MetMapPresence } from '../../services/metmapCollaboration';
-import type { MetMapBranch } from '../../hooks/useMetMapBranches';
-import type { MetMapSnapshot } from '../../hooks/useMetMapSnapshots';
+import type { MetMapBranch } from '../../hooks/metmap/useMetMapBranches';
+import type { MetMapSnapshot } from '../../hooks/collaboration/useMetMapSnapshots';
 import { TapTempo } from '../../components/metmap/TapTempo';
 import { ExportImport } from '../../components/metmap/ExportImport';
-import { ShortcutsHelp } from '../../hooks/useMetMapKeyboardShortcuts';
+import { ShortcutsHelp } from '../../hooks/metmap/useMetMapKeyboardShortcuts';
 import { PresenceAvatars } from '../../components/metmap/PresenceAvatars';
 import { BranchSwitcher } from '../../components/metmap/BranchSwitcher';
 import { Drawer, DrawerContent } from '../../components/ui/drawer';

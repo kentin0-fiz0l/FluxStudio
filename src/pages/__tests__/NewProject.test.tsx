@@ -35,7 +35,7 @@ vi.mock('@/store/slices/authSlice', () => ({
   })),
 }));
 
-vi.mock('@/hooks/useProjects', () => ({
+vi.mock('@/hooks/project/useProjects', () => ({
   useProjects: vi.fn(() => ({
     projects: [],
     createProject: mockCreateProject,

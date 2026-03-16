@@ -8,7 +8,7 @@
 
 import { createContext, useContext, useMemo, useCallback, ReactNode } from 'react';
 import { toast } from '@/lib/toast';
-import { useFormationYjs, UseFormationYjsResult } from '@/hooks/useFormationYjs';
+import { useFormationYjs, UseFormationYjsResult } from '@/hooks/formation/useFormationYjs';
 import type { Formation } from '@/services/formationService';
 import { useAuth } from '@/store/slices/authSlice';
 

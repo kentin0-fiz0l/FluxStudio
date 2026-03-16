@@ -56,7 +56,7 @@ vi.mock('../../../../services/formationService', () => ({
   },
 }));
 
-vi.mock('../../../../hooks/useFormations', () => ({
+vi.mock('../../../../hooks/formation/useFormations', () => ({
   useFormation: vi.fn(() => ({
     formation: null,
     loading: false,
@@ -66,7 +66,7 @@ vi.mock('../../../../hooks/useFormations', () => ({
   })),
 }));
 
-vi.mock('../../../../hooks/useFormationYjs', () => ({
+vi.mock('../../../../hooks/formation/useFormationYjs', () => ({
   useFormationYjs: vi.fn(() => ({
     formation: null,
     isConnected: false,
@@ -97,7 +97,7 @@ vi.mock('../../../../hooks/useFormationYjs', () => ({
   })),
 }));
 
-vi.mock('../../../../hooks/useFormationHistory', () => ({
+vi.mock('../../../../hooks/formation/useFormationHistory', () => ({
   useFormationHistory: vi.fn(() => ({
     pushState: vi.fn(),
     undo: vi.fn(() => null),

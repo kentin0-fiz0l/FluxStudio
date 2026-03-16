@@ -64,7 +64,7 @@ import {
   useWhatChanged,
   useAgentSearch,
   useAgentPanel,
-} from '../useAgent';
+} from '../ai/useAgent';
 
 // Create wrapper for TanStack Query
 function createWrapper() {

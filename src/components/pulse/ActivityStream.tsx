@@ -22,7 +22,7 @@ import {
   Clock,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { ActivityItem, ActivityType } from '@/hooks/useProjectPulse';
+import { ActivityItem, ActivityType } from '@/hooks/project/useProjectPulse';
 
 export interface ActivityStreamProps {
   /** Activity items to display */

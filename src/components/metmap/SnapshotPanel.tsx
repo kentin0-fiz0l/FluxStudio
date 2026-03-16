@@ -6,7 +6,7 @@
 
 import React, { useState, useCallback } from 'react';
 import { Camera, RotateCcw, Trash2, ChevronDown, ChevronRight, Loader2 } from 'lucide-react';
-import type { MetMapSnapshot } from '../../hooks/useMetMapSnapshots';
+import type { MetMapSnapshot } from '../../hooks/collaboration/useMetMapSnapshots';
 
 interface SnapshotPanelProps {
   snapshots: MetMapSnapshot[];

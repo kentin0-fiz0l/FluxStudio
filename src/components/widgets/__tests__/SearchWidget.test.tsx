@@ -15,7 +15,7 @@ vi.mock('@/store/slices/authSlice', () => ({
   useAuth: vi.fn(() => ({ user: { id: 'user-1', displayName: 'Test User' } })),
 }))
 
-vi.mock('../../../hooks/useCommandPalette', () => ({
+vi.mock('../../../hooks/ui/useCommandPalette', () => ({
   useCommandPalette: () => ({ open: mockOpenCommandPalette }),
 }))
 

@@ -41,7 +41,7 @@ vi.mock('react-router-dom', async (importOriginal) => {
   };
 });
 
-import { useAIContext } from '../useAIContext';
+import { useAIContext } from '../ai/useAIContext';
 
 function wrapper({ children }: { children: ReactNode }) {
   return createElement(BrowserRouter, null, children);

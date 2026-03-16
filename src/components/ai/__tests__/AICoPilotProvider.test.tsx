@@ -22,7 +22,7 @@ vi.mock('@/store', () => ({
   useAISuggestions: () => [],
 }));
 
-vi.mock('@/hooks/useAIContext', () => ({
+vi.mock('@/hooks/ai/useAIContext', () => ({
   useAIContext: () => ({
     context: { page: '', recentActions: [], activeProject: null, activeEntity: null },
     addAction: vi.fn(),
@@ -30,7 +30,7 @@ vi.mock('@/hooks/useAIContext', () => ({
   }),
 }));
 
-vi.mock('@/hooks/useAIShortcuts', () => ({
+vi.mock('@/hooks/ai/useAIShortcuts', () => ({
   useAIShortcuts: vi.fn(),
 }));
 

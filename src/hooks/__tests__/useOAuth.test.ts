@@ -35,7 +35,7 @@ describe('useOAuth', () => {
     const { integrationService } = await import('../../services/integrationService');
     (integrationService.getIntegration as ReturnType<typeof vi.fn>).mockResolvedValue(null);
 
-    const { useOAuth } = await import('../useOAuth');
+    const { useOAuth } = await import('../auth/useOAuth');
     const { result } = renderHook(() => useOAuth('github'));
 
     expect(result.current.isConnecting).toBe(false);
@@ -50,7 +50,7 @@ describe('useOAuth', () => {
       provider: 'github',
     });
 
-    const { useOAuth } = await import('../useOAuth');
+    const { useOAuth } = await import('../auth/useOAuth');
     const { result } = renderHook(() => useOAuth('github'));
 
     await waitFor(() => expect(result.current.isConnected).toBe(true));
@@ -63,7 +63,7 @@ describe('useOAuth', () => {
       provider: 'github',
     });
 
-    const { useOAuth } = await import('../useOAuth');
+    const { useOAuth } = await import('../auth/useOAuth');
     const { result } = renderHook(() => useOAuth('github'));
 
     await waitFor(() => expect(result.current.error?.code).toBe('TOKEN_EXPIRED'));
@@ -77,7 +77,7 @@ describe('useOAuth', () => {
     });
     (integrationService.disconnect as ReturnType<typeof vi.fn>).mockResolvedValue(undefined);
 
-    const { useOAuth } = await import('../useOAuth');
+    const { useOAuth } = await import('../auth/useOAuth');
     const { result } = renderHook(() => useOAuth('github'));
 
     await waitFor(() => expect(result.current.isConnected).toBe(true));
@@ -100,7 +100,7 @@ describe('useOAuth', () => {
       new Error('Disconnect failed')
     );
 
-    const { useOAuth } = await import('../useOAuth');
+    const { useOAuth } = await import('../auth/useOAuth');
     const { result } = renderHook(() => useOAuth('github'));
 
     await waitFor(() => expect(result.current.isConnected).toBe(true));
@@ -119,7 +119,7 @@ describe('useOAuth', () => {
       provider: 'figma',
     });
 
-    const { useOAuth } = await import('../useOAuth');
+    const { useOAuth } = await import('../auth/useOAuth');
     const { result } = renderHook(() => useOAuth('figma'));
 
     await waitFor(() => expect(result.current.error).not.toBeNull());
@@ -140,7 +140,7 @@ describe('useOAuth', () => {
     const refreshedIntegration = { status: 'connected', provider: 'slack' };
     (integrationService.refresh as ReturnType<typeof vi.fn>).mockResolvedValue(refreshedIntegration);
 
-    const { useOAuth } = await import('../useOAuth');
+    const { useOAuth } = await import('../auth/useOAuth');
     const { result } = renderHook(() => useOAuth('slack'));
 
     await waitFor(() => expect(result.current.error).not.toBeNull());

@@ -26,7 +26,7 @@ import {
   Sparkles,
 } from 'lucide-react';
 import { useAuth, type UserType } from '@/store/slices/authSlice';
-import { useGoogleOAuth } from '../hooks/useGoogleOAuth';
+import { useGoogleOAuth } from '../hooks/auth/useGoogleOAuth';
 import { useOnboardingState } from '../hooks/useOnboardingState';
 import { eventTracker } from '../services/analytics/eventTracking';
 import { templateRegistry } from '@/services/formationTemplates/registry';

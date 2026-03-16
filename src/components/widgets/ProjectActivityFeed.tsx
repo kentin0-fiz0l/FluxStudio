@@ -3,7 +3,7 @@ import {
   MessageSquare,
   Paperclip,
 } from 'lucide-react';
-import { useMessaging } from '../../hooks/useMessaging';
+import { useMessaging } from '../../hooks/messaging/useMessaging';
 import { LazyImage } from '../LazyImage';
 
 export function ProjectActivityFeed({ projectId }: { projectId: string }) {

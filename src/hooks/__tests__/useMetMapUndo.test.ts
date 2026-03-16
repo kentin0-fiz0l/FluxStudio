@@ -31,7 +31,7 @@ vi.mock('yjs', () => {
   }
 })
 
-import { useMetMapUndo } from '../useMetMapUndo'
+import { useMetMapUndo } from '../metmap/useMetMapUndo'
 import * as Y from 'yjs'
 
 describe('useMetMapUndo', () => {

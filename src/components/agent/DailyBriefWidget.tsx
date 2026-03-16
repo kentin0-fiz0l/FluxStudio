@@ -21,7 +21,7 @@ import {
   RefreshCw,
   Loader2,
 } from 'lucide-react';
-import { useDailyBrief, useAgentPanel } from '@/hooks/useAgent';
+import { useDailyBrief, useAgentPanel } from '@/hooks/ai/useAgent';
 import { cn } from '@/lib/utils';
 
 interface StatItemProps {

@@ -6,7 +6,7 @@
 
 import React from 'react';
 import { AlertTriangle, CheckCircle, Clock, TrendingUp } from 'lucide-react';
-import { useProjectRisks, type RiskData } from '../../hooks/useProjectAnalytics';
+import { useProjectRisks, type RiskData } from '../../hooks/project/useProjectAnalytics';
 
 interface DeadlineRiskPanelProps {
   projectId: string;

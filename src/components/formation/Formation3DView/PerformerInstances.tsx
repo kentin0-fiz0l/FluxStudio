@@ -7,7 +7,7 @@
 
 import { useRef, useMemo, useEffect } from 'react';
 import { useFrame } from '@react-three/fiber';
-import { Html } from '@react-three/drei';
+import { Html } from '@react-three/drei/web/Html';
 import * as THREE from 'three';
 import type { Position, Performer } from '../../../services/formationTypes';
 
@@ -37,7 +37,7 @@ export function PerformerInstances({
   showLabels,
   isAnimating,
 }: PerformerInstancesProps) {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- @types/three version mismatch between drei and three
   const meshRef = useRef<any>(null!);
 
   // Keep a ref to the latest positions so useFrame can read them without re-subscribing

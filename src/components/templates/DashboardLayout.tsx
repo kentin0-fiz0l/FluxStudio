@@ -25,9 +25,9 @@ import { KeyboardShortcutsDialog, useKeyboardShortcuts } from '@/components/ui/K
 import { useShortcutRegistry } from '@/contexts/KeyboardShortcutsContext';
 import { OfflineIndicator } from '@/components/OfflineIndicator';
 import { TrialBanner } from '@/components/TrialBanner';
-import { useSwipeBack } from '@/hooks/useSwipeBack';
-import { useSwipeSidebar } from '@/hooks/useSwipeSidebar';
-import { useBreadcrumbs } from '@/hooks/useBreadcrumbs';
+import { useSwipeBack } from '@/hooks/ui/useSwipeBack';
+import { useSwipeSidebar } from '@/hooks/ui/useSwipeSidebar';
+import { useBreadcrumbs } from '@/hooks/ui/useBreadcrumbs';
 import { cn } from '@/lib/utils';
 
 export interface DashboardLayoutProps {

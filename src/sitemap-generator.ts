@@ -11,6 +11,7 @@ import { writeFileSync } from 'fs';
 import { resolve } from 'path';
 import { templateRegistry } from './services/formationTemplates/registry';
 import { getAllArticleSlugs } from './content/articles';
+import { helpArticles } from './content/help-articles';
 
 const BASE_URL = 'https://fluxstudio.art';
 
@@ -74,7 +75,14 @@ const blogPages: SitemapEntry[] = [
   })),
 ];
 
-const allEntries = [...staticPages, ...categoryPages, ...templatePages, ...blogPages];
+// Help article pages for SEO
+const helpPages: SitemapEntry[] = helpArticles.map(a => ({
+  loc: `/help/article/${a.slug}`,
+  changefreq: 'monthly' as const,
+  priority: '0.6',
+}));
+
+const allEntries = [...staticPages, ...categoryPages, ...templatePages, ...blogPages, ...helpPages];
 
 export function generateSitemapXml(): string {
   const urls = allEntries.map(entry => {

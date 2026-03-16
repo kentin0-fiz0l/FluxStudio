@@ -27,7 +27,7 @@ import {
   MessageSquare,
   Zap,
 } from 'lucide-react';
-import { useAgentSession, useAgentActions, useDailyBrief, useWhatChanged, useAgentPanel } from '@/hooks/useAgent';
+import { useAgentSession, useAgentActions, useDailyBrief, useWhatChanged, useAgentPanel } from '@/hooks/ai/useAgent';
 import { cn } from '@/lib/utils';
 
 // ============================================================================

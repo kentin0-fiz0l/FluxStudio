@@ -23,7 +23,7 @@ import type { ProjectWorkflowProps } from './workflow/types';
 import { statusConfig, priorityConfig } from './workflow/constants';
 import { ProjectEditForm } from './workflow/ProjectEditForm';
 import { MilestoneForm } from './workflow/MilestoneForm';
-import { useProjectWorkflow } from '../../hooks/useProjectWorkflow';
+import { useProjectWorkflow } from '../../hooks/project/useProjectWorkflow';
 
 export function ProjectWorkflow({
   project,

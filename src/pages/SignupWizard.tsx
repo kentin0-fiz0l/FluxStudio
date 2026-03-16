@@ -2,7 +2,7 @@ import { useState, useMemo } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth, type UserType } from '@/store/slices/authSlice';
-import { useGoogleOAuth } from '../hooks/useGoogleOAuth';
+import { useGoogleOAuth } from '../hooks/auth/useGoogleOAuth';
 import { eventTracker } from '../services/analytics/eventTracking';
 import {
   ChevronRight,

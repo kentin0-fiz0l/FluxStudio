@@ -17,7 +17,7 @@ import {
   AlertCircle,
 } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui';
-import { Project } from '@/hooks/useProjects';
+import { Project } from '@/hooks/project/useProjects';
 import { AssetRecord } from '@/contexts/AssetsContext';
 import { isMetMapAsset } from '@/utils/assetHelpers';
 import { MetMapAssetCard } from '@/components/assets/MetMapAssetCard';

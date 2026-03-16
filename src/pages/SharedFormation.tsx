@@ -533,6 +533,14 @@ export default function SharedFormation() {
         description={`${formation.performers.length}-performer formation${formation.description ? ` — ${formation.description}` : ''}`}
         canonicalUrl={`https://fluxstudio.art/share/${formationId}`}
         ogType="article"
+        structuredData={{
+          '@context': 'https://schema.org',
+          '@type': 'CreativeWork',
+          name: formation.name,
+          description: formation.description || `${formation.performers.length}-performer formation`,
+          url: `https://fluxstudio.art/share/${formationId}`,
+          creator: { '@type': 'Organization', name: 'FluxStudio' },
+        }}
       />
 
       {/* Audio element (hidden) */}
@@ -576,12 +584,14 @@ export default function SharedFormation() {
             <button
               onClick={() => setViewMode('3d')}
               className={`px-3 py-1 text-xs rounded ${viewMode === '3d' ? 'bg-gray-600 text-white' : 'text-gray-400 hover:text-gray-300'}`}
+              aria-label="3D view"
             >
               3D
             </button>
             <button
               onClick={() => setViewMode('2d')}
               className={`px-3 py-1 text-xs rounded ${viewMode === '2d' ? 'bg-gray-600 text-white' : 'text-gray-400 hover:text-gray-300'}`}
+              aria-label="2D view"
             >
               2D
             </button>
@@ -602,6 +612,7 @@ export default function SharedFormation() {
                 eventTracker.trackEvent('presentation_mode_enter', { formationId });
               }}
               className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-700 text-white rounded-lg text-sm hover:bg-gray-600 transition-colors"
+              aria-label="Enter presentation mode"
             >
               <Presentation className="w-3.5 h-3.5" aria-hidden="true" />
               Present
@@ -676,7 +687,7 @@ export default function SharedFormation() {
                     >
                       <div
                         className={`rounded-full flex items-center justify-center text-white font-bold shadow-md ${
-                          isHighlighted && (highlightedPerformer || sectionFilteredPerformerIds) ? 'w-8 h-8 text-sm ring-2 ring-white' : 'w-6 h-6 text-xs'
+                          isHighlighted && (highlightedPerformer || sectionFilteredPerformerIds) ? 'w-8 h-8 min-w-[44px] min-h-[44px] md:min-w-0 md:min-h-0 text-sm ring-2 ring-white' : 'w-6 h-6 min-w-[44px] min-h-[44px] md:min-w-0 md:min-h-0 text-xs'
                         }`}
                         style={{ backgroundColor: performer.color }}
                       >

@@ -12,7 +12,7 @@ import { Plus, Users, Clock, Trash2, Play } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Card } from '../ui/card';
 import { UniversalEmptyState } from '../ui/UniversalEmptyState';
-import { useFormations } from '../../hooks/useFormations';
+import { useFormations } from '../../hooks/formation/useFormations';
 
 interface FormationsTabProps {
   projectId: string;

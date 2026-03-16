@@ -10,9 +10,9 @@ import {
   type Position,
   type PlaybackState,
 } from '../../../services/formationService';
-import { useFormation } from '../../../hooks/useFormations';
-import { useFormationYjs } from '../../../hooks/useFormationYjs';
-import { useFormationHistory } from '../../../hooks/useFormationHistory';
+import { useFormation } from '../../../hooks/formation/useFormations';
+import { useFormationYjs } from '../../../hooks/formation/useFormationYjs';
+import { useFormationHistory } from '../../../hooks/formation/useFormationHistory';
 import { useAuth } from '@/store/slices/authSlice';
 import { getUserColor } from '../../../services/formation/yjs/formationYjsTypes';
 import { DEFAULT_DRILL_SETTINGS } from '../../../utils/drillGeometry';

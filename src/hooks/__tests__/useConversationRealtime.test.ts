@@ -49,7 +49,7 @@ vi.mock('@/store/slices/authSlice', () => ({
   })),
 }));
 
-import { useConversationRealtime } from '../useConversationRealtime';
+import { useConversationRealtime } from '../messaging/useConversationRealtime';
 
 describe('useConversationRealtime', () => {
   beforeEach(() => {

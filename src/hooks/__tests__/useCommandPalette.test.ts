@@ -5,7 +5,7 @@
 
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
-import { useCommandPalette } from '../useCommandPalette';
+import { useCommandPalette } from '../ui/useCommandPalette';
 
 describe('useCommandPalette', () => {
   afterEach(() => {

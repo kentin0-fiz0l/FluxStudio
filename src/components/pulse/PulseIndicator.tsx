@@ -16,7 +16,7 @@ import * as React from 'react';
 import { Activity } from 'lucide-react';
 import { Button } from '@/components/ui';
 import { cn } from '@/lib/utils';
-import { useProjectPulse } from '@/hooks/useProjectPulse';
+import { useProjectPulse } from '@/hooks/project/useProjectPulse';
 
 export interface PulseIndicatorProps {
   /** Callback when indicator is clicked */

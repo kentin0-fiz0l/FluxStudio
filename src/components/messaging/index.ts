@@ -63,7 +63,7 @@ export {
 
 // Messaging hooks (migrated to Zustand in Sprint 24)
 export { MessagingProvider } from '../../contexts/MessagingContext';
-export { useMessaging } from '../../hooks/useMessaging';
+export { useMessaging } from '../../hooks/messaging/useMessaging';
 
 // Types (re-export for convenience)
 export type {

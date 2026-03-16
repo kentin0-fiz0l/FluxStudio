@@ -13,7 +13,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { DashboardLayout } from '../components/templates';
 import { Button, Input } from '../components/ui';
 import { useAuth } from '@/store/slices/authSlice';
-import { useProjects, Project } from '../hooks/useProjects';
+import { useProjects, Project } from '../hooks/project/useProjects';
 import { useTeams } from '../hooks/useTeams';
 import { useOrganizations } from '../hooks/useOrganizations';
 import { toast } from '../lib/toast';

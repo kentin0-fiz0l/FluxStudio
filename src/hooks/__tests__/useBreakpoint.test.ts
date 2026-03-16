@@ -5,7 +5,7 @@
 
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
-import { useBreakpoint, useMediaQuery, useIsTouchDevice, BREAKPOINTS } from '../useBreakpoint';
+import { useBreakpoint, useMediaQuery, useIsTouchDevice, BREAKPOINTS } from '../ui/useBreakpoint';
 
 const mockWindow = (width: number) => {
   Object.defineProperty(window, 'innerWidth', {

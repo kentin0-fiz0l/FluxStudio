@@ -36,7 +36,7 @@ vi.mock('framer-motion', () => ({
 
 const mockUseFormations = vi.fn();
 
-vi.mock('../../../hooks/useFormations', () => ({
+vi.mock('../../../hooks/formation/useFormations', () => ({
   useFormations: (...args: any[]) => mockUseFormations(...args),
 }));
 

@@ -6,8 +6,8 @@
 
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { GitBranch, Plus, Merge, Trash2, ChevronDown, Loader2 } from 'lucide-react';
-import type { MetMapBranch } from '../../hooks/useMetMapBranches';
-import type { MetMapSnapshot } from '../../hooks/useMetMapSnapshots';
+import type { MetMapBranch } from '../../hooks/metmap/useMetMapBranches';
+import type { MetMapSnapshot } from '../../hooks/collaboration/useMetMapSnapshots';
 
 interface BranchSwitcherProps {
   branches: MetMapBranch[];

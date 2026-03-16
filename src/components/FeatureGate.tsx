@@ -12,7 +12,7 @@
 
 import type { ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useSubscription } from '@/hooks/useSubscription';
+import { useSubscription } from '@/hooks/auth/useSubscription';
 import { ArrowRight, Lock } from 'lucide-react';
 import { eventTracker } from '@/services/analytics/eventTracking';
 

@@ -23,7 +23,7 @@ vi.mock('@/store/slices/authSlice', () => ({
   })),
 }));
 
-vi.mock('@/hooks/useMessaging', () => ({
+vi.mock('@/hooks/messaging/useMessaging', () => ({
   useMessagingOptional: vi.fn(() => ({
     unreadCount: 0,
   })),
@@ -43,7 +43,7 @@ vi.mock('framer-motion', () => ({
 
 // Get mocked functions for manipulation in tests
 const mockUseAuth = vi.mocked(await import('@/store/slices/authSlice')).useAuth;
-const mockUseMessagingOptional = vi.mocked(await import('@/hooks/useMessaging')).useMessagingOptional;
+const mockUseMessagingOptional = vi.mocked(await import('@/hooks/messaging/useMessaging')).useMessagingOptional;
 
 describe('MobileBottomNav', () => {
   beforeEach(() => {

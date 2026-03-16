@@ -1,7 +1,7 @@
 // React import not needed with JSX transform
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/store/slices/authSlice';
-import { useCommandPalette } from '../../hooks/useCommandPalette';
+import { useCommandPalette } from '../../hooks/ui/useCommandPalette';
 import { BaseWidget } from './BaseWidget';
 import { Button } from '../ui/button';
 import { WidgetProps } from './types';

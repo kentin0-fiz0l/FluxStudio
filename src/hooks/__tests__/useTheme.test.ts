@@ -10,7 +10,7 @@
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
-import { useTheme } from '../useTheme';
+import { useTheme } from '../ui/useTheme';
 
 const THEME_KEY = 'flux-studio-theme-preference';
 

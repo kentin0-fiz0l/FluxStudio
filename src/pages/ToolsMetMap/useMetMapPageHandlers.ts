@@ -7,7 +7,7 @@ import type { MetMapAction } from '../../contexts/metmap/types';
 import { detectBeatsWithCache } from '../../services/beatDetection';
 import { apiService } from '@/services/apiService';
 import { announceToScreenReader } from '../../utils/accessibility';
-import { useMetMapKeyboardShortcuts } from '../../hooks/useMetMapKeyboardShortcuts';
+import { useMetMapKeyboardShortcuts } from '../../hooks/metmap/useMetMapKeyboardShortcuts';
 
 interface UseMetMapPageHandlersConfig {
   navigate: NavigateFunction;

@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '@/store/slices/authSlice';
-import { useWidgetLayout } from '../../hooks/useWidgetLayout';
+import { useWidgetLayout } from '../../hooks/ui/useWidgetLayout';
 import { WIDGET_REGISTRY, getWidgetsByPermission, getAvailableCategories } from './registry';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';

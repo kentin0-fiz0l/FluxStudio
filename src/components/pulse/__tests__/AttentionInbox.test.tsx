@@ -1,7 +1,7 @@
 import { describe, test, expect, vi, beforeEach } from 'vitest'
 import { render, screen } from '@/test/utils'
 import { AttentionInbox } from '../AttentionInbox'
-import type { AttentionItem } from '@/hooks/useProjectPulse'
+import type { AttentionItem } from '@/hooks/project/useProjectPulse'
 
 vi.mock('@/lib/utils', async () => {
   const actual = await vi.importActual('@/lib/utils')

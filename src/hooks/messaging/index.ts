@@ -18,3 +18,11 @@ export type { default as useFileUploadType } from './useFileUpload';
 export type { default as useThreadMessagesType } from './useThreadMessages';
 export type { UseMessageTransformersOptions } from './useMessageTransformers';
 export type { UseMessageHandlersOptions, PendingAttachment } from './useMessageHandlers';
+
+// Consolidated messaging hooks (Phase 7)
+export * from './useMessaging';
+export * from './useMessagingYjs';
+export * from './useMessageSearch';
+export * from './useMessagesPageState';
+export * from './useConversationRealtime';
+export * from './useRealtimeMessages';

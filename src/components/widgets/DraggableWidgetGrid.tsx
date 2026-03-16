@@ -3,7 +3,7 @@ import React, { Suspense, useCallback, useMemo } from 'react';
 import { Responsive, WidthProvider, Layout } from 'react-grid-layout';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '@/store/slices/authSlice';
-import { useWidgetLayout } from '../../hooks/useWidgetLayout';
+import { useWidgetLayout } from '../../hooks/ui/useWidgetLayout';
 import { getWidgetById } from './registry';
 import { cn } from '../ui/utils';
 import { WidgetProps } from './types';

@@ -35,7 +35,7 @@ vi.mock('@/store', () => ({
   useProjectContext: () => ({ currentProject: null }),
 }));
 
-vi.mock('@/hooks/useAIContext', () => ({
+vi.mock('@/hooks/ai/useAIContext', () => ({
   useAIContext: () => ({
     context: { page: '', recentActions: [] },
     addAction: vi.fn(),

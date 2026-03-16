@@ -9,7 +9,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { X } from 'lucide-react';
-import { useSubscription } from '@/hooks/useSubscription';
+import { useSubscription } from '@/hooks/auth/useSubscription';
 import { eventTracker } from '@/services/analytics/eventTracking';
 
 type UsageResource = 'projects' | 'storage' | 'aiCalls' | 'collaborators';

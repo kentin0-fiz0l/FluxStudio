@@ -6,7 +6,7 @@ import type { Formation, Position, PlaybackState, AudioTrack, FormationExportOpt
 import type { DrillSettings } from '../../../services/formationTypes';
 import type { AlignmentType, DistributionType } from '../../../utils/drillGeometry';
 import type { ApplyTemplateOptions } from '../../../services/formationTemplates/types';
-import type { UseFormationHistoryResult } from '../../../hooks/useFormationHistory';
+import type { UseFormationHistoryResult } from '../../../hooks/formation/useFormationHistory';
 
 export type Tool = 'select' | 'pan' | 'add' | 'line' | 'arc' | 'block' | 'comment';
 

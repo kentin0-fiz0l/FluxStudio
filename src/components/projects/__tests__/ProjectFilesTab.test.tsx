@@ -20,7 +20,7 @@ vi.mock('framer-motion', () => ({
 // Mock hooks and services
 const mockUseProjectFiles = vi.fn();
 
-vi.mock('@/hooks/useProjectFiles', () => ({
+vi.mock('@/hooks/project/useProjectFiles', () => ({
   useProjectFiles: (...args: any[]) => mockUseProjectFiles(...args),
 }));
 

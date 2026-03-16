@@ -55,7 +55,7 @@ vi.mock('@/contexts/FilesContext', () => ({
   FileSource: {},
 }));
 
-vi.mock('@/hooks/useProjects', () => ({
+vi.mock('@/hooks/project/useProjects', () => ({
   useProjects: vi.fn(() => ({
     projects: [{ id: 'p1', name: 'Project 1' }],
     loading: false,

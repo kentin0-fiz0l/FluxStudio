@@ -15,7 +15,7 @@ import {
   useProjectBurndown,
   useProjectVelocity,
   type ProjectHealth,
-} from '../../hooks/useProjectAnalytics';
+} from '../../hooks/project/useProjectAnalytics';
 import { MetricCard, MetricValue, MetricLabel, MetricGroup } from '@/components/ui/MetricCard';
 
 interface ProjectHealthDashboardProps {

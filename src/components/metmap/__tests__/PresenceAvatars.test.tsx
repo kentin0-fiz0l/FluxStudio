@@ -9,7 +9,7 @@ vi.mock('react-i18next', () => ({
 
 // Mock isPeerIdle to control idle state in tests
 const mockIsPeerIdle = vi.fn().mockReturnValue(false);
-vi.mock('../../../hooks/useMetMapPresence', () => ({
+vi.mock('../../../hooks/collaboration/useMetMapPresence', () => ({
   isPeerIdle: (...args: unknown[]) => mockIsPeerIdle(...args),
 }));
 

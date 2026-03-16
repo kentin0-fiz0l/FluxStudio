@@ -16,7 +16,7 @@ import { DashboardLayout } from '../components/templates';
 import { Button, Badge, Dialog, DialogContent, DialogHeader, DialogTitle, Input, Card, CardContent } from '../components/ui';
 import { useAuth } from '@/store/slices/authSlice';
 import { useFilesOptional, FileRecord, FileSource } from '../contexts/FilesContext';
-import { useProjects } from '../hooks/useProjects';
+import { useProjects } from '../hooks/project/useProjects';
 import { useReportEntityFocus } from '../hooks/useWorkMomentumCapture';
 import { useProjectContext } from '@/store';
 import { toast } from '../lib/toast';

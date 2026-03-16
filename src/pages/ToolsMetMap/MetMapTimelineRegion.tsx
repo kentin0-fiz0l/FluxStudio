@@ -1,7 +1,7 @@
 import type { Song, Section, Animation } from '../../contexts/metmap/types';
 import type { MetMapPresence } from '../../services/metmapCollaboration';
-import type { CanvasComment } from '../../hooks/useMetMapComments';
-import type { MetMapSnapshot } from '../../hooks/useMetMapSnapshots';
+import type { CanvasComment } from '../../hooks/collaboration/useMetMapComments';
+import type { MetMapSnapshot } from '../../hooks/collaboration/useMetMapSnapshots';
 import { VisualTimeline } from '../../components/metmap/VisualTimeline';
 import { TimelineCanvas } from '../../components/metmap/TimelineCanvas';
 import { WaveformTimeline } from '../../components/metmap/WaveformTimeline';

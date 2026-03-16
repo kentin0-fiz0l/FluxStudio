@@ -2,7 +2,7 @@ import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/store/slices/authSlice';
 import { useOrganization } from '../contexts/OrganizationContext';
-import { useMessaging } from '../hooks/useMessaging';
+import { useMessaging } from '../hooks/messaging/useMessaging';
 import { useFiles } from '../hooks/useFiles';
 import { Button } from './ui/button';
 import { Avatar, AvatarFallback } from './ui/avatar';

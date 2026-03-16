@@ -6,7 +6,7 @@
 
 import React from 'react';
 import type { MetMapPresence } from '../../services/metmapCollaboration';
-import { isPeerIdle } from '../../hooks/useMetMapPresence';
+import { isPeerIdle } from '../../hooks/collaboration/useMetMapPresence';
 
 interface PresenceAvatarsProps {
   peers: MetMapPresence[];

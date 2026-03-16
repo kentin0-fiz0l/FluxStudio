@@ -20,7 +20,7 @@ vi.mock('@/store/slices/authSlice', () => ({
 }))
 
 const mockUseMessaging = vi.fn()
-vi.mock('../../../hooks/useMessaging', () => ({
+vi.mock('../../../hooks/messaging/useMessaging', () => ({
   useMessaging: () => mockUseMessaging(),
 }))
 

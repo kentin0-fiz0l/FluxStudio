@@ -16,6 +16,13 @@ import ErrorBoundary, {
   MessagingErrorBoundary,
   ConnectorsErrorBoundary,
 } from './components/error/ErrorBoundary';
+import {
+  AgentPanelErrorBoundary,
+  AdminErrorBoundary,
+  PrintingErrorBoundary,
+  DesignBoardErrorBoundary,
+  TemplateErrorBoundary,
+} from './components/error/featureBoundaries';
 import { performanceMonitoring } from './services/monitoring';
 import { observability } from './services/observability';
 import { apiService } from './services/apiService';
@@ -25,7 +32,7 @@ import { FormationEditorSkeleton, SettingsSkeleton } from './components/loading/
 import { queryClient } from './lib/queryClient';
 import { queryPersister } from './lib/queryPersister';
 import { ProtectedRoute } from './components/ProtectedRoute';
-import { useTheme } from './hooks/useTheme';
+import { useTheme } from './hooks/ui/useTheme';
 import { CommandPalette, useCommandPalette } from './components/CommandPalette';
 import { HelmetProvider } from 'react-helmet-async';
 import { CookieConsent } from './components/ui/CookieConsent';
@@ -250,9 +257,11 @@ function AuthenticatedRoutes() {
       <MomentumCapture />
       {/* AI Agent Panel - only load when authenticated to avoid spurious API calls */}
       <AuthOnly>
-        <Suspense fallback={null}>
-          <AgentPanel />
-        </Suspense>
+        <AgentPanelErrorBoundary>
+          <Suspense fallback={null}>
+            <AgentPanel />
+          </Suspense>
+        </AgentPanelErrorBoundary>
       </AuthOnly>
       {/* Global Quick Actions - Cmd/Ctrl+K to open */}
       <AnnouncementBanner />
@@ -290,8 +299,8 @@ function AuthenticatedRoutes() {
                   <Route path="/share/:formationId" element={<SharedFormation />} />
                   <Route path="/embed/:formationId" element={<EmbedFormation />} />
                   <Route path="/formations/:category" element={<FormationCategory />} />
-                  <Route path="/templates/:templateId" element={<TemplateDetail />} />
-                  <Route path="/templates" element={<TemplateLibrary />} />
+                  <Route path="/templates/:templateId" element={<TemplateErrorBoundary><TemplateDetail /></TemplateErrorBoundary>} />
+                  <Route path="/templates" element={<TemplateErrorBoundary><TemplateLibrary /></TemplateErrorBoundary>} />
                   <Route path="/changelog" element={<Changelog />} />
 
                   {/* Blog pages - public */}
@@ -324,7 +333,7 @@ function AuthenticatedRoutes() {
                   <Route path="/projects/:id" element={<ProtectedRoute><ProjectsErrorBoundary><AssetsProvider><ProjectDetail /></AssetsProvider></ProjectsErrorBoundary></ProtectedRoute>} />
                   <Route path="/projects/:projectId/formations" element={<ProtectedRoute><Suspense fallback={<FormationEditorSkeleton />}><FormationEditor /></Suspense></ProtectedRoute>} />
                   <Route path="/projects/:projectId/formations/:formationId" element={<ProtectedRoute><Suspense fallback={<FormationEditorSkeleton />}><FormationEditor /></Suspense></ProtectedRoute>} />
-                  <Route path="/boards/:boardId" element={<ProtectedRoute><Suspense fallback={<DefaultLoadingFallback message="Loading design board..." />}><DesignBoardPage /></Suspense></ProtectedRoute>} />
+                  <Route path="/boards/:boardId" element={<ProtectedRoute><DesignBoardErrorBoundary><Suspense fallback={<DefaultLoadingFallback message="Loading design board..." />}><DesignBoardPage /></Suspense></DesignBoardErrorBoundary></ProtectedRoute>} />
                   <Route path="/messages" element={<ProtectedRoute><MessagingErrorBoundary><MessagesNew /></MessagingErrorBoundary></ProtectedRoute>} />
                   <Route path="/notifications" element={<ProtectedRoute><Notifications /></ProtectedRoute>} />
                   <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
@@ -336,12 +345,12 @@ function AuthenticatedRoutes() {
                   <Route path="/referrals" element={<ProtectedRoute><Referrals /></ProtectedRoute>} />
 
                   {/* Admin Routes */}
-                  <Route path="/admin" element={<ProtectedRoute><AdminDashboard /></ProtectedRoute>} />
-                  <Route path="/admin/users" element={<ProtectedRoute><AdminUsers /></ProtectedRoute>} />
-                  <Route path="/admin/audit" element={<ProtectedRoute><AdminAuditLogs /></ProtectedRoute>} />
-                  <Route path="/admin/feedback" element={<ProtectedRoute><AdminFeedback /></ProtectedRoute>} />
-                  <Route path="/admin/metrics" element={<ProtectedRoute><Suspense fallback={<DefaultLoadingFallback message="Loading metrics..." />}><AdminMetrics /></Suspense></ProtectedRoute>} />
-                  <Route path="/admin/sso" element={<ProtectedRoute><SSOSettings /></ProtectedRoute>} />
+                  <Route path="/admin" element={<ProtectedRoute><AdminErrorBoundary><AdminDashboard /></AdminErrorBoundary></ProtectedRoute>} />
+                  <Route path="/admin/users" element={<ProtectedRoute><AdminErrorBoundary><AdminUsers /></AdminErrorBoundary></ProtectedRoute>} />
+                  <Route path="/admin/audit" element={<ProtectedRoute><AdminErrorBoundary><AdminAuditLogs /></AdminErrorBoundary></ProtectedRoute>} />
+                  <Route path="/admin/feedback" element={<ProtectedRoute><AdminErrorBoundary><AdminFeedback /></AdminErrorBoundary></ProtectedRoute>} />
+                  <Route path="/admin/metrics" element={<ProtectedRoute><AdminErrorBoundary><Suspense fallback={<DefaultLoadingFallback message="Loading metrics..." />}><AdminMetrics /></Suspense></AdminErrorBoundary></ProtectedRoute>} />
+                  <Route path="/admin/sso" element={<ProtectedRoute><AdminErrorBoundary><SSOSettings /></AdminErrorBoundary></ProtectedRoute>} />
                   <Route path="/tools" element={<ProtectedRoute><ToolsErrorBoundary><Tools /></ToolsErrorBoundary></ProtectedRoute>} />
                   <Route path="/tools/metmap" element={<ProtectedRoute><ToolsErrorBoundary><ToolsMetMap /></ToolsErrorBoundary></ProtectedRoute>} />
                   {/* /tools/files and /tools/assets now redirect to /projects (consolidated) */}
@@ -398,8 +407,8 @@ function AuthenticatedRoutes() {
                   <Route path="/dashboard/projects/:projectId" element={<ProtectedRoute><ProjectDashboard /></ProtectedRoute>} />
 
                   {/* FluxPrint Integration - 3D Printing - Protected */}
-                  <Route path="/printing" element={<ProtectedRoute><PrintingDashboard /></ProtectedRoute>} />
-                  <Route path="/dashboard/printing" element={<ProtectedRoute><PrintingDashboard /></ProtectedRoute>} />
+                  <Route path="/printing" element={<ProtectedRoute><PrintingErrorBoundary><PrintingDashboard /></PrintingErrorBoundary></ProtectedRoute>} />
+                  <Route path="/dashboard/printing" element={<ProtectedRoute><PrintingErrorBoundary><PrintingDashboard /></PrintingErrorBoundary></ProtectedRoute>} />
 
                   {/* 404 Not Found - catch all unmatched routes */}
                   <Route path="*" element={<NotFound />} />

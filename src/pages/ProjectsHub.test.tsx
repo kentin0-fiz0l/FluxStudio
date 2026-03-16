@@ -10,7 +10,7 @@ import { describe, test, expect, vi, beforeEach } from 'vitest';
 import { MemoryRouter } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ProjectsHub } from './ProjectsHub';
-import type { Project } from '@/hooks/useProjects';
+import type { Project } from '@/hooks/project/useProjects';
 
 // Mock dependencies
 const mockNavigate = vi.fn();
@@ -38,7 +38,7 @@ vi.mock('@/store/slices/authSlice', () => ({
   })),
 }));
 
-vi.mock('@/hooks/useProjects', () => ({
+vi.mock('@/hooks/project/useProjects', () => ({
   useProjects: vi.fn(() => ({
     projects: [],
     loading: false,
@@ -121,7 +121,7 @@ vi.mock('@/components/loading/LoadingStates', () => ({
 
 // Get mocked functions for manipulation in tests
 const mockUseAuth = vi.mocked(await import('@/store/slices/authSlice')).useAuth;
-const mockUseProjects = vi.mocked(await import('@/hooks/useProjects')).useProjects;
+const mockUseProjects = vi.mocked(await import('@/hooks/project/useProjects')).useProjects;
 
 describe('ProjectsHub', () => {
   beforeEach(() => {

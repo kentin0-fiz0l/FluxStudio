@@ -50,14 +50,14 @@ vi.mock('@/store', () => ({
   })),
 }));
 
-vi.mock('@/hooks/useProjects', () => ({
+vi.mock('@/hooks/project/useProjects', () => ({
   useProjects: vi.fn(() => ({
     projects: [],
     loading: false,
   })),
 }));
 
-vi.mock('@/hooks/useMessaging', () => ({
+vi.mock('@/hooks/messaging/useMessaging', () => ({
   useMessaging: vi.fn(() => ({
     conversations: [],
   })),

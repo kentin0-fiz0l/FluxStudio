@@ -21,7 +21,7 @@ import { ViewToggle } from '../components/formation/ViewToggle';
 import { PerformerView } from '../components/formation/PerformerView';
 import { SectionLeaderView } from '../components/formation/SectionLeaderView';
 import { Scene3DToolbar } from '../components/formation/Scene3DToolbar';
-import { useScene3D } from '../hooks/useScene3D';
+import { useScene3D } from '../hooks/formation/useScene3D';
 import { ObjectEditorModal } from '../components/object-editor/ObjectEditorModal';
 import { PropLibraryPanel } from '../components/object-editor/PropLibraryPanel';
 import { ModelImporter } from '../components/object-editor/ModelImporter';

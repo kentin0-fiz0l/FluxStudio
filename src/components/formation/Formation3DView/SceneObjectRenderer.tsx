@@ -6,7 +6,7 @@
  */
 
 import { useMemo, useRef } from 'react';
-import { Outlines } from '@react-three/drei';
+import { Outlines } from '@react-three/drei/core/Outlines';
 import type { SceneObject, PrimitiveSource, CustomSource } from '../../../services/scene3d/types';
 
 interface SceneObjectRendererProps {
@@ -28,7 +28,7 @@ export function SceneObjectRenderer({
   fieldWidth,
   onSelect,
 }: SceneObjectRendererProps) {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- @types/three version mismatch between drei and three
   const groupRef = useRef<any>(null!);
 
   // Convert normalized position to world coordinates

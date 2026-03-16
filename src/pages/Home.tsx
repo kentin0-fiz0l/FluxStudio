@@ -7,7 +7,7 @@ import { ProjectCardSkeleton } from '../components/loading/LoadingStates';
 import { Logo3D } from '../components/Logo3D';
 import { GettingStartedCard } from '../components/common/GettingStartedCard';
 import { useFirstTimeExperience } from '../hooks/useFirstTimeExperience';
-import { useProjects } from '../hooks/useProjects';
+import { useProjects } from '../hooks/project/useProjects';
 import {
   Briefcase,
   Folder,

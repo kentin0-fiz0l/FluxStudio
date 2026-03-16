@@ -24,7 +24,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
-import { useMessagingOptional } from '@/hooks/useMessaging';
+import { useMessagingOptional } from '@/hooks/messaging/useMessaging';
 import { useAuth } from '@/store/slices/authSlice';
 
 interface MobileBottomNavProps {

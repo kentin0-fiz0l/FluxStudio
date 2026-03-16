@@ -35,7 +35,7 @@ vi.mock('@/store/slices/authSlice', () => ({
   })),
 }));
 
-vi.mock('../hooks/useGoogleOAuth', () => ({
+vi.mock('../hooks/auth/useGoogleOAuth', () => ({
   useGoogleOAuth: vi.fn(() => ({
     isReady: false,
     isLoading: false,

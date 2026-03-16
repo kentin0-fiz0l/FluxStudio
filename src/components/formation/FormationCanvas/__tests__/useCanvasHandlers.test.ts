@@ -10,7 +10,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
 import { useCanvasHandlers } from '../useCanvasHandlers';
 import type { Position, Formation, PlaybackState } from '../../../../services/formationTypes';
-import type { UseFormationHistoryResult } from '../../../../hooks/useFormationHistory';
+import type { UseFormationHistoryResult } from '../../../../hooks/formation/useFormationHistory';
 import type { Marquee, Tool } from '../types';
 
 // ---- Mocks ----
