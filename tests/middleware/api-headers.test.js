@@ -30,7 +30,7 @@ describe('API Version Middleware', () => {
 
     expect(res.status).toBe(200);
     expect(res.headers['x-api-version']).toBeDefined();
-    expect(res.headers['x-api-version']).toBe('2025.1');
+    expect(res.headers['x-api-version']).toBe('2026.1');
   });
 
   test('should set X-API-Version on 404 responses', async () => {
@@ -40,7 +40,7 @@ describe('API Version Middleware', () => {
     const res = await request(app).get('/nonexistent');
 
     expect(res.status).toBe(404);
-    expect(res.headers['x-api-version']).toBe('2025.1');
+    expect(res.headers['x-api-version']).toBe('2026.1');
   });
 
   test('should set X-API-Version for POST requests', async () => {
@@ -49,12 +49,93 @@ describe('API Version Middleware', () => {
     const res = await request(app).post('/submit');
 
     expect(res.status).toBe(200);
-    expect(res.headers['x-api-version']).toBe('2025.1');
+    expect(res.headers['x-api-version']).toBe('2026.1');
   });
 
   test('API_VERSION constant should match header value', () => {
     const { API_VERSION } = require('../../middleware/apiVersion');
-    expect(API_VERSION).toBe('2025.1');
+    expect(API_VERSION).toBe('2026.1');
+  });
+
+  test('should accept requests with valid Accept-Version header', async () => {
+    const res = await request(app)
+      .get('/test')
+      .set('Accept-Version', '2025.1');
+
+    expect(res.status).toBe(200);
+    expect(res.headers['x-api-version']).toBe('2026.1');
+  });
+
+  test('should accept requests with valid X-API-Version header', async () => {
+    const res = await request(app)
+      .get('/test')
+      .set('X-API-Version', '2026.1');
+
+    expect(res.status).toBe(200);
+  });
+
+  test('should return 410 Gone for versions below minimum', async () => {
+    const res = await request(app)
+      .get('/test')
+      .set('Accept-Version', '2024.1');
+
+    expect(res.status).toBe(410);
+    expect(res.body.code).toBe('API_VERSION_GONE');
+  });
+
+  test('should return 400 for invalid version format', async () => {
+    const res = await request(app)
+      .get('/test')
+      .set('Accept-Version', 'invalid');
+
+    expect(res.status).toBe(400);
+    expect(res.body.code).toBe('INVALID_API_VERSION');
+  });
+
+  test('should default to current version when no header is sent', async () => {
+    const res = await request(app).get('/test');
+
+    expect(res.status).toBe(200);
+    expect(res.headers['x-api-version']).toBe('2026.1');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// 1b. deprecateRoute Helper Tests
+// ---------------------------------------------------------------------------
+
+describe('deprecateRoute Helper', () => {
+  let app;
+
+  beforeEach(() => {
+    const { apiVersionMiddleware, deprecateRoute } = require('../../middleware/apiVersion');
+    app = express();
+    app.use(apiVersionMiddleware);
+    app.get('/old-endpoint', deprecateRoute('2026-09-15'), (req, res) => res.json({ ok: true }));
+    app.get('/current-endpoint', (req, res) => res.json({ ok: true }));
+  });
+
+  test('should add Deprecation header on deprecated routes', async () => {
+    const res = await request(app).get('/old-endpoint');
+
+    expect(res.status).toBe(200);
+    expect(res.headers['deprecation']).toBe('true');
+  });
+
+  test('should add Sunset header with correct date on deprecated routes', async () => {
+    const res = await request(app).get('/old-endpoint');
+
+    expect(res.status).toBe(200);
+    expect(res.headers['sunset']).toBeDefined();
+    expect(res.headers['sunset']).toContain('2026');
+  });
+
+  test('should NOT add Deprecation header on non-deprecated routes', async () => {
+    const res = await request(app).get('/current-endpoint');
+
+    expect(res.status).toBe(200);
+    expect(res.headers['deprecation']).toBeUndefined();
+    expect(res.headers['sunset']).toBeUndefined();
   });
 });
 
@@ -218,7 +299,7 @@ describe('Combined API Version + Rate-Limit Headers', () => {
     expect(res.status).toBe(200);
 
     // Version header
-    expect(res.headers['x-api-version']).toBe('2025.1');
+    expect(res.headers['x-api-version']).toBe('2026.1');
 
     // Rate-limit headers
     expect(res.headers['x-ratelimit-limit']).toBeDefined();

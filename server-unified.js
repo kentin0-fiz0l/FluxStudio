@@ -34,7 +34,7 @@ const log = createLogger('UnifiedServer');
 
 // Import security and configuration modules
 const { config } = require('./config/environment');
-const { rateLimit, authRateLimit, printRateLimit, cors, helmet, validateInput, securityErrorHandler, auditLogger, traceIdMiddleware } = require('./middleware/security');
+const { rateLimit, authRateLimit, printRateLimit, cors, oauthCors, helmet, validateInput, securityErrorHandler, auditLogger, traceIdMiddleware } = require('./middleware/security');
 const { csrfProtection, getCsrfToken } = require('./middleware/csrf');
 const { cachingMiddleware, staticAssetCaching, configuredApiCaching } = require('./middleware/caching');
 const { apiVersionMiddleware } = require('./middleware/apiVersion');
@@ -70,8 +70,6 @@ const {
 } = dataHelpers;
 
 // Import Sprint 13 - Security Logger
-// const transcodingService = require('./services/transcoding-service'); // AWS version
-const transcodingService = require('./services/transcoding-service-do'); // DigitalOcean version
 const securityLogger = require('./lib/auth/securityLogger');
 
 // Import Sprint 13 Day 2 - Sentry & Anomaly Detection
@@ -373,9 +371,23 @@ app.set('trust proxy', 1);
 app.use('/api/payments/webhooks/stripe', express.raw({ type: 'application/json' }));
 app.use('/payments/webhooks/stripe', express.raw({ type: 'application/json' }));
 
-// Body parsing middleware
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+// Body parsing middleware (default 2mb for most routes)
+app.use(express.json({ limit: '2mb' }));
+app.use(express.urlencoded({ extended: true, limit: '2mb' }));
+app.use(express.raw({ limit: '1mb' }));
+app.use(express.text({ limit: '1mb' }));
+
+// Route-specific overrides for file upload and AI routes that need larger bodies
+const largeBodyJson = express.json({ limit: '10mb' });
+const largeBodyUrlencoded = express.urlencoded({ extended: true, limit: '10mb' });
+app.use('/files', largeBodyJson, largeBodyUrlencoded);
+app.use('/api/files', largeBodyJson, largeBodyUrlencoded);
+app.use('/ai', largeBodyJson, largeBodyUrlencoded);
+app.use('/api/ai', largeBodyJson, largeBodyUrlencoded);
+app.use('/media', largeBodyJson, largeBodyUrlencoded);
+app.use('/api/media', largeBodyJson, largeBodyUrlencoded);
+app.use('/assets', largeBodyJson, largeBodyUrlencoded);
+app.use('/api/assets', largeBodyJson, largeBodyUrlencoded);
 
 // Cookie parser (required for CSRF protection)
 app.use(cookieParser());
@@ -555,6 +567,16 @@ authRoutes.setAuthHelper({
   updateUser,
   generateAuthResponse
 });
+
+// Apply broader CORS for OAuth callback routes (allows Origin: null and provider origins)
+app.use('/auth/google/callback', oauthCors);
+app.use('/api/auth/google/callback', oauthCors);
+app.use('/auth/github/callback', oauthCors);
+app.use('/api/auth/github/callback', oauthCors);
+app.use('/auth/figma/callback', oauthCors);
+app.use('/api/auth/figma/callback', oauthCors);
+app.use('/auth/slack/callback', oauthCors);
+app.use('/api/auth/slack/callback', oauthCors);
 
 // Mount auth routes at both paths for compatibility
 app.use('/auth', authRoutes);

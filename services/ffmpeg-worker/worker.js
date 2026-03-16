@@ -16,7 +16,7 @@
 require('dotenv').config();
 const express = require('express');
 const { Pool } = require('pg');
-const AWS = require('aws-sdk');
+const { S3Client, GetObjectCommand, PutObjectCommand } = require('@aws-sdk/client-s3');
 const ffmpeg = require('fluent-ffmpeg');
 const fs = require('fs');
 const path = require('path');
@@ -40,11 +40,14 @@ const db = new Pool({
 });
 
 // DigitalOcean Spaces client (S3-compatible)
-const spaces = new AWS.S3({
-  endpoint: new AWS.Endpoint(CONFIG.spacesEndpoint),
-  accessKeyId: process.env.SPACES_ACCESS_KEY,
-  secretAccessKey: process.env.SPACES_SECRET_KEY,
-  region: CONFIG.spacesRegion
+const spaces = new S3Client({
+  endpoint: `https://${CONFIG.spacesEndpoint}`,
+  region: CONFIG.spacesRegion,
+  forcePathStyle: false,
+  credentials: {
+    accessKeyId: process.env.SPACES_ACCESS_KEY,
+    secretAccessKey: process.env.SPACES_SECRET_KEY,
+  },
 });
 
 // Active jobs tracker
@@ -211,16 +214,15 @@ async function downloadFromSpaces(url, localPath) {
   // Extract key from URL (e.g., https://bucket.nyc3.digitaloceanspaces.com/path/file.mp4 -> path/file.mp4)
   const key = url.split(`${CONFIG.spacesBucket}/`)[1] || url.split('.com/')[1];
 
-  const params = {
+  const response = await spaces.send(new GetObjectCommand({
     Bucket: CONFIG.spacesBucket,
-    Key: key
-  };
+    Key: key,
+  }));
 
   return new Promise((resolve, reject) => {
     const fileStream = fs.createWriteStream(localPath);
 
-    spaces.getObject(params)
-      .createReadStream()
+    response.Body
       .on('error', reject)
       .pipe(fileStream)
       .on('error', reject)
@@ -325,7 +327,7 @@ async function uploadHLSToSpaces(outputDir, prefix) {
       ContentType: file.endsWith('.m3u8') ? 'application/vnd.apple.mpegurl' : 'video/MP2T'
     };
 
-    await spaces.putObject(params).promise();
+    await spaces.send(new PutObjectCommand(params));
     console.log(`[Upload] Uploaded ${key}`);
   }
 

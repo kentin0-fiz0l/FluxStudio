@@ -19,6 +19,13 @@ const { createCheckoutSessionSchema, createPortalSessionSchema } = require('../l
 const { createLogger } = require('../lib/logger');
 const log = createLogger('Payments');
 const { ingestEvent } = require('../lib/analytics/funnelTracker');
+const { createCircuitBreaker } = require('../lib/circuitBreaker');
+
+const stripeBreaker = createCircuitBreaker({
+  name: 'stripe-api',
+  failureThreshold: 5,
+  recoveryTimeout: 30000,
+});
 
 // Store auth helper for protected routes
 let authHelper = null;
@@ -107,20 +114,22 @@ router.post('/create-checkout-session', requireAuth, zodValidate(createCheckoutS
       stripeCustomerId = customer.id;
     }
 
-    // Create checkout session
-    const session = await paymentService.stripe.checkout.sessions.create({
-      customer: stripeCustomerId,
-      mode: mode, // 'subscription' or 'payment'
-      line_items: [{ price: priceId, quantity: 1 }],
-      success_url: successUrl || `${process.env.FRONTEND_URL || 'https://fluxstudio.art'}/checkout/success?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: cancelUrl || `${process.env.FRONTEND_URL || 'https://fluxstudio.art'}/checkout/cancel`,
-      metadata: {
-        userId,
-        ...metadata
-      },
-      allow_promotion_codes: true,
-      billing_address_collection: 'required'
-    });
+    // Create checkout session (wrapped with circuit breaker)
+    const session = await stripeBreaker.execute(() =>
+      paymentService.stripe.checkout.sessions.create({
+        customer: stripeCustomerId,
+        mode: mode, // 'subscription' or 'payment'
+        line_items: [{ price: priceId, quantity: 1 }],
+        success_url: successUrl || `${process.env.FRONTEND_URL || 'https://fluxstudio.art'}/checkout/success?session_id={CHECKOUT_SESSION_ID}`,
+        cancel_url: cancelUrl || `${process.env.FRONTEND_URL || 'https://fluxstudio.art'}/checkout/cancel`,
+        metadata: {
+          userId,
+          ...metadata
+        },
+        allow_promotion_codes: true,
+        billing_address_collection: 'required'
+      })
+    );
 
     res.json({ sessionId: session.id, url: session.url });
   } catch (error) {
@@ -148,10 +157,12 @@ router.post('/create-portal-session', requireAuth, zodValidate(createPortalSessi
       return res.status(400).json({ success: false, error: 'No billing account found', code: 'PAYMENT_NO_BILLING_ACCOUNT' });
     }
 
-    const session = await paymentService.stripe.billingPortal.sessions.create({
-      customer: userResult.rows[0].stripe_customer_id,
-      return_url: returnUrl || `${process.env.FRONTEND_URL || 'https://fluxstudio.art'}/settings/billing`
-    });
+    const session = await stripeBreaker.execute(() =>
+      paymentService.stripe.billingPortal.sessions.create({
+        customer: userResult.rows[0].stripe_customer_id,
+        return_url: returnUrl || `${process.env.FRONTEND_URL || 'https://fluxstudio.art'}/settings/billing`
+      })
+    );
 
     res.json({ url: session.url });
   } catch (error) {
@@ -305,20 +316,22 @@ router.post('/create-payment-intent', requireAuth, async (req, res) => {
 
     const project = projectResult.rows[0];
 
-    // Create payment intent
-    const result = await paymentService.createProjectPaymentIntent(
-      {
-        id: projectId,
-        name: project.name,
-        organization_id: project.organization_id,
-        client_id: userId,
-        project_type: projectType,
-        service_tier: serviceTier
-      },
-      {
-        customerId,
-        customizations
-      }
+    // Create payment intent (wrapped with circuit breaker)
+    const result = await stripeBreaker.execute(() =>
+      paymentService.createProjectPaymentIntent(
+        {
+          id: projectId,
+          name: project.name,
+          organization_id: project.organization_id,
+          client_id: userId,
+          project_type: projectType,
+          service_tier: serviceTier
+        },
+        {
+          customerId,
+          customizations
+        }
+      )
     );
 
     res.json({

@@ -99,12 +99,8 @@ const corsOptions = {
   origin: function (origin, callback) {
     const allowedOrigins = (process.env.CORS_ORIGINS || 'http://localhost:3000,http://localhost:5173,https://fluxstudio.art').split(',');
 
-    // Allow requests with no origin (mobile apps, curl) or "null" origin
-    // (cross-origin redirects like OAuth callbacks send Origin: null)
-    if (!origin || origin === 'null') return callback(null, true);
-
-    // Allow Google OAuth redirect-mode POST (Origin: https://accounts.google.com)
-    if (origin === 'https://accounts.google.com') return callback(null, true);
+    // Allow requests with no origin (mobile apps, curl, same-origin)
+    if (!origin) return callback(null, true);
 
     if (allowedOrigins.indexOf(origin) !== -1) {
       callback(null, true);
@@ -117,6 +113,32 @@ const corsOptions = {
   allowedHeaders: ['Origin', 'X-Requested-With', 'Content-Type', 'Accept', 'Authorization', 'x-csrf-token'],
   maxAge: 86400 // 24 hours
 };
+
+/**
+ * Broader CORS for OAuth callback routes.
+ * OAuth redirects (e.g. Google) may send Origin: null or provider origins.
+ */
+const oauthCorsOptions = {
+  origin: function (origin, callback) {
+    const allowedOrigins = (process.env.CORS_ORIGINS || 'http://localhost:3000,http://localhost:5173,https://fluxstudio.art').split(',');
+
+    // OAuth callbacks: allow no-origin, null origin, and known providers
+    if (!origin || origin === 'null') return callback(null, true);
+    if (origin === 'https://accounts.google.com') return callback(null, true);
+
+    if (allowedOrigins.indexOf(origin) !== -1) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'OPTIONS'],
+  allowedHeaders: ['Origin', 'X-Requested-With', 'Content-Type', 'Accept', 'Authorization'],
+  maxAge: 86400
+};
+
+const oauthCors = cors(oauthCorsOptions);
 
 /**
  * Security headers configuration
@@ -133,6 +155,11 @@ const helmetConfig = {
       frameSrc: ["'self'", "https://accounts.google.com"], // Allow Google Sign-in iframe
       objectSrc: ["'none'"]
     }
+  },
+  hsts: {
+    maxAge: 31536000,
+    includeSubDomains: true,
+    preload: true
   },
   crossOriginEmbedderPolicy: false, // Disable for OAuth compatibility
   crossOriginOpenerPolicy: false // Disable COOP for Google Sign-in compatibility
@@ -293,6 +320,7 @@ module.exports = {
   authRateLimit,
   printRateLimit,
   cors: cors(corsOptions),
+  oauthCors,
   helmet: helmet(helmetConfig),
   validateInput,
   sanitizeRichText,
