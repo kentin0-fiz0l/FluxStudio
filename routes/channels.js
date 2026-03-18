@@ -19,6 +19,8 @@ const { createChannelSchema, createOrganizationSchema } = require('../lib/schema
 const { createLogger } = require('../lib/logger');
 const log = createLogger('Channels');
 
+const { asyncHandler } = require('../middleware/errorHandler');
+
 const router = express.Router();
 
 const CHANNELS_FILE = path.join(__dirname, '..', 'channels.json');
@@ -37,7 +39,7 @@ async function saveChannels(channels) {
 }
 
 // Create channel
-router.post('/channels', authenticateToken, validateInput.sanitizeInput, zodValidate(createChannelSchema), async (req, res) => {
+router.post('/channels', authenticateToken, validateInput.sanitizeInput, zodValidate(createChannelSchema), asyncHandler(async (req, res) => {
   const { name, teamId, description } = req.body;
 
   if (!name || !teamId) {
@@ -58,14 +60,14 @@ router.post('/channels', authenticateToken, validateInput.sanitizeInput, zodVali
   await saveChannels(channels);
 
   res.json(newChannel);
-});
+}));
 
 // Get channels by team
-router.get('/channels/:teamId', authenticateToken, async (req, res) => {
+router.get('/channels/:teamId', authenticateToken, asyncHandler(async (req, res) => {
   const channels = await getChannels();
   const teamChannels = channels.filter(c => c.teamId === req.params.teamId);
   res.json(teamChannels);
-});
+}));
 
 // GET /organizations - List user's organizations
 router.get('/organizations', authenticateToken, async (req, res) => {

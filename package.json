@@ -59,8 +59,6 @@
             "@tiptap/extension-placeholder": "^3.15.3",
             "@tiptap/react": "^3.7.2",
             "@tiptap/starter-kit": "^3.7.2",
-            "@types/dompurify": "^3.0.5",
-            "@types/react-virtualized-auto-sizer": "^1.0.4",
             "axios": "^1.13.5",
             "bcryptjs": "^3.0.2",
             "chart.js": "^4.5.1",
@@ -244,6 +242,9 @@
             "cli": "node cli/bin/flux.js",
             "tauri:dev": "cd apps/desktop && cargo tauri dev",
             "tauri:build": "cd apps/desktop && cargo tauri build"
+      },
+      "lint-staged": {
+            "src/**/*.{ts,tsx}": ["eslint --no-fix --max-warnings=0"]
       },
       "overrides": {
             "tar": "$tar",

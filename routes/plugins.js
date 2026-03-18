@@ -6,6 +6,7 @@
 
 const express = require('express');
 const router = express.Router();
+const { asyncHandler } = require('../middleware/errorHandler');
 const { authenticateToken } = require('../lib/auth/middleware');
 const { query } = require('../database/config');
 const { logAction } = require('../lib/auditLog');
@@ -234,7 +235,7 @@ router.put('/:pluginId/settings', zodValidate(updatePluginSettingsSchema), async
  * GET /api/plugins/marketplace — Search marketplace
  * Query params: query, category, sortBy, page, limit, featured, verified
  */
-router.get('/marketplace', async (req, res) => {
+router.get('/marketplace', asyncHandler(async (req, res) => {
   // For now, return the built-in plugin catalog.
   // In production this would proxy to a marketplace API.
   const catalog = [
@@ -278,7 +279,7 @@ router.get('/marketplace', async (req, res) => {
     limit,
     hasMore: start + limit < filtered.length,
   });
-});
+}));
 
 function createCatalogEntry(id, name, category, featured, verified, permissions) {
   return {

@@ -22,6 +22,7 @@ const multer = require('multer');
 const FormData = require('form-data');
 const path = require('path');
 const { createId } = require('@paralleldrive/cuid2');
+const { asyncHandler } = require('../middleware/errorHandler');
 const { authenticateToken } = require('../lib/auth/middleware');
 const { canUserAccessProject } = require('../middleware/requireProjectAccess');
 const { query } = require('../database/config');
@@ -235,21 +236,21 @@ router.post('/queue', printRateLimit, checkFluxPrintEnabled, authenticateToken, 
   }
 });
 
-router.delete('/queue/:id', checkFluxPrintEnabled, async (req, res) => {
+router.delete('/queue/:id', checkFluxPrintEnabled, asyncHandler(async (req, res) => {
   await proxyToFluxPrint(req, res, `/api/queue/${req.params.id}`, 'DELETE');
-});
+}));
 
-router.post('/queue/reorder', checkFluxPrintEnabled, async (req, res) => {
+router.post('/queue/reorder', checkFluxPrintEnabled, asyncHandler(async (req, res) => {
   await proxyToFluxPrint(req, res, '/api/queue/reorder', 'POST');
-});
+}));
 
-router.post('/queue/:id/start', checkFluxPrintEnabled, authenticateToken, async (req, res) => {
+router.post('/queue/:id/start', checkFluxPrintEnabled, authenticateToken, asyncHandler(async (req, res) => {
   await proxyToFluxPrint(req, res, `/api/queue/${req.params.id}/start`, 'POST');
-});
+}));
 
-router.delete('/queue', checkFluxPrintEnabled, async (req, res) => {
+router.delete('/queue', checkFluxPrintEnabled, asyncHandler(async (req, res) => {
   await proxyToFluxPrint(req, res, '/api/queue', 'DELETE');
-});
+}));
 
 // ========================================
 // FILES
@@ -315,9 +316,9 @@ router.post('/files/upload', checkFluxPrintEnabled, authenticateToken, upload.ar
   }
 });
 
-router.delete('/files/:filename', checkFluxPrintEnabled, async (req, res) => {
+router.delete('/files/:filename', checkFluxPrintEnabled, asyncHandler(async (req, res) => {
   await proxyToFluxPrint(req, res, `/api/files/${req.params.filename}`, 'DELETE');
-});
+}));
 
 // ========================================
 // CAMERA

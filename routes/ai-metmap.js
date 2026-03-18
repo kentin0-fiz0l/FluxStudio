@@ -16,6 +16,8 @@ const { analyzeSongSchema, suggestChordsSchema, practiceInsightsSchema } = requi
 const { getClient } = require('../lib/ai/client');
 const { getModelForTask, getMaxTokensForTask } = require('../lib/ai/config');
 
+const { asyncHandler } = require('../middleware/errorHandler');
+
 const router = express.Router();
 
 /**
@@ -113,7 +115,7 @@ async function streamAnalysis(req, res, systemPrompt, userMessage) {
  * POST /api/ai/metmap/analyze-song
  * Comprehensive song analysis — structure, harmony, arrangement feedback.
  */
-router.post('/analyze-song', authenticateToken, rateLimitByUser(15, 60000), zodValidate(analyzeSongSchema), async (req, res) => {
+router.post('/analyze-song', authenticateToken, rateLimitByUser(15, 60000), zodValidate(analyzeSongSchema), asyncHandler(async (req, res) => {
   const { songId, focus = 'all' } = req.body;
 
   if (!getClient()) {
@@ -147,7 +149,7 @@ ${focusMap[focus] || focusMap.all}`;
   const userMessage = `Please analyze this song:\n\n${data.context}`;
 
   await streamAnalysis(req, res, systemPrompt, userMessage);
-});
+}));
 
 // ========================================
 // CHORD SUGGESTIONS
@@ -157,7 +159,7 @@ ${focusMap[focus] || focusMap.all}`;
  * POST /api/ai/metmap/suggest-chords
  * Context-aware chord suggestions for a specific section.
  */
-router.post('/suggest-chords', authenticateToken, rateLimitByUser(15, 60000), zodValidate(suggestChordsSchema), async (req, res) => {
+router.post('/suggest-chords', authenticateToken, rateLimitByUser(15, 60000), zodValidate(suggestChordsSchema), asyncHandler(async (req, res) => {
   const { songId, sectionId, style, request } = req.body;
 
   if (!getClient()) {
@@ -220,7 +222,7 @@ ${request ? `User request: ${request}` : 'Suggest improvements or creative varia
 Please suggest 2-3 chord progression options for this section.`;
 
   await streamAnalysis(req, res, systemPrompt, userMessage);
-});
+}));
 
 // ========================================
 // PRACTICE INSIGHTS
