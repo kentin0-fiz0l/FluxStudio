@@ -60,7 +60,6 @@ export function KeybindingEditor({ onDone }: KeybindingEditorProps) {
   }));
 
   return (
-    // eslint-disable-next-line jsx-a11y/no-static-element-interactions
     <div onKeyDown={handleCaptureKeyDown}>
       {/* Header */}
       <div className="flex items-center justify-between mb-4">

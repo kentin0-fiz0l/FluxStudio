@@ -33,7 +33,7 @@ vi.mock('../components/payments/SaaSPricingTable', () => ({
 vi.mock('framer-motion', () => ({
   motion: {
     div: ({ children, ...props }: any) => {
-      const { initial, animate, whileInView, whileHover, whileTap, variants, viewport, style, transition, custom, ...rest } = props;
+      const { initial: _initial, animate: _animate, whileInView: _whileInView, whileHover: _whileHover, whileTap: _whileTap, variants: _variants, viewport: _viewport, style: _style, transition: _transition, custom: _custom, ...rest } = props;
       return <div {...rest}>{children}</div>;
     },
   },

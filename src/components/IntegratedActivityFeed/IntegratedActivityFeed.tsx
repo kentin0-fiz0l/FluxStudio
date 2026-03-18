@@ -28,7 +28,8 @@ export function IntegratedActivityFeed() {
 
   const { activities, filteredActivities } = useActivityData({
     recentActivity: state?.recentActivity,
-    conversationMessages: conversationMessages as unknown as Record<string, any[]> | undefined,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    conversationMessages: conversationMessages as any,
     conversations,
     projects,
     filter,

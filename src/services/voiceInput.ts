@@ -199,7 +199,7 @@ export class VoiceInputController {
       this.recognition.start();
       this.isRunning = true;
       this.callbacks.onStateChange('listening');
-    } catch (err) {
+    } catch (_err) {
       this.callbacks.onError('Failed to start speech recognition');
       this.cleanup();
     }

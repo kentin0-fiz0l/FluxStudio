@@ -2,6 +2,7 @@
  * WelcomeFlow Page Tests
  */
 
+import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { describe, test, expect, vi, beforeEach } from 'vitest';
 import { MemoryRouter } from 'react-router-dom';
@@ -47,9 +48,8 @@ vi.mock('framer-motion', () => {
   const handler = {
     get: (_target: any, prop: string) => {
       return ({ children, ...props }: any) => {
-        const { initial, animate, exit, transition, whileHover, whileTap, variants, layout, ...domProps } = props;
+        const { initial: _initial, animate: _animate, exit: _exit, transition: _transition, whileHover: _whileHover, whileTap: _whileTap, variants: _variants, layout: _layout, ...domProps } = props;
         // Use createElement to avoid JSX in factory
-        const React = require('react');
         return React.createElement(prop, domProps, children);
       };
     },

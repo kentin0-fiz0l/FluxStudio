@@ -17,8 +17,6 @@ interface SectionGlowEffectProps {
 
 export const SectionGlowEffect = React.memo<SectionGlowEffectProps>(
   function SectionGlowEffect({ enabled, intensity, performers, positions, canvasWidth, canvasHeight }) {
-    if (!enabled || intensity <= 0) return null;
-
     const sections = useMemo(() => {
       const grouped = new Map<string, Array<{ x: number; y: number }>>();
       for (const p of performers) {
@@ -37,6 +35,8 @@ export const SectionGlowEffect = React.memo<SectionGlowEffectProps>(
       }
       return grouped;
     }, [performers, positions, canvasWidth, canvasHeight]);
+
+    if (!enabled || intensity <= 0) return null;
 
     const filterId = 'section-glow-blur';
     const glowRadius = 24;

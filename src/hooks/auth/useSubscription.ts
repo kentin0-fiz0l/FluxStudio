@@ -78,7 +78,7 @@ export function useSubscription() {
 
         let tier: Tier = 'free';
         let hasSubscription = false;
-        let trial: TrialInfo = { isTrialing: false, trialEndsAt: null, daysRemaining: 0, canStartTrial: true };
+        const trial: TrialInfo = { isTrialing: false, trialEndsAt: null, daysRemaining: 0, canStartTrial: true };
 
         if (subResponse.status === 'fulfilled' && subResponse.value) {
           const sub = subResponse.value as {

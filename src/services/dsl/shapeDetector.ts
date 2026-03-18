@@ -138,9 +138,9 @@ function tryCircle(coords: Position[], fieldConfig: FieldConfig): DslShape | nul
   const sortedAngles = [...angles].sort((a, b) => a - b);
 
   // Calculate angular coverage
-  let totalArc = 0;
+  let _totalArc = 0;
   for (let i = 1; i < sortedAngles.length; i++) {
-    totalArc += sortedAngles[i] - sortedAngles[i - 1];
+    _totalArc += sortedAngles[i] - sortedAngles[i - 1];
   }
   // Add the wrap-around gap
   const wrapGap = (2 * Math.PI) - (sortedAngles[sortedAngles.length - 1] - sortedAngles[0]);

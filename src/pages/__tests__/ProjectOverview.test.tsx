@@ -12,7 +12,6 @@ import { MemoryRouter, Route, Routes } from 'react-router-dom';
 
 // Mock the entire page to avoid async import chain hang
 vi.mock('@/pages/ProjectOverview/index', () => ({
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   default: (_props: any) => <div data-testid="project-overview-page">Project Overview</div>,
 }));
 

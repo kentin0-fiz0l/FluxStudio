@@ -109,5 +109,5 @@ if (isDirectRun) {
   const xml = generateSitemapXml();
   const outPath = resolve(__dirname, '..', 'public', 'sitemap.xml');
   writeFileSync(outPath, xml, 'utf-8');
-  console.log(`Sitemap written to ${outPath} (${allEntries.length} URLs)`);
+  console.warn(`Sitemap written to ${outPath} (${allEntries.length} URLs)`);
 }

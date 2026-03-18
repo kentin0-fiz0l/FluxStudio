@@ -243,7 +243,7 @@ export function syncSetsWithKeyframes(
   const setKeyframeIds = new Set(sets.map((s) => s.keyframeId));
 
   // Remove sets for deleted keyframes
-  let result = sets.filter((s) => keyframeIds.has(s.keyframeId));
+  const result = sets.filter((s) => keyframeIds.has(s.keyframeId));
 
   // Add sets for new keyframes
   const sortedKeyframes = [...keyframes].sort((a, b) => a.timestamp - b.timestamp);

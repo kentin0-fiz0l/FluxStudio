@@ -70,4 +70,11 @@ export default [
       // Acceptable uses: loading skeletons, static content that never reorders.
     },
   },
+  {
+    files: ['**/*.test.{ts,tsx}', '**/__tests__/**/*.{ts,tsx}'],
+    rules: {
+      '@typescript-eslint/no-explicit-any': 'warn',
+      'no-console': 'off',
+    },
+  },
 ]

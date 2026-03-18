@@ -43,7 +43,6 @@ const mockConversation = {
   metadata: { isArchived: false, isMuted: false, isPinned: false, priority: 'medium' as const, tags: [] },
   createdAt: new Date().toISOString(),
   updatedAt: new Date().toISOString(),
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 } as any;
 
 describe('ConversationInsightsService', () => {
@@ -55,14 +54,12 @@ describe('ConversationInsightsService', () => {
     it('should throw for insufficient messages', async () => {
       const messages = makeMessages(3);
       await expect(
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         conversationInsightsService.analyzeConversation(mockConversation, messages as any)
       ).rejects.toThrow('Insufficient message data');
     });
 
     it('should return complete insight summary', async () => {
       const messages = makeMessages(10);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const result = await conversationInsightsService.analyzeConversation(mockConversation, messages as any);
 
       expect(result).toHaveProperty('conversationId', 'conv-1');
@@ -74,23 +71,19 @@ describe('ConversationInsightsService', () => {
 
     it('should cache results', async () => {
       const messages = makeMessages(10);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const result1 = await conversationInsightsService.analyzeConversation(mockConversation, messages as any);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const result2 = await conversationInsightsService.analyzeConversation(mockConversation, messages as any);
       expect(result1).toBe(result2); // Same reference from cache
     });
 
     it('should count participants correctly', async () => {
       const messages = makeMessages(10, { authorIds: ['u1', 'u2', 'u3'] });
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const result = await conversationInsightsService.analyzeConversation(mockConversation, messages as any);
       expect(result.insights.participantCount).toBe(3);
     });
 
     it('should count messages correctly', async () => {
       const messages = makeMessages(15);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const result = await conversationInsightsService.analyzeConversation(mockConversation, messages as any);
       expect(result.insights.messageCount).toBe(15);
     });
@@ -104,7 +97,6 @@ describe('ConversationInsightsService', () => {
         makeMessage('3', 'This looks great!', 'u1', new Date().toISOString()),
       ];
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const items = await conversationInsightsService.extractActionItems(messages as any);
       expect(items.length).toBeGreaterThan(0);
       expect(items[0]).toHaveProperty('description');
@@ -115,7 +107,6 @@ describe('ConversationInsightsService', () => {
       const messages = [
         makeMessage('1', 'action: review the brand guidelines', 'u1', new Date().toISOString()),
       ];
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const items = await conversationInsightsService.extractActionItems(messages as any);
       expect(items.length).toBe(1);
     });
@@ -125,7 +116,6 @@ describe('ConversationInsightsService', () => {
         makeMessage('1', 'need to complete this by deadline', 'u1', new Date().toISOString()),
         makeMessage('2', 'should update the docs', 'u2', new Date().toISOString()),
       ];
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const items = await conversationInsightsService.extractActionItems(messages as any);
       if (items.length >= 2) {
         expect(items[0].confidence).toBeGreaterThanOrEqual(items[1].confidence);
@@ -137,7 +127,6 @@ describe('ConversationInsightsService', () => {
         makeMessage('1', 'Hello everyone', 'u1', new Date().toISOString()),
         makeMessage('2', 'Welcome to the team', 'u2', new Date().toISOString()),
       ];
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const items = await conversationInsightsService.extractActionItems(messages as any);
       expect(items).toEqual([]);
     });
@@ -148,7 +137,6 @@ describe('ConversationInsightsService', () => {
       const messages = makeMessages(10, {
         contentFn: (i) => i % 2 === 0 ? 'Working on the design' : 'Completed the wireframes',
       });
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const result = await conversationInsightsService.analyzeProjectProgress(messages as any);
 
       expect(result).toHaveProperty('phase');
@@ -164,14 +152,12 @@ describe('ConversationInsightsService', () => {
         makeMessage('1', 'We are blocked on the API', 'u1', new Date().toISOString()),
         makeMessage('2', 'Stuck waiting for client approval', 'u2', new Date().toISOString()),
       ];
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const result = await conversationInsightsService.analyzeProjectProgress(messages as any);
       expect(result.blockers.length).toBeGreaterThan(0);
     });
 
     it('should identify momentum as steady for few messages', async () => {
       const messages = makeMessages(3);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const result = await conversationInsightsService.analyzeProjectProgress(messages as any);
       expect(result.momentum).toBe('steady');
     });
@@ -185,7 +171,6 @@ describe('ConversationInsightsService', () => {
 
     it('should return partial insights for recent messages', async () => {
       const messages = makeMessages(5, { interval: 60000 }); // 1 min apart
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const result = await conversationInsightsService.getRealTimeInsights('conv-1', messages as any);
       expect(result).toHaveProperty('insights');
     });
@@ -194,7 +179,6 @@ describe('ConversationInsightsService', () => {
   describe('team dynamics analysis', () => {
     it('should calculate participation balance', async () => {
       const messages = makeMessages(10, { authorIds: ['u1', 'u2'] });
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const result = await conversationInsightsService.analyzeConversation(mockConversation, messages as any);
 
       expect(result.teamDynamics).toHaveProperty('participationBalance');
@@ -206,7 +190,6 @@ describe('ConversationInsightsService', () => {
       const messages = makeMessages(10, {
         contentFn: (i) => i % 2 === 0 ? 'Great idea, thanks!' : 'I agree with this approach',
       });
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const result = await conversationInsightsService.analyzeConversation(mockConversation, messages as any);
       expect(result.teamDynamics.collaborationScore).toBeGreaterThan(0);
     });
@@ -217,7 +200,6 @@ describe('ConversationInsightsService', () => {
         makeMessage('conflict-1', 'I disagree with this approach', 'u1', new Date().toISOString()),
         makeMessage('conflict-2', 'This is a bad idea', 'u2', new Date().toISOString()),
       ];
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const result = await conversationInsightsService.analyzeConversation(mockConversation, messages as any);
       expect(result.teamDynamics.conflictIndicators.length).toBeGreaterThan(0);
     });
@@ -228,7 +210,6 @@ describe('ConversationInsightsService', () => {
       const messages = makeMessages(10, {
         contentFn: () => 'This is great and excellent work, I love it',
       });
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const result = await conversationInsightsService.analyzeConversation(mockConversation, messages as any);
       expect(result.insights.sentimentScore).toBeGreaterThan(0);
     });
@@ -237,7 +218,6 @@ describe('ConversationInsightsService', () => {
       const messages = makeMessages(10, {
         contentFn: () => 'This is terrible and bad, there is a problem',
       });
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const result = await conversationInsightsService.analyzeConversation(mockConversation, messages as any);
       expect(result.insights.sentimentScore).toBeLessThan(0);
     });
@@ -246,14 +226,12 @@ describe('ConversationInsightsService', () => {
   describe('engagement level', () => {
     it('should be high for many messages per participant', async () => {
       const messages = makeMessages(20, { authorIds: ['u1', 'u2'] });
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const result = await conversationInsightsService.analyzeConversation(mockConversation, messages as any);
       expect(result.insights.engagementLevel).toBe('high');
     });
 
     it('should be low for few messages per participant', async () => {
       const messages = makeMessages(6, { authorIds: ['u1', 'u2', 'u3'] });
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const result = await conversationInsightsService.analyzeConversation(mockConversation, messages as any);
       expect(result.insights.engagementLevel).toBe('low');
     });
@@ -264,7 +242,6 @@ describe('ConversationInsightsService', () => {
       const messages = makeMessages(10, {
         contentFn: () => 'The design needs a review before deployment',
       });
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const result = await conversationInsightsService.analyzeConversation(mockConversation, messages as any);
       expect(result.insights.topicCoverage).toContain('design');
       expect(result.insights.topicCoverage).toContain('review');
@@ -276,7 +253,6 @@ describe('ConversationInsightsService', () => {
     it('should recommend improving response times when slow', async () => {
       // Create messages with large gaps (> 1 hour apart)
       const messages = makeMessages(10, { interval: 2 * hour });
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const result = await conversationInsightsService.analyzeConversation(mockConversation, messages as any);
       const responseRec = result.recommendations.find(r => r.id === 'response-time-improvement');
       expect(responseRec).toBeDefined();
@@ -284,7 +260,6 @@ describe('ConversationInsightsService', () => {
 
     it('should sort recommendations by priority', async () => {
       const messages = makeMessages(10);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const result = await conversationInsightsService.analyzeConversation(mockConversation, messages as any);
       if (result.recommendations.length >= 2) {
         const priorities = { high: 3, medium: 2, low: 1 };
@@ -299,7 +274,6 @@ describe('ConversationInsightsService', () => {
   describe('trend analysis', () => {
     it('should return stable trends for small datasets', async () => {
       const messages = makeMessages(6);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const result = await conversationInsightsService.analyzeConversation(mockConversation, messages as any);
       expect(result.trendAnalysis.responseTimesTrend).toBe('stable');
       expect(result.trendAnalysis.engagementTrend).toBe('stable');
@@ -307,7 +281,6 @@ describe('ConversationInsightsService', () => {
 
     it('should include weekly comparison', async () => {
       const messages = makeMessages(10);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const result = await conversationInsightsService.analyzeConversation(mockConversation, messages as any);
       expect(result.trendAnalysis.weeklyComparison).toHaveProperty('messagesThisWeek');
       expect(result.trendAnalysis.weeklyComparison).toHaveProperty('messagesLastWeek');
@@ -318,7 +291,6 @@ describe('ConversationInsightsService', () => {
   describe('cache management', () => {
     it('should clear cache', async () => {
       const messages = makeMessages(10);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       await conversationInsightsService.analyzeConversation(mockConversation, messages as any);
       expect(conversationInsightsService.getCachedInsights('conv-1', 10)).not.toBeNull();
 
@@ -336,7 +308,6 @@ describe('ConversationInsightsService', () => {
       const messages = makeMessages(10, {
         contentFn: (i) => i === 3 ? 'We decided to go with option A' : `Message ${i}`,
       });
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const result = await conversationInsightsService.analyzeConversation(mockConversation, messages as any);
       expect(result.insights.keyDecisions.length).toBeGreaterThan(0);
     });

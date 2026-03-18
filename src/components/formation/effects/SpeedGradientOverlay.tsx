@@ -25,8 +25,6 @@ export const SpeedGradientOverlay = React.memo<SpeedGradientOverlayProps>(
     canvasWidth,
     canvasHeight,
   }) {
-    if (!enabled) return null;
-
     const segments = useMemo(() => {
       const result: Array<{
         key: string;
@@ -66,6 +64,8 @@ export const SpeedGradientOverlay = React.memo<SpeedGradientOverlayProps>(
 
       return result;
     }, [performerPaths, selectedPerformerIds, canvasWidth, canvasHeight]);
+
+    if (!enabled) return null;
 
     if (segments.length === 0) return null;
 

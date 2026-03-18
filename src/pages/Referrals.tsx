@@ -52,7 +52,7 @@ export default function Referrals() {
       }
     }
     load();
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, []);  
 
   const referralUrl = code
     ? `${window.location.origin}/signup?ref=${code}`

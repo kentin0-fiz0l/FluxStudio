@@ -55,6 +55,7 @@ class MessagingService {
   /**
    * API helper for authenticated requests — delegates to apiService
    */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private async apiRequest<T = any>(endpoint: string, options: RequestInit = {}): Promise<T> {
     const method = (options.method || 'GET').toUpperCase();
     const body = options.body ? JSON.parse(options.body as string) : undefined;

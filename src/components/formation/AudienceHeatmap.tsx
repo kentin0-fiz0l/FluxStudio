@@ -51,7 +51,7 @@ function renderHeatmap(
     const pos = positions.get(performer.id);
     if (!pos) continue;
 
-    let px = (pos.x / 100) * canvasWidth;
+    const px = (pos.x / 100) * canvasWidth;
     let py = (pos.y / 100) * canvasHeight;
 
     // In audience mode, compress Y toward bottom (audience perspective)

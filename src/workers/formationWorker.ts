@@ -17,12 +17,6 @@
 // Types (duplicated from main thread to keep worker self-contained)
 // ============================================================================
 
-interface Position {
-  x: number;
-  y: number;
-  rotation?: number;
-}
-
 interface FieldConfig {
   type: string;
   name: string;

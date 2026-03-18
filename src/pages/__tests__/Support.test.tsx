@@ -39,7 +39,7 @@ vi.mock('@/components/templates', () => ({
 }));
 
 vi.mock('@/components/ui/input', () => ({
-  Input: ({ className, ...props }: any) => <input {...props} />,
+  Input: ({ className: _className, ...props }: any) => <input {...props} />,
 }));
 
 vi.mock('@/components/ui/card', () => ({

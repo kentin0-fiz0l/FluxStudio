@@ -34,13 +34,13 @@ export const BeatGrid = memo(function BeatGrid({
   OVERLAY_HEIGHT,
   tempoMap,
 }: BeatGridProps) {
-  if (containerWidth <= 0 || duration <= 0) return null;
-
   // When tempoMap is provided, compute beats from it instead of the constant-BPM arrays
   const tempoMapBeats = useMemo(() => {
     if (!tempoMap || tempoMap.segments.length === 0) return null;
     return getBeatTimestampsFromTempoMap(tempoMap, duration);
   }, [tempoMap, duration]);
+
+  if (containerWidth <= 0 || duration <= 0) return null;
 
   // Tempo-map-aware rendering path
   if (tempoMapBeats && tempoMapBeats.length > 0) {

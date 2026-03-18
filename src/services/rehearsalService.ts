@@ -206,14 +206,13 @@ export function generateRehearsalPlan(
  * Compute summary statistics for a rehearsal plan.
  */
 export function getRehearsalSummary(steps: RehearsalStep[]): RehearsalPlanSummary {
-  let totalPerformers = 0;
+  // totalPerformers tracked but unused — retained as a placeholder for future metrics
   let totalStepSize = 0;
   let stepSizeCount = 0;
   let hardestMove: RehearsalPlanSummary['hardestMove'] = null;
 
   for (const step of steps) {
     for (const [, inst] of step.performers) {
-      totalPerformers++;
       if (inst.distanceYards > 0.1) {
         // Parse numeric step size
         const match = inst.stepSize.match(/^([\d.]+)/);

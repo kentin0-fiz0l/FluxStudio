@@ -156,7 +156,7 @@ export function useCollaborativeDocument({
       providerRef.current = null;
       persistenceRef.current = null;
     };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+   
   }, [isFeatureEnabled, enabled, documentId, projectId, user, userColor]);
 
   // Build Tiptap extensions
