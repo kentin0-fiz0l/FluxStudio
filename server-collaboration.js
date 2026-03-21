@@ -361,6 +361,57 @@ const awarenesses = new Map(); // roomName -> Awareness
 const saveTimers = new Map(); // roomName -> timer for auto-save
 const updateCounts = new Map(); // roomName -> update count for versioning
 
+// Awareness throttling: accumulate updates and flush at 10Hz per room
+const awarenessFlushTimers = new Map(); // roomName -> timer
+const pendingAwarenessUpdates = new Map(); // roomName -> Set<client>
+const AWARENESS_FLUSH_INTERVAL = 100; // 100ms = 10Hz
+
+// State vector tracking for reconnect diffing
+const clientStateVectors = new Map(); // `roomName:clientId` -> Uint8Array (state vector)
+
+/**
+ * Schedule a throttled awareness broadcast for a room.
+ * Accumulates awareness updates and flushes at 10Hz instead of immediately.
+ */
+function scheduleAwarenessBroadcast(roomName, sourceWs, data) {
+  // Track pending broadcast data
+  if (!pendingAwarenessUpdates.has(roomName)) {
+    pendingAwarenessUpdates.set(roomName, []);
+  }
+  pendingAwarenessUpdates.get(roomName).push({ sourceWs, data });
+
+  // If already scheduled, let the timer handle it
+  if (awarenessFlushTimers.has(roomName)) return;
+
+  // Schedule flush at 10Hz
+  const timer = setTimeout(() => {
+    awarenessFlushTimers.delete(roomName);
+    const pending = pendingAwarenessUpdates.get(roomName);
+    pendingAwarenessUpdates.delete(roomName);
+    if (!pending || pending.length === 0) return;
+
+    const room = stats.rooms.get(roomName);
+    if (!room) return;
+
+    // Use the latest awareness data for each source and broadcast
+    // We only need to send the most recent update per source
+    const latestBySource = new Map();
+    for (const entry of pending) {
+      latestBySource.set(entry.sourceWs, entry.data);
+    }
+
+    for (const [sourceWs, awarenessData] of latestBySource) {
+      room.forEach((client) => {
+        if (client !== sourceWs && client.readyState === WebSocket.OPEN) {
+          client.send(awarenessData);
+        }
+      });
+    }
+  }, AWARENESS_FLUSH_INTERVAL);
+
+  awarenessFlushTimers.set(roomName, timer);
+}
+
 /**
  * Create version snapshot
  */
@@ -883,11 +934,35 @@ wss.on('connection', async (ws, req) => {
     const doc = await getDoc(roomName);
     const awareness = getAwareness(roomName);
 
-    // Send initial sync state using y-websocket binary protocol
-    const encoder = encoding.createEncoder();
-    encoding.writeVarUint(encoder, messageSync);
-    syncProtocol.writeSyncStep1(encoder, doc);
-    ws.send(encoding.toUint8Array(encoder));
+    // Check if this client has a previous state vector (reconnect scenario)
+    const stateVectorKey = `${roomName}:${user.id}`;
+    const previousStateVector = clientStateVectors.get(stateVectorKey);
+
+    if (previousStateVector) {
+      // Reconnect: send only the diff since the client's last known state
+      try {
+        const diff = Y.encodeStateAsUpdate(doc, previousStateVector);
+        if (diff.length > 0) {
+          const diffEncoder = encoding.createEncoder();
+          encoding.writeVarUint(diffEncoder, messageSync);
+          syncProtocol.writeUpdate(diffEncoder, diff);
+          ws.send(encoding.toUint8Array(diffEncoder));
+          log.info('Sent state diff for reconnect', { roomName, userName: ws.userName, diffBytes: diff.length });
+        }
+      } catch (_e) {
+        // Fallback to full sync if diff fails
+        const encoder = encoding.createEncoder();
+        encoding.writeVarUint(encoder, messageSync);
+        syncProtocol.writeSyncStep1(encoder, doc);
+        ws.send(encoding.toUint8Array(encoder));
+      }
+    } else {
+      // First connection: full sync
+      const encoder = encoding.createEncoder();
+      encoding.writeVarUint(encoder, messageSync);
+      syncProtocol.writeSyncStep1(encoder, doc);
+      ws.send(encoding.toUint8Array(encoder));
+    }
 
     // Send awareness states
     if (awareness.states.size > 0) {
@@ -1012,15 +1087,8 @@ wss.on('connection', async (ws, req) => {
               }
             }
 
-            // Broadcast validated awareness to other clients
-            const room = stats.rooms.get(roomName);
-            if (room) {
-              room.forEach((client) => {
-                if (client !== ws && client.readyState === WebSocket.OPEN) {
-                  client.send(data);
-                }
-              });
-            }
+            // Throttle awareness broadcasts: accumulate and flush at 10Hz per room
+            scheduleAwarenessBroadcast(roomName, ws, data);
             break;
           }
 
@@ -1079,6 +1147,18 @@ wss.on('connection', async (ws, req) => {
   ws.on('close', async () => {
     stats.connections--;
 
+    // Save client's state vector for reconnect diffing
+    try {
+      const sv = Y.encodeStateVector(doc);
+      clientStateVectors.set(`${roomName}:${ws.userId}`, sv);
+      // Clean up stale state vectors after 30 minutes
+      setTimeout(() => {
+        clientStateVectors.delete(`${roomName}:${ws.userId}`);
+      }, 1800000);
+    } catch (_e) {
+      // Non-critical: state vector save failure
+    }
+
     // Remove update listener
     doc.off('update', updateHandler);
 
@@ -1101,6 +1181,13 @@ wss.on('connection', async (ws, req) => {
 
         // Clear update count
         updateCounts.delete(roomName);
+
+        // Clear awareness throttle timer
+        if (awarenessFlushTimers.has(roomName)) {
+          clearTimeout(awarenessFlushTimers.get(roomName));
+          awarenessFlushTimers.delete(roomName);
+        }
+        pendingAwarenessUpdates.delete(roomName);
 
         // Keep document in memory for 5 minutes for quick reconnects
         setTimeout(() => {
@@ -1163,6 +1250,12 @@ const shutdown = async () => {
   // Clear all auto-save timers
   saveTimers.forEach((timer) => clearTimeout(timer));
   saveTimers.clear();
+
+  // Clear awareness flush timers
+  awarenessFlushTimers.forEach((timer) => clearTimeout(timer));
+  awarenessFlushTimers.clear();
+  pendingAwarenessUpdates.clear();
+  clientStateVectors.clear();
 
   // Clear update counts
   updateCounts.clear();

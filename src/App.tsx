@@ -113,6 +113,7 @@ const { Component: CreateOrganization } = lazyLoadWithRetry(() => import('./page
 
 // Lazy load comprehensive platform components
 const { Component: QuickOnboarding } = lazyLoadWithRetry(() => import('./components/onboarding/QuickOnboarding'));
+const { Component: CreatorOnboarding } = lazyLoadWithRetry(() => import('./components/onboarding/CreatorOnboarding'));
 
 // Legal pages
 const { Component: Terms } = lazyLoadWithRetry(() => import('./pages/Terms'));
@@ -173,6 +174,20 @@ function SignupGate() {
   const isDisabled = useFeatureFlag(FEATURE_FLAGS.ONBOARDING_V2_DISABLED);
   return isDisabled ? <SignupWizard /> : <OnboardingV2 />;
 }
+
+// Creator onboarding gate: uses feature flag to decide between new CreatorOnboarding and legacy ClientOnboarding
+function OnboardingRouter() {
+  const isCreatorEnabled = useFeatureFlag(FEATURE_FLAGS.CREATOR_ONBOARDING);
+  if (isCreatorEnabled) {
+    return <CreatorOnboarding />;
+  }
+  return <Navigate to="/settings?tab=organization" replace />;
+}
+
+// Client intake flow (commission route)
+const { Component: ClientOnboardingPage } = lazyLoadWithRetry(
+  () => import('./components/onboarding/ClientOnboarding').then(m => ({ default: m.ClientOnboarding })) as Promise<{ default: React.ComponentType<Record<string, unknown>> }>
+);
 
 // OAuth callback routes wrapper - minimal providers (only auth init)
 // This avoids ConnectorsContext which interferes with Google login OAuth
@@ -388,7 +403,8 @@ function AuthenticatedRoutes() {
                   <Route path="/dashboard/admin" element={<Navigate to="/projects" replace />} />
 
                   {/* Core Platform Features - Protected */}
-                  <Route path="/onboarding" element={<Navigate to="/settings?tab=organization" replace />} />
+                  <Route path="/onboarding" element={<ProtectedRoute><OnboardingRouter /></ProtectedRoute>} />
+                  <Route path="/commission" element={<ProtectedRoute><ClientOnboardingPage /></ProtectedRoute>} />
                   {/* Future routes: /dashboard/projects/:id/workflow, /review, /collaborate, /workspace */}
 
                   {/* Messaging redirect - consolidate to /messages */}

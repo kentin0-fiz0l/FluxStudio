@@ -122,10 +122,25 @@ export const CoordinateSheetView: React.FC<CoordinateSheetViewProps> = ({
     { key: 'difficulty', label: 'Difficulty' },
   ];
 
+  // Compute summary stats
+  const summaryStats = useMemo(() => {
+    let totalDistance = 0;
+    let hardestEntry: CoordinateEntry | null = null;
+    for (const entry of entries) {
+      if (entry.stepToNext) {
+        totalDistance += entry.stepToNext.distanceYards ?? 0;
+        if (!hardestEntry || (entry.stepToNext.stepSize > 0 && entry.stepToNext.stepSize < (hardestEntry.stepToNext?.stepSize ?? Infinity))) {
+          hardestEntry = entry;
+        }
+      }
+    }
+    return { totalDistance, hardestEntry };
+  }, [entries]);
+
   return (
-    <div className="flex flex-col h-full bg-white dark:bg-gray-800">
+    <div className="coordinate-sheet-print flex flex-col h-full bg-white dark:bg-gray-800">
       {/* Header */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-gray-700 print:border-black">
+      <div className="flex items-center justify-between px-4 py-3 border-b-2 border-gray-300 dark:border-gray-700 print:border-black">
         <div className="flex items-center gap-2">
           <Table className="w-5 h-5 text-blue-500 print:text-black" aria-hidden="true" />
           <div>
@@ -242,6 +257,27 @@ export const CoordinateSheetView: React.FC<CoordinateSheetViewProps> = ({
               </tr>
             )}
           </tbody>
+          {entries.length > 0 && (
+            <tfoot>
+              <tr className="border-t-2 border-gray-400 dark:border-gray-500 bg-gray-100 dark:bg-gray-900 print:bg-gray-100">
+                <td className="px-3 py-2 font-bold text-gray-900 dark:text-white print:text-black" colSpan={2}>
+                  TOTAL
+                </td>
+                <td className="px-3 py-2 font-medium text-gray-700 dark:text-gray-300 print:text-black" colSpan={2}>
+                  {summaryStats.totalDistance.toFixed(1)} yards
+                </td>
+                <td className="px-3 py-2 text-gray-700 dark:text-gray-300 print:text-black" colSpan={3}>
+                  {summaryStats.hardestEntry ? (
+                    <span className="text-red-600 dark:text-red-400 font-medium">
+                      Hardest: {summaryStats.hardestEntry.set.name} ({summaryStats.hardestEntry.stepToNext?.stepSizeLabel})
+                    </span>
+                  ) : (
+                    '\u2014'
+                  )}
+                </td>
+              </tr>
+            </tfoot>
+          )}
         </table>
       </div>
 
@@ -258,25 +294,56 @@ export const CoordinateSheetView: React.FC<CoordinateSheetViewProps> = ({
             visibility: visible;
           }
 
+          .coordinate-sheet-print {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+          }
+
           table {
             width: 100%;
             border-collapse: collapse;
             font-size: 10pt;
+            page-break-inside: auto;
+          }
+
+          thead {
+            display: table-header-group;
+          }
+
+          tfoot {
+            display: table-footer-group;
+          }
+
+          tr {
+            page-break-inside: avoid;
           }
 
           th, td {
-            border: 1px solid #ccc;
+            border: 1.5px solid #999;
             padding: 4px 8px;
           }
 
           th {
-            background-color: #f3f4f6 !important;
+            background-color: #374151 !important;
+            color: white !important;
+            font-weight: bold;
+            border-bottom: 2.5px solid #111 !important;
             -webkit-print-color-adjust: exact;
             print-color-adjust: exact;
           }
 
           tr:nth-child(even) {
             background-color: #f9fafb !important;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+          }
+
+          tfoot td {
+            border-top: 2.5px solid #374151 !important;
+            background-color: #f3f4f6 !important;
+            font-weight: bold;
             -webkit-print-color-adjust: exact;
             print-color-adjust: exact;
           }

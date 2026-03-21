@@ -34,6 +34,7 @@ import {
   drillSetToYMapEntries,
   YjsPosition,
 } from '@/services/formation/yjs/formationYjsTypes';
+import { createBatchingManager, type BatchingManager } from '@/services/formation/yjs/batchingManager';
 
 // ============================================================================
 // Types
@@ -116,6 +117,10 @@ export interface UseFormationYjsResult {
   updatePosition: (keyframeId: string, performerId: string, position: Position) => void;
   /** Update multiple positions at once (batched) */
   updatePositions: (keyframeId: string, positions: Map<string, Position>) => void;
+  /** Update path curve for a single performer in a keyframe */
+  updatePathCurve: (keyframeId: string, performerId: string, curve: import('@/services/formationTypes').PathCurve) => void;
+  /** Batch update path curves for multiple performers in a keyframe */
+  batchUpdatePathCurves: (keyframeId: string, updates: Map<string, import('@/services/formationTypes').PathCurve>) => void;
   /** Set audio track */
   setAudioTrack: (audioTrack: AudioTrack | null) => void;
   /** Add a new drill set */
@@ -196,6 +201,7 @@ export function useFormationYjs({
   // Ref to track syncing state (avoids stale closure in persistence callback)
   const isSyncingRef = useRef(true);
   const undoManagerRef = useRef<Y.UndoManager | null>(null);
+  const batcherRef = useRef<BatchingManager | null>(null);
   const [canYUndo, setCanYUndo] = useState(false);
   const [canYRedo, setCanYRedo] = useState(false);
 
@@ -252,7 +258,7 @@ export function useFormationYjs({
   useEffect(() => {
     if (!enabled || !formationId || !projectId) return;
 
-    const ydoc = new Y.Doc();
+    const ydoc = new Y.Doc({ gc: true });
     docRef.current = ydoc;
 
     // Get room name
@@ -520,6 +526,10 @@ export function useFormationYjs({
     };
     ydoc.on('update', simultaneousMoveTracker);
 
+    // Setup BatchingManager for position update batching
+    const batcher = createBatchingManager(ydoc);
+    batcherRef.current = batcher;
+
     // Setup Y.UndoManager for per-user undo/redo
     const undoManager = new Y.UndoManager([performers, keyframes, sets], {
       trackedOrigins: new Set([null, undefined]),
@@ -536,6 +546,9 @@ export function useFormationYjs({
     return () => {
       clearInterval(heartbeatInterval);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
+
+      batcher.destroy();
+      batcherRef.current = null;
 
       undoManager.destroy();
       undoManagerRef.current = null;
@@ -559,6 +572,11 @@ export function useFormationYjs({
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps -- initialData, initializeYjsFromFormation, and syncYjsToReact are stable and intentionally excluded to avoid re-connecting WebSocket on every render
   }, [enabled, projectId, formationId, user, userColor, onConnectionChange]);
+
+  // Keep batcher collaborator count in sync for dynamic batch window
+  useEffect(() => {
+    batcherRef.current?.setCollaboratorCount(collaborators.length);
+  }, [collaborators.length]);
 
   // ============================================================================
   // Sync Yjs to React State
@@ -883,14 +901,24 @@ export function useFormationYjs({
   }, []);
 
   const updatePosition = useCallback((keyframeId: string, performerId: string, position: Position) => {
+    const batcher = batcherRef.current;
+    if (batcher) {
+      // Use batching manager for coalesced, rAF-aligned updates
+      batcher.enqueue(keyframeId, performerId, {
+        x: position.x,
+        y: position.y,
+        rotation: position.rotation ?? 0,
+      });
+      return;
+    }
+
+    // Fallback: direct transact if batcher is not available
     const ydoc = docRef.current;
     if (!ydoc) return;
 
     const keyframes = ydoc.getArray(FORMATION_YJS_TYPES.KEYFRAMES);
 
-    // Wrap in transaction for consistency with updatePositions
     ydoc.transact(() => {
-      // Find the keyframe
       for (let i = 0; i < keyframes.length; i++) {
         const yKeyframe = keyframes.get(i) as Y.Map<unknown>;
         if (yKeyframe.get('id') === keyframeId) {
@@ -909,6 +937,22 @@ export function useFormationYjs({
   }, []);
 
   const updatePositions = useCallback((keyframeId: string, positions: Map<string, Position>) => {
+    const batcher = batcherRef.current;
+    if (batcher) {
+      // Use batching manager for coalesced, rAF-aligned updates
+      const batchMap = new Map<string, { x: number; y: number; rotation: number }>();
+      positions.forEach((pos, performerId) => {
+        batchMap.set(performerId, {
+          x: pos.x,
+          y: pos.y,
+          rotation: pos.rotation ?? 0,
+        });
+      });
+      batcher.enqueueBatch(keyframeId, batchMap);
+      return;
+    }
+
+    // Fallback: direct transact if batcher is not available
     const ydoc = docRef.current;
     if (!ydoc) return;
 
@@ -928,6 +972,66 @@ export function useFormationYjs({
               });
             });
           }
+          break;
+        }
+      }
+    });
+  }, []);
+
+  /** Update path curve for a single performer in a keyframe */
+  const updatePathCurve = useCallback((keyframeId: string, performerId: string, curve: import('@/services/formationTypes').PathCurve) => {
+    const ydoc = docRef.current;
+    if (!ydoc) return;
+
+    const keyframes = ydoc.getArray(FORMATION_YJS_TYPES.KEYFRAMES);
+
+    ydoc.transact(() => {
+      for (let i = 0; i < keyframes.length; i++) {
+        const yKeyframe = keyframes.get(i) as Y.Map<unknown>;
+        if (yKeyframe.get('id') === keyframeId) {
+          let yPathCurves = yKeyframe.get('pathCurves') as Y.Map<unknown> | undefined;
+          if (!yPathCurves) {
+            yPathCurves = new Y.Map();
+            yKeyframe.set('pathCurves', yPathCurves);
+          }
+          const yCurve = new Y.Map();
+          yCurve.set('cp1', { x: curve.cp1.x, y: curve.cp1.y });
+          yCurve.set('cp2', { x: curve.cp2.x, y: curve.cp2.y });
+          if (curve.easingControlPoints) {
+            yCurve.set('easingControlPoints', { ...curve.easingControlPoints });
+          }
+          yPathCurves.set(performerId, yCurve);
+          break;
+        }
+      }
+    });
+  }, []);
+
+  /** Batch update path curves for multiple performers in a keyframe */
+  const batchUpdatePathCurves = useCallback((keyframeId: string, updates: Map<string, import('@/services/formationTypes').PathCurve>) => {
+    const ydoc = docRef.current;
+    if (!ydoc) return;
+
+    const keyframes = ydoc.getArray(FORMATION_YJS_TYPES.KEYFRAMES);
+
+    ydoc.transact(() => {
+      for (let i = 0; i < keyframes.length; i++) {
+        const yKeyframe = keyframes.get(i) as Y.Map<unknown>;
+        if (yKeyframe.get('id') === keyframeId) {
+          let yPathCurves = yKeyframe.get('pathCurves') as Y.Map<unknown> | undefined;
+          if (!yPathCurves) {
+            yPathCurves = new Y.Map();
+            yKeyframe.set('pathCurves', yPathCurves);
+          }
+          updates.forEach((curve, performerId) => {
+            const yCurve = new Y.Map();
+            yCurve.set('cp1', { x: curve.cp1.x, y: curve.cp1.y });
+            yCurve.set('cp2', { x: curve.cp2.x, y: curve.cp2.y });
+            if (curve.easingControlPoints) {
+              yCurve.set('easingControlPoints', { ...curve.easingControlPoints });
+            }
+            yPathCurves!.set(performerId, yCurve);
+          });
           break;
         }
       }
@@ -1238,6 +1342,8 @@ export function useFormationYjs({
     removeKeyframe,
     updatePosition,
     updatePositions,
+    updatePathCurve,
+    batchUpdatePathCurves,
     setAudioTrack,
     addSet,
     updateSet,

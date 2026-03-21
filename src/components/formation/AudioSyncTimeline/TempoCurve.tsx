@@ -6,9 +6,10 @@
  * Adds text labels at tempo change points with segment names.
  */
 
-import { memo, useMemo } from 'react';
+import { memo, useMemo, useState, useEffect } from 'react';
 import type { TempoMap } from '../../../services/tempoMap';
 import { countToTimeMs, getTempoAtCount, timeMsToCount } from '../../../services/tempoMap';
+import { tempoEventBus } from '../../../services/formation/tempoEventBus';
 
 interface TempoCurveProps {
   tempoMap: TempoMap;
@@ -29,6 +30,15 @@ export const TempoCurve = memo(function TempoCurve({
   yOffset = 0,
 }: TempoCurveProps) {
   const gradientId = useMemo(() => `tempo-curve-grad-${++gradientCounter}`, []);
+
+  // Subscribe to cross-tool tempo-change events to trigger re-render
+  const [, setTempoVersion] = useState(0);
+  useEffect(() => {
+    const unsub = tempoEventBus.subscribe('tempo-change', () => {
+      setTempoVersion((v) => v + 1);
+    });
+    return unsub;
+  }, []);
 
   const { linePoints, areaPath, tempoLabels } = useMemo(() => {
     if (tempoMap.segments.length === 0 || durationMs <= 0) {

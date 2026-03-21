@@ -27,6 +27,8 @@ import { AudienceHeatmap } from '../AudienceHeatmap';
 import { CountOverlay } from '../CountOverlay';
 import { KeyframeGhostLayer } from '../KeyframeGhostLayer';
 import { isInViewport } from '../../../utils/performanceUtils';
+import { createSpatialIndex } from '../../../services/formation/spatialIndex';
+import type { SpatialIndex } from '../../../services/formation/spatialIndex';
 
 // ============================================================================
 // Types
@@ -228,6 +230,39 @@ export function batchRenderPerformers(
   }
 }
 
+/**
+ * Simplified batch renderer for 200+ visible performers.
+ * Draws only colored dots without labels or shapes for maximum throughput.
+ */
+export function batchRenderDots(
+  ctx: CanvasRenderingContext2D,
+  performers: BatchPerformer[],
+  dotRadius: number,
+): void {
+  if (performers.length === 0) return;
+
+  // Group by color for minimal fillStyle changes
+  const colorGroups = new Map<string, BatchPerformer[]>();
+  for (const p of performers) {
+    let group = colorGroups.get(p.color);
+    if (!group) {
+      group = [];
+      colorGroups.set(p.color, group);
+    }
+    group.push(p);
+  }
+
+  for (const [color, group] of colorGroups) {
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    for (const p of group) {
+      ctx.moveTo(p.pixelX + dotRadius, p.pixelY);
+      ctx.arc(p.pixelX, p.pixelY, dotRadius, 0, 2 * Math.PI);
+    }
+    ctx.fill();
+  }
+}
+
 // ============================================================================
 // Canvas2D Batch Layer Component
 // ============================================================================
@@ -258,6 +293,10 @@ const PerformerCanvasLayer = React.memo<PerformerCanvasLayerProps>(function Perf
   viewportSize,
 }) {
   const canvasElRef = useRef<HTMLCanvasElement>(null);
+  const spatialIndexRef = useRef<SpatialIndex | null>(null);
+
+  // Rebuild spatial index when positions change and performer count is high
+  const useSpatialIndex = performers.length > 200;
 
   // Pre-compute batch data with viewport culling
   const batchData = useMemo(() => {
@@ -265,6 +304,45 @@ const PerformerCanvasLayer = React.memo<PerformerCanvasLayerProps>(function Perf
     const doCull = viewportSize != null && canvasPan != null;
     const canvasSize = { width: canvasWidth, height: canvasHeight };
 
+    // For large formations, use spatial index for viewport culling
+    if (useSpatialIndex && doCull) {
+      if (!spatialIndexRef.current) {
+        spatialIndexRef.current = createSpatialIndex({ x: 0, y: 0, width: 100, height: 100 });
+      }
+      const idx = spatialIndexRef.current;
+      const posMap = new Map<string, { x: number; y: number }>();
+      for (const performer of performers) {
+        if (excludeIds.has(performer.id)) continue;
+        const pos = positions.get(performer.id);
+        if (pos) posMap.set(performer.id, pos);
+      }
+      idx.rebuild(posMap);
+
+      // Calculate viewport bounds in normalized coordinates
+      const vpLeft = Math.max(0, (-canvasPan.x / canvasSize.width) * 100);
+      const vpTop = Math.max(0, (-canvasPan.y / canvasSize.height) * 100);
+      const vpWidth = Math.min(100, (viewportSize!.width / canvasSize.width) * 100);
+      const vpHeight = Math.min(100, (viewportSize!.height / canvasSize.height) * 100);
+
+      const visible = idx.query({ x: vpLeft - 2, y: vpTop - 2, width: vpWidth + 4, height: vpHeight + 4 });
+      const performerMap = new Map(performers.map(p => [p.id, p]));
+
+      for (const entry of visible) {
+        const performer = performerMap.get(entry.id);
+        if (!performer) continue;
+        result.push({
+          color: performer.color,
+          label: performer.label,
+          name: performer.name,
+          pixelX: (entry.x / 100) * canvasWidth,
+          pixelY: (entry.y / 100) * canvasHeight,
+          shape: performer.symbolShape ?? 'circle',
+        });
+      }
+      return result;
+    }
+
+    // Standard path for smaller formations
     for (const performer of performers) {
       if (excludeIds.has(performer.id)) continue;
       const pos = positions.get(performer.id);
@@ -285,7 +363,7 @@ const PerformerCanvasLayer = React.memo<PerformerCanvasLayerProps>(function Perf
       });
     }
     return result;
-  }, [performers, positions, excludeIds, canvasWidth, canvasHeight, zoom, canvasPan, viewportSize]);
+  }, [performers, positions, excludeIds, canvasWidth, canvasHeight, zoom, canvasPan, viewportSize, useSpatialIndex]);
 
   // Draw on canvas
   useEffect(() => {
@@ -310,7 +388,12 @@ const PerformerCanvasLayer = React.memo<PerformerCanvasLayerProps>(function Perf
 
     const markerRadius = 16 * zoom;
 
-    batchRenderPerformers(ctx, batchData, markerRadius, showLabels, dpr);
+    // For very large formations (>200 visible), render simplified dots for performance
+    if (batchData.length > 200) {
+      batchRenderDots(ctx, batchData, Math.max(3, markerRadius * 0.4));
+    } else {
+      batchRenderPerformers(ctx, batchData, markerRadius, showLabels, dpr);
+    }
   }, [batchData, canvasWidth, canvasHeight, zoom, showLabels]);
 
   return (

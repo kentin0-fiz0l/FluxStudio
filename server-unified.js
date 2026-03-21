@@ -490,6 +490,16 @@ app.use('/api/ai/metmap', aiMetmapRoutes);
 app.use('/ai/design-feedback', aiDesignFeedbackRoutes);
 app.use('/api/ai/design-feedback', aiDesignFeedbackRoutes);
 
+// Mount AI Formation Vision routes (4A)
+const aiFormationVisionRoutes = require('./routes/ai-formation-vision');
+app.use('/ai/formation', aiFormationVisionRoutes);
+app.use('/api/ai/formation', aiFormationVisionRoutes);
+
+// Mount AI Preferences routes (4D)
+const aiPreferencesRoutes = require('./routes/ai-preferences');
+app.use('/ai/preferences', aiPreferencesRoutes);
+app.use('/api/ai/preferences', aiPreferencesRoutes);
+
 // Mount AI Search routes (Phase 2.3)
 const aiSearchRoutes = require('./routes/ai-search');
 app.use('/search/ai', aiSearchRoutes);

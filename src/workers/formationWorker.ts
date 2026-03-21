@@ -118,11 +118,22 @@ type WorkerResponse =
 // ============================================================================
 
 /**
- * O(n^2) pairwise distance check. For 200 performers this is 19,900 pairs
- * which is fine off-thread but would cause jank on the main thread during
- * drag operations.
+ * Pairwise collision detection.
+ * For <= 300 performers, uses brute-force O(n^2) which is fast enough.
+ * For > 300 performers, uses spatial grid hashing for ~O(n) average case.
  */
 function detectCollisions(
+  positions: [string, number, number][],
+  minDistance: number,
+): CollisionPair[] {
+  if (positions.length > 300) {
+    return detectCollisionsGrid(positions, minDistance);
+  }
+  return detectCollisionsBruteForce(positions, minDistance);
+}
+
+/** Brute-force O(n^2) collision check - optimal for small counts */
+function detectCollisionsBruteForce(
   positions: [string, number, number][],
   minDistance: number,
 ): CollisionPair[] {
@@ -138,11 +149,68 @@ function detectCollisions(
       const distSq = dx * dx + dy * dy;
 
       if (distSq < minDistSq) {
-        collisions.push({
-          idA,
-          idB,
-          distance: Math.sqrt(distSq),
-        });
+        collisions.push({ idA, idB, distance: Math.sqrt(distSq) });
+      }
+    }
+  }
+
+  return collisions;
+}
+
+/**
+ * Grid-based spatial hashing collision detection.
+ * Divides the field into cells of size minDistance, so we only need to check
+ * neighboring cells (9 cells max) for each performer. ~O(n) average case.
+ */
+function detectCollisionsGrid(
+  positions: [string, number, number][],
+  minDistance: number,
+): CollisionPair[] {
+  const collisions: CollisionPair[] = [];
+  const minDistSq = minDistance * minDistance;
+  const cellSize = minDistance;
+
+  // Build grid: key is "cellX,cellY" -> list of indices
+  const grid = new Map<string, number[]>();
+
+  for (let i = 0; i < positions.length; i++) {
+    const [, x, y] = positions[i];
+    const cx = Math.floor(x / cellSize);
+    const cy = Math.floor(y / cellSize);
+    const key = `${cx},${cy}`;
+    let cell = grid.get(key);
+    if (!cell) {
+      cell = [];
+      grid.set(key, cell);
+    }
+    cell.push(i);
+  }
+
+  // Check each performer against neighbors in adjacent cells
+  for (let i = 0; i < positions.length; i++) {
+    const [idA, ax, ay] = positions[i];
+    const cx = Math.floor(ax / cellSize);
+    const cy = Math.floor(ay / cellSize);
+
+    // Check 9 neighboring cells (including own cell)
+    for (let dx = -1; dx <= 1; dx++) {
+      for (let dy = -1; dy <= 1; dy++) {
+        const neighborKey = `${cx + dx},${cy + dy}`;
+        const neighborCell = grid.get(neighborKey);
+        if (!neighborCell) continue;
+
+        for (const j of neighborCell) {
+          if (j <= i) continue; // Avoid duplicate pairs (i < j guarantee)
+
+          const [idB, bx, by] = positions[j];
+          const ddx = ax - bx;
+          const ddy = ay - by;
+          const distSq = ddx * ddx + ddy * ddy;
+
+          if (distSq < minDistSq) {
+            collisions.push({ idA, idB, distance: Math.sqrt(distSq) });
+          }
+        }
       }
     }
   }
@@ -174,42 +242,49 @@ function computeBulkStepSizes(
 
   const results: StepSizeResult[] = [];
 
-  for (const [id, fromX, fromY] of positions) {
-    const next = nextMap.get(id);
-    if (!next) continue;
+  // Process in chunks of 500 for large formations to avoid blocking the worker
+  // event loop for too long (allows interleaved message handling)
+  const CHUNK_SIZE = 500;
+  for (let start = 0; start < positions.length; start += CHUNK_SIZE) {
+    const end = Math.min(start + CHUNK_SIZE, positions.length);
+    for (let idx = start; idx < end; idx++) {
+      const [id, fromX, fromY] = positions[idx];
+      const next = nextMap.get(id);
+      if (!next) continue;
 
-    const [toX, toY] = next;
-    const dxNorm = toX - fromX;
-    const dyNorm = toY - fromY;
+      const [toX, toY] = next;
+      const dxNorm = toX - fromX;
+      const dyNorm = toY - fromY;
 
-    // Convert to field units (yards/feet/meters)
-    const dxField = (dxNorm / 100) * fieldConfig.width;
-    const dyField = (dyNorm / 100) * fieldConfig.height;
-    const distanceYards = Math.sqrt(dxField * dxField + dyField * dyField);
+      // Convert to field units (yards/feet/meters)
+      const dxField = (dxNorm / 100) * fieldConfig.width;
+      const dyField = (dyNorm / 100) * fieldConfig.height;
+      const distanceYards = Math.sqrt(dxField * dxField + dyField * dyField);
 
-    let stepSize: number;
-    let stepSizeLabel: string;
+      let stepSize: number;
+      let stepSizeLabel: string;
 
-    if (distanceYards < 0.01) {
-      stepSize = 0;
-      stepSizeLabel = 'Mark Time';
-    } else {
-      stepSize = (counts * 5) / distanceYards;
-      stepSizeLabel = formatStepSize(stepSize);
+      if (distanceYards < 0.01) {
+        stepSize = 0;
+        stepSizeLabel = 'Mark Time';
+      } else {
+        stepSize = (counts * 5) / distanceYards;
+        stepSizeLabel = formatStepSize(stepSize);
+      }
+
+      let difficulty: 'easy' | 'moderate' | 'hard';
+      if (stepSize === 0) {
+        difficulty = 'easy';
+      } else if (stepSize >= 8) {
+        difficulty = 'easy';
+      } else if (stepSize >= 6) {
+        difficulty = 'moderate';
+      } else {
+        difficulty = 'hard';
+      }
+
+      results.push({ performerId: id, distanceYards, stepSize, stepSizeLabel, difficulty });
     }
-
-    let difficulty: 'easy' | 'moderate' | 'hard';
-    if (stepSize === 0) {
-      difficulty = 'easy';
-    } else if (stepSize >= 8) {
-      difficulty = 'easy';
-    } else if (stepSize >= 6) {
-      difficulty = 'moderate';
-    } else {
-      difficulty = 'hard';
-    }
-
-    results.push({ performerId: id, distanceYards, stepSize, stepSizeLabel, difficulty });
   }
 
   return results;

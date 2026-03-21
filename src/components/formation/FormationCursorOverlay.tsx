@@ -46,6 +46,8 @@ export interface FormationCursorOverlayProps {
   zoom?: number;
   /** Optional class name */
   className?: string;
+  /** Callback to emit 3D cursor position data via awareness state */
+  onEmit3DCursorPosition?: (position: { x: number; y: number; z: number } | null) => void;
 }
 
 interface CursorDisplayProps {

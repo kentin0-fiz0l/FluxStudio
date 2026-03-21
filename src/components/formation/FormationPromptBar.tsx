@@ -15,6 +15,7 @@ import {
   Wand2,
   ChevronUp,
   ChevronDown,
+  Wrench,
 } from 'lucide-react';
 import type { Performer, Position, FieldConfig } from '@/services/formationTypes';
 import { parsePrompt } from '@/services/promptParser';
@@ -23,6 +24,8 @@ import { useGhostPreview } from '@/store/slices/ghostPreviewSlice';
 import { VoiceInputButton } from './VoiceInputButton';
 import { FORMATION_TEMPLATES, snapToTemplate } from '@/services/formationTemplates';
 import { buildApiUrl } from '@/config/environment';
+import type { AIToolCall } from '@/services/aiToolExecution';
+import { describeToolCall } from '@/services/aiToolExecution';
 
 // Template chips for quick template access (pick 6 popular ones)
 const TEMPLATE_CHIPS = FORMATION_TEMPLATES.filter(t =>
@@ -86,6 +89,13 @@ export function FormationPromptBar({
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isExpanded, setIsExpanded] = useState(true);
+  const [pendingToolCall, setPendingToolCall] = useState<AIToolCall | null>(null);
+  const [commandHistory, setCommandHistory] = useState<string[]>(() => {
+    try {
+      return JSON.parse(localStorage.getItem('fluxstudio_prompt_history') || '[]');
+    } catch { return []; }
+  });
+  const [historyIndex, setHistoryIndex] = useState(-1);
   const inputRef = useRef<HTMLInputElement>(null);
   const autoTriggeredRef = useRef(false);
   const ghostPreview = useGhostPreview();
@@ -220,22 +230,63 @@ export function FormationPromptBar({
     [handleGenerate],
   );
 
+  // Save a command to history
+  const saveToHistory = useCallback((text: string) => {
+    setCommandHistory(prev => {
+      const filtered = prev.filter(h => h !== text);
+      const next = [text, ...filtered].slice(0, 50);
+      try { localStorage.setItem('fluxstudio_prompt_history', JSON.stringify(next)); } catch { /* ignore */ }
+      return next;
+    });
+    setHistoryIndex(-1);
+  }, []);
+
+  // Apply or reject pending tool call
+  const handleToolCallDecision = useCallback((accept: boolean) => {
+    if (!accept) {
+      ghostPreview.clearPreview();
+    }
+    // If accepted, ghost preview accept flow handles position application
+    setPendingToolCall(null);
+  }, [ghostPreview]);
+
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
       if (e.key === 'Enter' && !e.shiftKey) {
         e.preventDefault();
+        if (prompt.trim()) saveToHistory(prompt.trim());
         handleGenerate();
       }
       if (e.key === 'Escape') {
-        if (hasActivePreview) {
+        if (pendingToolCall) {
+          handleToolCallDecision(false);
+        } else if (hasActivePreview) {
           ghostPreview.clearPreview();
         } else {
           setShowSuggestions(false);
           inputRef.current?.blur();
         }
       }
+      // Command history navigation
+      if (e.key === 'ArrowUp' && commandHistory.length > 0) {
+        e.preventDefault();
+        const newIndex = Math.min(historyIndex + 1, commandHistory.length - 1);
+        setHistoryIndex(newIndex);
+        setPrompt(commandHistory[newIndex]);
+      }
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        if (historyIndex <= 0) {
+          setHistoryIndex(-1);
+          setPrompt('');
+        } else {
+          const newIndex = historyIndex - 1;
+          setHistoryIndex(newIndex);
+          setPrompt(commandHistory[newIndex]);
+        }
+      }
     },
-    [handleGenerate, hasActivePreview, ghostPreview],
+    [handleGenerate, hasActivePreview, ghostPreview, pendingToolCall, handleToolCallDecision, commandHistory, historyIndex, prompt, saveToHistory],
   );
 
   const handleSuggestionClick = useCallback(
@@ -412,11 +463,36 @@ export function FormationPromptBar({
           </div>
         </div>
 
+        {/* Pending tool call preview */}
+        {pendingToolCall && (
+          <div className="mt-2 mx-1 flex items-center gap-2 px-3 py-2 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg">
+            <Wrench className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400 flex-shrink-0" />
+            <span className="text-xs text-amber-700 dark:text-amber-300 flex-1">
+              AI wants to: {describeToolCall(pendingToolCall)}
+            </span>
+            <button
+              onClick={() => handleToolCallDecision(true)}
+              className="px-2 py-0.5 text-[10px] font-medium bg-green-500 hover:bg-green-600 text-white rounded transition-colors"
+            >
+              Apply
+            </button>
+            <button
+              onClick={() => handleToolCallDecision(false)}
+              className="px-2 py-0.5 text-[10px] font-medium bg-gray-300 hover:bg-gray-400 dark:bg-gray-600 dark:hover:bg-gray-500 text-gray-700 dark:text-gray-200 rounded transition-colors"
+            >
+              Reject
+            </button>
+          </div>
+        )}
+
         {/* Keyboard shortcut hint */}
         <p className="text-[10px] text-gray-400 dark:text-gray-500 text-center mt-1">
           Press <kbd className="px-1 py-0.5 bg-gray-100 dark:bg-gray-700 rounded text-[9px] font-mono">Enter</kbd> to generate
           {hasActivePreview && (
             <> &middot; Preview on canvas &middot; <kbd className="px-1 py-0.5 bg-gray-100 dark:bg-gray-700 rounded text-[9px] font-mono">Esc</kbd> to dismiss</>
+          )}
+          {commandHistory.length > 0 && !hasActivePreview && (
+            <> &middot; <kbd className="px-1 py-0.5 bg-gray-100 dark:bg-gray-700 rounded text-[9px] font-mono">&uarr;</kbd><kbd className="px-1 py-0.5 bg-gray-100 dark:bg-gray-700 rounded text-[9px] font-mono">&darr;</kbd> history</>
           )}
         </p>
       </div>

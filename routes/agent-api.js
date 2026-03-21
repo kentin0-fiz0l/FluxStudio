@@ -25,6 +25,7 @@ const {
   agentRateLimit,
 } = require('../lib/agent/middleware');
 const agentService = require('../services/agent-service');
+const { asyncHandler } = require('../middleware/errorHandler');
 
 // ============================================================================
 // Read-Only Skill Endpoints
@@ -39,37 +40,28 @@ router.get('/search_projects',
   agentRateLimit(30, 60000),
   agentPermissions('read:projects'),
   auditLog('search_projects'),
-  async (req, res) => {
-    try {
-      const { query: searchQuery, limit = 10, offset = 0 } = req.query;
+  asyncHandler(async (req, res) => {
+    const { query: searchQuery, limit = 10, offset = 0 } = req.query;
 
-      if (!searchQuery) {
-        return res.status(400).json({
-          success: false,
-          error: 'Query parameter is required',
-          code: 'AGENT_QUERY_REQUIRED',
-        });
-      }
-
-      const results = await agentService.searchProjects(req.user.id, searchQuery, {
-        limit: parseInt(limit),
-        offset: parseInt(offset),
-      });
-
-      res.json({
-        success: true,
-        data: results,
-        count: results.length,
-      });
-    } catch (error) {
-      log.error('search_projects error', error);
-      res.status(500).json({
+    if (!searchQuery) {
+      return res.status(400).json({
         success: false,
-        error: 'Failed to search projects',
-        code: 'AGENT_SEARCH_FAILED',
+        error: 'Query parameter is required',
+        code: 'AGENT_QUERY_REQUIRED',
       });
     }
-  }
+
+    const results = await agentService.searchProjects(req.user.id, searchQuery, {
+      limit: parseInt(limit),
+      offset: parseInt(offset),
+    });
+
+    res.json({
+      success: true,
+      data: results,
+      count: results.length,
+    });
+  })
 );
 
 /**
@@ -81,30 +73,21 @@ router.get('/list_projects',
   agentRateLimit(60, 60000),
   agentPermissions('read:projects'),
   auditLog('list_projects'),
-  async (req, res) => {
-    try {
-      const { status, limit = 20, offset = 0 } = req.query;
+  asyncHandler(async (req, res) => {
+    const { status, limit = 20, offset = 0 } = req.query;
 
-      const projects = await agentService.listProjects(req.user.id, {
-        status,
-        limit: parseInt(limit),
-        offset: parseInt(offset),
-      });
+    const projects = await agentService.listProjects(req.user.id, {
+      status,
+      limit: parseInt(limit),
+      offset: parseInt(offset),
+    });
 
-      res.json({
-        success: true,
-        data: projects,
-        count: projects.length,
-      });
-    } catch (error) {
-      log.error('list_projects error', error);
-      res.status(500).json({
-        success: false,
-        error: 'Failed to list projects',
-        code: 'AGENT_LIST_FAILED',
-      });
-    }
-  }
+    res.json({
+      success: true,
+      data: projects,
+      count: projects.length,
+    });
+  })
 );
 
 /**
@@ -116,33 +99,24 @@ router.get('/get_project/:id',
   agentRateLimit(60, 60000),
   agentPermissions('read:projects'),
   auditLog('get_project'),
-  async (req, res) => {
-    try {
-      const { id } = req.params;
+  asyncHandler(async (req, res) => {
+    const { id } = req.params;
 
-      const project = await agentService.getProject(req.user.id, id);
+    const project = await agentService.getProject(req.user.id, id);
 
-      if (!project) {
-        return res.status(404).json({
-          success: false,
-          error: 'Project not found or access denied',
-          code: 'AGENT_PROJECT_NOT_FOUND',
-        });
-      }
-
-      res.json({
-        success: true,
-        data: project,
-      });
-    } catch (error) {
-      log.error('get_project error', error);
-      res.status(500).json({
+    if (!project) {
+      return res.status(404).json({
         success: false,
-        error: 'Failed to get project',
-        code: 'AGENT_GET_PROJECT_FAILED',
+        error: 'Project not found or access denied',
+        code: 'AGENT_PROJECT_NOT_FOUND',
       });
     }
-  }
+
+    res.json({
+      success: true,
+      data: project,
+    });
+  })
 );
 
 /**
@@ -154,29 +128,20 @@ router.get('/activity_feed',
   agentRateLimit(30, 60000),
   agentPermissions('read:activity'),
   auditLog('activity_feed'),
-  async (req, res) => {
-    try {
-      const { limit = 30, since } = req.query;
+  asyncHandler(async (req, res) => {
+    const { limit = 30, since } = req.query;
 
-      const activity = await agentService.getActivityFeed(req.user.id, {
-        limit: parseInt(limit),
-        since,
-      });
+    const activity = await agentService.getActivityFeed(req.user.id, {
+      limit: parseInt(limit),
+      since,
+    });
 
-      res.json({
-        success: true,
-        data: activity,
-        count: activity.length,
-      });
-    } catch (error) {
-      log.error('activity_feed error', error);
-      res.status(500).json({
-        success: false,
-        error: 'Failed to get activity feed',
-        code: 'AGENT_ACTIVITY_FEED_FAILED',
-      });
-    }
-  }
+    res.json({
+      success: true,
+      data: activity,
+      count: activity.length,
+    });
+  })
 );
 
 /**
@@ -188,25 +153,16 @@ router.get('/what_changed',
   agentRateLimit(20, 60000),
   agentPermissions('read:activity'),
   auditLog('what_changed'),
-  async (req, res) => {
-    try {
-      const { since } = req.query;
+  asyncHandler(async (req, res) => {
+    const { since } = req.query;
 
-      const changes = await agentService.whatChanged(req.user.id, since);
+    const changes = await agentService.whatChanged(req.user.id, since);
 
-      res.json({
-        success: true,
-        data: changes,
-      });
-    } catch (error) {
-      log.error('what_changed error', error);
-      res.status(500).json({
-        success: false,
-        error: 'Failed to get changes',
-        code: 'AGENT_CHANGES_FAILED',
-      });
-    }
-  }
+    res.json({
+      success: true,
+      data: changes,
+    });
+  })
 );
 
 /**
@@ -218,23 +174,14 @@ router.get('/daily_brief',
   agentRateLimit(10, 60000),
   agentPermissions('read:activity'),
   auditLog('daily_brief'),
-  async (req, res) => {
-    try {
-      const brief = await agentService.generateDailyBrief(req.user.id);
+  asyncHandler(async (req, res) => {
+    const brief = await agentService.generateDailyBrief(req.user.id);
 
-      res.json({
-        success: true,
-        data: brief,
-      });
-    } catch (error) {
-      log.error('daily_brief error', error);
-      res.status(500).json({
-        success: false,
-        error: 'Failed to generate daily brief',
-        code: 'AGENT_DAILY_BRIEF_FAILED',
-      });
-    }
-  }
+    res.json({
+      success: true,
+      data: brief,
+    });
+  })
 );
 
 // ============================================================================
@@ -295,25 +242,16 @@ router.post('/chat',
 router.post('/session',
   authenticateToken,
   zodValidate(agentSessionSchema),
-  async (req, res) => {
-    try {
-      const { projectId } = req.body;
+  asyncHandler(async (req, res) => {
+    const { projectId } = req.body;
 
-      const session = await agentService.createSession(req.user.id, projectId);
+    const session = await agentService.createSession(req.user.id, projectId);
 
-      res.json({
-        success: true,
-        data: session,
-      });
-    } catch (error) {
-      log.error('create_session error', error);
-      res.status(500).json({
-        success: false,
-        error: 'Failed to create session',
-        code: 'AGENT_SESSION_CREATE_FAILED',
-      });
-    }
-  }
+    res.json({
+      success: true,
+      data: session,
+    });
+  })
 );
 
 /**
@@ -322,31 +260,22 @@ router.post('/session',
  */
 router.get('/session/:id',
   authenticateToken,
-  async (req, res) => {
-    try {
-      const session = await agentService.getSession(req.params.id);
+  asyncHandler(async (req, res) => {
+    const session = await agentService.getSession(req.params.id);
 
-      if (!session || session.user_id !== req.user.id) {
-        return res.status(404).json({
-          success: false,
-          error: 'Session not found',
-          code: 'AGENT_SESSION_NOT_FOUND',
-        });
-      }
-
-      res.json({
-        success: true,
-        data: session,
-      });
-    } catch (error) {
-      log.error('get_session error', error);
-      res.status(500).json({
+    if (!session || session.user_id !== req.user.id) {
+      return res.status(404).json({
         success: false,
-        error: 'Failed to get session',
-        code: 'AGENT_SESSION_GET_FAILED',
+        error: 'Session not found',
+        code: 'AGENT_SESSION_NOT_FOUND',
       });
     }
-  }
+
+    res.json({
+      success: true,
+      data: session,
+    });
+  })
 );
 
 // ============================================================================
@@ -359,24 +288,15 @@ router.get('/session/:id',
  */
 router.get('/pending_actions',
   authenticateToken,
-  async (req, res) => {
-    try {
-      const actions = await agentService.getPendingActions(req.user.id);
+  asyncHandler(async (req, res) => {
+    const actions = await agentService.getPendingActions(req.user.id);
 
-      res.json({
-        success: true,
-        data: actions,
-        count: actions.length,
-      });
-    } catch (error) {
-      log.error('pending_actions error', error);
-      res.status(500).json({
-        success: false,
-        error: 'Failed to get pending actions',
-        code: 'AGENT_PENDING_ACTIONS_FAILED',
-      });
-    }
-  }
+    res.json({
+      success: true,
+      data: actions,
+      count: actions.length,
+    });
+  })
 );
 
 /**
@@ -385,23 +305,14 @@ router.get('/pending_actions',
  */
 router.post('/pending_action/:id/approve',
   authenticateToken,
-  async (req, res) => {
-    try {
-      await agentService.resolvePendingAction(req.params.id, 'approved', req.user.id);
+  asyncHandler(async (req, res) => {
+    await agentService.resolvePendingAction(req.params.id, 'approved', req.user.id);
 
-      res.json({
-        success: true,
-        message: 'Action approved',
-      });
-    } catch (error) {
-      log.error('approve_action error', error);
-      res.status(500).json({
-        success: false,
-        error: 'Failed to approve action',
-        code: 'AGENT_APPROVE_FAILED',
-      });
-    }
-  }
+    res.json({
+      success: true,
+      message: 'Action approved',
+    });
+  })
 );
 
 /**
@@ -410,23 +321,14 @@ router.post('/pending_action/:id/approve',
  */
 router.post('/pending_action/:id/reject',
   authenticateToken,
-  async (req, res) => {
-    try {
-      await agentService.resolvePendingAction(req.params.id, 'rejected', req.user.id);
+  asyncHandler(async (req, res) => {
+    await agentService.resolvePendingAction(req.params.id, 'rejected', req.user.id);
 
-      res.json({
-        success: true,
-        message: 'Action rejected',
-      });
-    } catch (error) {
-      log.error('reject_action error', error);
-      res.status(500).json({
-        success: false,
-        error: 'Failed to reject action',
-        code: 'AGENT_REJECT_FAILED',
-      });
-    }
-  }
+    res.json({
+      success: true,
+      message: 'Action rejected',
+    });
+  })
 );
 
 module.exports = router;

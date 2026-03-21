@@ -31,7 +31,7 @@ import { useFeatureFlag } from '@/hooks/useFeatureFlag';
 import { FEATURE_FLAGS } from '@/constants/featureFlags';
 import { observability } from '@/services/observability';
 
-type Tool = 'select' | 'pan' | 'add' | 'line' | 'arc' | 'block' | 'comment';
+type Tool = 'select' | 'pan' | 'add' | 'line' | 'arc' | 'block' | 'comment' | 'curve';
 
 interface CanvasToolbarProps {
   activeTool: Tool;

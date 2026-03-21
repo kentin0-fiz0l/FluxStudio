@@ -70,6 +70,7 @@ export function AIProjectCreator({
     tasks: false,
   });
   const [showSlowMessage, setShowSlowMessage] = useState(false);
+  const [, setIsFallback] = useState(false);
   const slowTimerRef = useRef<ReturnType<typeof setTimeout>>();
 
   // Show a "still working" message after 15 seconds of generating or creating
@@ -88,16 +89,20 @@ export function AIProjectCreator({
     if (!description.trim()) return;
 
     setIsGenerating(true);
+    setIsFallback(false);
     try {
-      const result = await apiService.post<{ suggestions: AISuggestion }>('/api/ai/generate-project-structure', { description: description.trim() });
+      const result = await apiService.post<{ suggestions: AISuggestion; fallback?: boolean }>('/api/ai/generate-project-structure', { description: description.trim() });
       if (result.data?.suggestions) {
         setSuggestions(result.data.suggestions);
+        setIsFallback(!!result.data.fallback);
       } else {
         setSuggestions(generateLocalSuggestions(description));
+        setIsFallback(true);
       }
     } catch (_error) {
       // Fallback to local generation
       setSuggestions(generateLocalSuggestions(description));
+      setIsFallback(true);
     } finally {
       setIsGenerating(false);
     }

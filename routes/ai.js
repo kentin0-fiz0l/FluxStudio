@@ -20,6 +20,14 @@ const { aiChatSchema, aiChatSyncSchema, aiDesignReviewSchema, aiGenerateCodeSche
 const { getClient } = require('../lib/ai/client');
 const { getModelForTask, getMaxTokensForTask, buildApiParams } = require('../lib/ai/config');
 const { extractTextContent } = require('../lib/ai/response-handlers');
+const { buildExamplesPrompt } = require('../lib/ai/formation-examples');
+const { asyncHandler } = require('../middleware/errorHandler');
+
+// Load user preferences for prompt injection (4D)
+let loadPreferencesForPrompt = async () => '';
+try {
+  loadPreferencesForPrompt = require('./ai-preferences').loadPreferencesForPrompt;
+} catch { /* ai-preferences may not be loaded yet */ }
 
 // Quota check middleware (Sprint 38)
 let checkAiQuota = (_req, _res, next) => next();
@@ -147,6 +155,82 @@ function handleAnthropicError(error, res, context = 'AI') {
 // In-memory conversation storage (replace with database in production)
 const conversations = new Map();
 
+// ============================================================================
+// FORMATION TOOL DEFINITIONS (4B - Function Calling / Tool Use)
+// ============================================================================
+
+const FORMATION_TOOLS = [
+  {
+    name: 'move_performers',
+    description: 'Move one or more performers by a delta (dx,dy) or to an absolute position (to.x, to.y). Coordinates are normalized 0-100.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        performer_ids: { type: 'array', items: { type: 'string' }, description: 'Performer IDs to move' },
+        dx: { type: 'number', description: 'Horizontal offset (positive = right)' },
+        dy: { type: 'number', description: 'Vertical offset (positive = toward back)' },
+        to: {
+          type: 'object',
+          properties: { x: { type: 'number' }, y: { type: 'number' } },
+          description: 'Absolute target position (overrides dx/dy)',
+        },
+      },
+      required: ['performer_ids'],
+    },
+  },
+  {
+    name: 'create_formation',
+    description: 'Create a formation from a template name (e.g., "company_front", "wedge", "diamond", "block", "circle", "arc").',
+    input_schema: {
+      type: 'object',
+      properties: {
+        template: { type: 'string', description: 'Formation template name' },
+        performer_ids: { type: 'array', items: { type: 'string' }, description: 'Performer IDs to include' },
+      },
+      required: ['template', 'performer_ids'],
+    },
+  },
+  {
+    name: 'adjust_spacing',
+    description: 'Adjust spacing between performers: equalize, expand, or compress.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        performer_ids: { type: 'array', items: { type: 'string' }, description: 'Performer IDs to adjust' },
+        spacing_type: { type: 'string', enum: ['equal', 'expand', 'compress'], description: 'Spacing adjustment type' },
+        amount: { type: 'number', description: 'Adjustment amount in normalized units (default: 2)' },
+      },
+      required: ['performer_ids', 'spacing_type'],
+    },
+  },
+  {
+    name: 'set_transition',
+    description: 'Set the transition easing type between two keyframes.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        from_keyframe: { type: 'string', description: 'Source keyframe ID or set name' },
+        to_keyframe: { type: 'string', description: 'Target keyframe ID or set name' },
+        type: { type: 'string', enum: ['linear', 'ease-in', 'ease-out', 'ease-in-out'], description: 'Transition easing type' },
+      },
+      required: ['from_keyframe', 'to_keyframe', 'type'],
+    },
+  },
+  {
+    name: 'add_set',
+    description: 'Add a new drill set (formation keyframe) to the show.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        name: { type: 'string', description: 'Set name (e.g., "Set 5", "Closer Set 1")' },
+        counts: { type: 'number', description: 'Duration in counts (e.g., 8, 16, 32)' },
+        after_set: { type: 'string', description: 'Insert after this set (ID or name). If omitted, appends to end.' },
+      },
+      required: ['name', 'counts'],
+    },
+  },
+];
+
 /**
  * Build system prompt with project context
  */
@@ -234,23 +318,47 @@ router.post('/chat', authenticateToken, requireAnthropicClient, rateLimitByUser(
     // Build messages for API (limit context to last 20 messages)
     const messagesForAPI = conversation.messages.slice(-20);
 
-    // Stream response from Claude
-    const stream = await getClient().messages.stream({
+    // Include formation tools when context indicates formation workspace
+    const isFormationContext = context?.page?.includes('formation') || context?.page?.includes('drill');
+    const streamParams = {
       model,
       max_tokens: getMaxTokensForTask('chat'),
       system: conversation.systemPrompt,
       messages: messagesForAPI,
-    });
+    };
+    if (isFormationContext) {
+      streamParams.tools = FORMATION_TOOLS;
+    }
+
+    // Stream response from Claude
+    const stream = await getClient().messages.stream(streamParams);
 
     let fullContent = '';
     let inputTokens = 0;
     let outputTokens = 0;
+    let currentToolUse = null;
+    let toolUseJsonBuffer = '';
 
     // Send conversation ID first
     res.write(`data: ${JSON.stringify({ type: 'start', conversationId: conversation.id })}\n\n`);
 
     for await (const event of stream) {
-      if (event.type === 'content_block_delta' && event.delta?.text) {
+      if (event.type === 'content_block_start' && event.content_block?.type === 'tool_use') {
+        currentToolUse = { id: event.content_block.id, name: event.content_block.name };
+        toolUseJsonBuffer = '';
+      } else if (event.type === 'content_block_delta' && event.delta?.type === 'input_json_delta') {
+        toolUseJsonBuffer += event.delta.partial_json || '';
+      } else if (event.type === 'content_block_stop' && currentToolUse) {
+        // Emit the complete tool_use block to the client for preview
+        let parsedInput = {};
+        try { parsedInput = JSON.parse(toolUseJsonBuffer); } catch { /* ignore parse failures */ }
+        res.write(`data: ${JSON.stringify({
+          type: 'tool_use',
+          toolCall: { id: currentToolUse.id, name: currentToolUse.name, input: parsedInput },
+        })}\n\n`);
+        currentToolUse = null;
+        toolUseJsonBuffer = '';
+      } else if (event.type === 'content_block_delta' && event.delta?.text) {
         const chunk = event.delta.text;
         fullContent += chunk;
         res.write(`data: ${JSON.stringify({ type: 'chunk', content: chunk })}\n\n`);
@@ -300,43 +408,38 @@ router.post('/chat', authenticateToken, requireAnthropicClient, rateLimitByUser(
  * POST /api/ai/chat/sync
  * Non-streaming chat endpoint
  */
-router.post('/chat/sync', authenticateToken, requireAnthropicClient, rateLimitByUser(30, 60000), zodValidate(aiChatSyncSchema), async (req, res) => {
+router.post('/chat/sync', authenticateToken, requireAnthropicClient, rateLimitByUser(30, 60000), zodValidate(aiChatSyncSchema), asyncHandler(async (req, res) => {
   const { message, context, model = getModelForTask('chat-sync') } = req.body;
   const userId = req.user.id;
 
-  try {
-    const systemPrompt = buildSystemPrompt(context);
+  const systemPrompt = buildSystemPrompt(context);
 
-    const response = await getClient().messages.create({
-      model,
-      max_tokens: getMaxTokensForTask('chat-sync'),
-      system: systemPrompt,
-      messages: [{ role: 'user', content: message }],
-    });
+  const response = await getClient().messages.create({
+    model,
+    max_tokens: getMaxTokensForTask('chat-sync'),
+    system: systemPrompt,
+    messages: [{ role: 'user', content: message }],
+  });
 
-    const content = response.content[0]?.text || '';
-    const inputTokens = response.usage?.input_tokens || 0;
-    const outputTokens = response.usage?.output_tokens || 0;
+  const content = response.content[0]?.text || '';
+  const inputTokens = response.usage?.input_tokens || 0;
+  const outputTokens = response.usage?.output_tokens || 0;
 
-    // Log token usage for cost tracking
-    logAiUsage({
-      userId,
-      model,
-      inputTokens,
-      outputTokens,
-      endpoint: 'chat-sync',
-    });
+  // Log token usage for cost tracking
+  logAiUsage({
+    userId,
+    model,
+    inputTokens,
+    outputTokens,
+    endpoint: 'chat-sync',
+  });
 
-    res.json({
-      content,
-      tokensUsed: inputTokens + outputTokens,
-      model: response.model,
-    });
-
-  } catch (error) {
-    handleAnthropicError(error, res, 'AI Sync Chat');
-  }
-});
+  res.json({
+    content,
+    tokensUsed: inputTokens + outputTokens,
+    model: response.model,
+  });
+}));
 
 /**
  * GET /api/ai/conversations
@@ -407,54 +510,48 @@ router.delete('/conversations/:id', authenticateToken, (req, res) => {
  * POST /api/ai/design-review
  * Get AI feedback on a design
  */
-router.post('/design-review', authenticateToken, requireAnthropicClient, rateLimitByUser(10, 60000), zodValidate(aiDesignReviewSchema), async (req, res) => {
+router.post('/design-review', authenticateToken, requireAnthropicClient, rateLimitByUser(10, 60000), zodValidate(aiDesignReviewSchema), asyncHandler(async (req, res) => {
   const { description, imageUrl, aspects = ['overall', 'accessibility', 'usability'] } = req.body;
   const userId = req.user.id;
 
-  try {
-    const aspectsText = aspects.join(', ');
-    const prompt = `Please review this design and provide feedback on the following aspects: ${aspectsText}.
+  const aspectsText = aspects.join(', ');
+  const prompt = `Please review this design and provide feedback on the following aspects: ${aspectsText}.
 
 Design description: ${description}
 ${imageUrl ? `Image URL: ${imageUrl}` : ''}
 
 Provide specific, actionable feedback for each aspect. Format your response with clear headings.`;
 
-    const params = buildApiParams('design-review', {
-      system: 'You are an expert UI/UX designer providing constructive feedback on designs. Be specific and actionable.',
-      messages: [{ role: 'user', content: prompt }],
-    });
-    const response = await getClient().messages.create(params);
+  const params = buildApiParams('design-review', {
+    system: 'You are an expert UI/UX designer providing constructive feedback on designs. Be specific and actionable.',
+    messages: [{ role: 'user', content: prompt }],
+  });
+  const response = await getClient().messages.create(params);
 
-    // Log token usage for cost tracking
-    logAiUsage({
-      userId,
-      model: params.model,
-      inputTokens: response.usage?.input_tokens || 0,
-      outputTokens: response.usage?.output_tokens || 0,
-      endpoint: 'design-review',
-    });
+  // Log token usage for cost tracking
+  logAiUsage({
+    userId,
+    model: params.model,
+    inputTokens: response.usage?.input_tokens || 0,
+    outputTokens: response.usage?.output_tokens || 0,
+    endpoint: 'design-review',
+  });
 
-    res.json({
-      feedback: extractTextContent(response),
-      aspects,
-    });
-
-  } catch (error) {
-    handleAnthropicError(error, res, 'Design Review');
-  }
-});
+  res.json({
+    feedback: extractTextContent(response),
+    aspects,
+  });
+}));
 
 /**
  * POST /api/ai/generate-code
  * Generate React component code
  */
-router.post('/generate-code', authenticateToken, requireAnthropicClient, rateLimitByUser(20, 60000), zodValidate(aiGenerateCodeSchema), async (req, res) => {
+router.post('/generate-code', authenticateToken, requireAnthropicClient, rateLimitByUser(20, 60000), zodValidate(aiGenerateCodeSchema), asyncHandler(async (req, res) => {
   const { description, componentType = 'component', style = 'modern' } = req.body;
   const userId = req.user.id;
 
-  try {
-    const prompt = `Generate a React TypeScript component based on this description:
+  const prompt = `Generate a React TypeScript component based on this description:
 
 ${description}
 
@@ -468,33 +565,29 @@ Requirements:
 
 Return ONLY the code, no explanations.`;
 
-    const codeParams = buildApiParams('code-generate', {
-      system: 'You are an expert React/TypeScript developer. Generate clean, well-typed, accessible components.',
-      messages: [{ role: 'user', content: prompt }],
-    });
-    const response = await getClient().messages.create(codeParams);
+  const codeParams = buildApiParams('code-generate', {
+    system: 'You are an expert React/TypeScript developer. Generate clean, well-typed, accessible components.',
+    messages: [{ role: 'user', content: prompt }],
+  });
+  const response = await getClient().messages.create(codeParams);
 
-    const code = extractTextContent(response);
+  const code = extractTextContent(response);
 
-    // Log token usage for cost tracking
-    logAiUsage({
-      userId,
-      model: codeParams.model,
-      inputTokens: response.usage?.input_tokens || 0,
-      outputTokens: response.usage?.output_tokens || 0,
-      endpoint: 'generate-code',
-    });
+  // Log token usage for cost tracking
+  logAiUsage({
+    userId,
+    model: codeParams.model,
+    inputTokens: response.usage?.input_tokens || 0,
+    outputTokens: response.usage?.output_tokens || 0,
+    endpoint: 'generate-code',
+  });
 
-    res.json({
-      code,
-      componentType,
-      style,
-    });
-
-  } catch (error) {
-    handleAnthropicError(error, res, 'Code Generation');
-  }
-});
+  res.json({
+    code,
+    componentType,
+    style,
+  });
+}));
 
 /**
  * GET /api/ai/health
@@ -540,7 +633,7 @@ router.get('/usage', authenticateToken, (req, res) => {
  * WARNING: Only available in development mode
  */
 if (process.env.NODE_ENV !== 'production') {
-  router.post('/test', async (req, res) => {
+  router.post('/test', asyncHandler(async (req, res) => {
     const client = getClient();
     if (!client) {
       return res.status(503).json({
@@ -557,41 +650,36 @@ if (process.env.NODE_ENV !== 'production') {
       return res.status(400).json({ success: false, error: 'Message is required', code: 'AI_MISSING_MESSAGE' });
     }
 
-    try {
-      const systemPrompt = buildSystemPrompt(context);
-      const testModel = getModelForTask('test');
+    const systemPrompt = buildSystemPrompt(context);
+    const testModel = getModelForTask('test');
 
-      const response = await client.messages.create({
-        model: testModel,
-        max_tokens: getMaxTokensForTask('test'),
-        system: systemPrompt,
-        messages: [{ role: 'user', content: message }],
-      });
+    const response = await client.messages.create({
+      model: testModel,
+      max_tokens: getMaxTokensForTask('test'),
+      system: systemPrompt,
+      messages: [{ role: 'user', content: message }],
+    });
 
-      const content = response.content[0]?.text || '';
-      const inputTokens = response.usage?.input_tokens || 0;
-      const outputTokens = response.usage?.output_tokens || 0;
+    const content = response.content[0]?.text || '';
+    const inputTokens = response.usage?.input_tokens || 0;
+    const outputTokens = response.usage?.output_tokens || 0;
 
-      // Log token usage for cost tracking
-      logAiUsage({
-        userId: 'dev-test',
-        model: testModel,
-        inputTokens,
-        outputTokens,
-        endpoint: 'test',
-      });
+    // Log token usage for cost tracking
+    logAiUsage({
+      userId: 'dev-test',
+      model: testModel,
+      inputTokens,
+      outputTokens,
+      endpoint: 'test',
+    });
 
-      res.json({
-        content,
-        tokensUsed: inputTokens + outputTokens,
-        model: response.model,
-        warning: 'This is a development-only endpoint. Do not use in production.',
-      });
-
-    } catch (error) {
-      handleAnthropicError(error, res, 'AI Test');
-    }
-  });
+    res.json({
+      content,
+      tokensUsed: inputTokens + outputTokens,
+      model: response.model,
+      warning: 'This is a development-only endpoint. Do not use in production.',
+    });
+  }));
   log.info('Test endpoint enabled (development mode only): POST /api/ai/test');
 }
 
@@ -600,20 +688,23 @@ if (process.env.NODE_ENV !== 'production') {
  * Analyze a design image using Claude Vision
  * Body: { imageUrl: string, context?: { projectType, industry, targetAudience, brandGuidelines, focusAreas } }
  */
-router.post('/design-feedback/analyze', authenticateToken, rateLimitByUser(10, 60), zodValidate(aiDesignFeedbackSchema), async (req, res) => {
-  try {
-    const { imageUrl, context } = req.body;
-    const userId = req.user.id;
+router.post('/design-feedback/analyze', authenticateToken, rateLimitByUser(10, 60), zodValidate(aiDesignFeedbackSchema), asyncHandler(async (req, res) => {
+  const { imageUrl, context } = req.body;
+  const userId = req.user.id;
 
-    if (!getClient()) {
-      return res.status(200).json({ success: true, data: null, mock: true });
-    }
+  if (!getClient()) {
+    return res.status(503).json({
+      success: false,
+      error: 'AI design feedback requires Anthropic API key configuration',
+      code: 'AI_SERVICE_UNAVAILABLE'
+    });
+  }
 
-    const contextStr = context
-      ? `Design Context:\n- Project Type: ${context.projectType || 'General'}\n- Industry: ${context.industry || 'Not specified'}\n- Target Audience: ${context.targetAudience || 'General'}\n- Brand Guidelines: ${context.brandGuidelines || 'None provided'}\n- Specific Areas to Focus: ${(context.focusAreas || []).join(', ') || 'All aspects'}`
-      : '';
+  const contextStr = context
+    ? `Design Context:\n- Project Type: ${context.projectType || 'General'}\n- Industry: ${context.industry || 'Not specified'}\n- Target Audience: ${context.targetAudience || 'General'}\n- Brand Guidelines: ${context.brandGuidelines || 'None provided'}\n- Specific Areas to Focus: ${(context.focusAreas || []).join(', ') || 'All aspects'}`
+    : '';
 
-    const prompt = `Analyze this design image and provide detailed feedback. ${contextStr}
+  const prompt = `Analyze this design image and provide detailed feedback. ${contextStr}
 
 Please analyze the following aspects and respond in JSON format:
 {
@@ -628,70 +719,67 @@ Please analyze the following aspects and respond in JSON format:
 
 Be specific, actionable, and constructive in your feedback.`;
 
-    // Fetch image and convert to base64
-    const imageResponse = await fetch(imageUrl);
-    if (!imageResponse.ok) {
-      return res.status(400).json({ success: false, error: `Failed to fetch image: ${imageResponse.status}`, code: 'AI_IMAGE_FETCH_FAILED' });
-    }
-    const imageBuffer = Buffer.from(await imageResponse.arrayBuffer());
-    const base64 = imageBuffer.toString('base64');
-    const contentType = imageResponse.headers.get('content-type') || 'image/jpeg';
-    let mediaType = 'image/jpeg';
-    if (contentType.includes('png')) mediaType = 'image/png';
-    else if (contentType.includes('gif')) mediaType = 'image/gif';
-    else if (contentType.includes('webp')) mediaType = 'image/webp';
-
-    const dfModel = getModelForTask('design-feedback');
-    const response = await getClient().messages.create({
-      model: dfModel,
-      max_tokens: getMaxTokensForTask('design-feedback'),
-      messages: [{
-        role: 'user',
-        content: [
-          { type: 'image', source: { type: 'base64', media_type: mediaType, data: base64 } },
-          { type: 'text', text: prompt },
-        ],
-      }],
-    });
-
-    // Log token usage for cost tracking
-    logAiUsage({
-      userId,
-      model: dfModel,
-      inputTokens: response.usage?.input_tokens || 0,
-      outputTokens: response.usage?.output_tokens || 0,
-      endpoint: 'design-feedback-analyze',
-    });
-
-    const textContent = response.content.find(c => c.type === 'text');
-    if (!textContent || textContent.type !== 'text') {
-      return res.status(500).json({ success: false, error: 'No text response from AI', code: 'AI_NO_RESPONSE' });
-    }
-
-    const jsonMatch = textContent.text.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) {
-      return res.status(500).json({ success: false, error: 'Could not parse AI response as JSON', code: 'AI_PARSE_ERROR' });
-    }
-
-    const parsed = JSON.parse(jsonMatch[0]);
-    res.json({ success: true, data: parsed });
-  } catch (error) {
-    handleAnthropicError(error, res, 'Design Feedback Analysis');
+  // Fetch image and convert to base64
+  const imageResponse = await fetch(imageUrl);
+  if (!imageResponse.ok) {
+    return res.status(400).json({ success: false, error: `Failed to fetch image: ${imageResponse.status}`, code: 'AI_IMAGE_FETCH_FAILED' });
   }
-});
+  const imageBuffer = Buffer.from(await imageResponse.arrayBuffer());
+  const base64 = imageBuffer.toString('base64');
+  const contentType = imageResponse.headers.get('content-type') || 'image/jpeg';
+  let mediaType = 'image/jpeg';
+  if (contentType.includes('png')) mediaType = 'image/png';
+  else if (contentType.includes('gif')) mediaType = 'image/gif';
+  else if (contentType.includes('webp')) mediaType = 'image/webp';
+
+  const dfModel = getModelForTask('design-feedback');
+  const response = await getClient().messages.create({
+    model: dfModel,
+    max_tokens: getMaxTokensForTask('design-feedback'),
+    messages: [{
+      role: 'user',
+      content: [
+        { type: 'image', source: { type: 'base64', media_type: mediaType, data: base64 } },
+        { type: 'text', text: prompt },
+      ],
+    }],
+  });
+
+  // Log token usage for cost tracking
+  logAiUsage({
+    userId,
+    model: dfModel,
+    inputTokens: response.usage?.input_tokens || 0,
+    outputTokens: response.usage?.output_tokens || 0,
+    endpoint: 'design-feedback-analyze',
+  });
+
+  const textContent = response.content.find(c => c.type === 'text');
+  if (!textContent || textContent.type !== 'text') {
+    return res.status(500).json({ success: false, error: 'No text response from AI', code: 'AI_NO_RESPONSE' });
+  }
+
+  const jsonMatch = textContent.text.match(/\{[\s\S]*\}/);
+  if (!jsonMatch) {
+    return res.status(500).json({ success: false, error: 'Could not parse AI response as JSON', code: 'AI_PARSE_ERROR' });
+  }
+
+  const parsed = JSON.parse(jsonMatch[0]);
+  res.json({ success: true, data: parsed });
+}));
 
 /**
  * POST /api/ai/generate-project-structure
  * Generate project structure from natural language description
  */
-router.post('/generate-project-structure', authenticateToken, rateLimitByUser(10, 60000), zodValidate(aiGenerateProjectStructureSchema), async (req, res) => {
+router.post('/generate-project-structure', authenticateToken, rateLimitByUser(10, 60000), zodValidate(aiGenerateProjectStructureSchema), asyncHandler(async (req, res) => {
   const { description, category, complexity } = req.body;
   const userId = req.user.id;
 
   // Fall back to local generation if AI is not configured
   if (!getClient()) {
     const fallback = generateLocalStructure(description, category);
-    return res.json({ success: true, data: fallback, fallback: true });
+    return res.json({ success: true, data: fallback, fallback: true, info: 'Generated locally — connect AI for smarter results' });
   }
 
   try {
@@ -752,20 +840,19 @@ ${category ? `- The project category is: ${category}` : ''}`;
 
     // Fallback: generate locally if AI fails
     const fallback = generateLocalStructure(description, category);
-    res.json({ success: true, data: fallback, fallback: true });
+    res.json({ success: true, data: fallback, fallback: true, info: 'Generated locally — connect AI for smarter results' });
   }
-});
+}));
 
 /**
  * POST /api/ai/generate-template
  * AI-generate a full project template from description
  */
-router.post('/generate-template', authenticateToken, requireAnthropicClient, rateLimitByUser(5, 60000), zodValidate(aiGenerateTemplateSchema), async (req, res) => {
+router.post('/generate-template', authenticateToken, requireAnthropicClient, rateLimitByUser(5, 60000), zodValidate(aiGenerateTemplateSchema), asyncHandler(async (req, res) => {
   const { description, category, complexity } = req.body;
   const userId = req.user.id;
 
-  try {
-    const systemPrompt = `You are a project template generator for FluxStudio.
+  const systemPrompt = `You are a project template generator for FluxStudio.
 Generate a reusable project template from the description.
 
 Respond with ONLY valid JSON:
@@ -798,39 +885,36 @@ Rules:
 - Complexity: ${complexity || 'basic'}
 ${category ? `- Category: ${category}` : ''}`;
 
-    const tplModel = getModelForTask('template');
-    const response = await getClient().messages.create({
-      model: tplModel,
-      max_tokens: getMaxTokensForTask('template'),
-      system: systemPrompt,
-      messages: [{ role: 'user', content: description.trim() }],
-    });
+  const tplModel = getModelForTask('template');
+  const response = await getClient().messages.create({
+    model: tplModel,
+    max_tokens: getMaxTokensForTask('template'),
+    system: systemPrompt,
+    messages: [{ role: 'user', content: description.trim() }],
+  });
 
-    // Log token usage for cost tracking
-    logAiUsage({
-      userId,
-      model: tplModel,
-      inputTokens: response.usage?.input_tokens || 0,
-      outputTokens: response.usage?.output_tokens || 0,
-      endpoint: 'generate-template',
-    });
+  // Log token usage for cost tracking
+  logAiUsage({
+    userId,
+    model: tplModel,
+    inputTokens: response.usage?.input_tokens || 0,
+    outputTokens: response.usage?.output_tokens || 0,
+    endpoint: 'generate-template',
+  });
 
-    const textContent = response.content.find(c => c.type === 'text');
-    if (!textContent || textContent.type !== 'text') {
-      return res.status(500).json({ success: false, error: 'No response from AI', code: 'AI_NO_RESPONSE' });
-    }
-
-    const jsonMatch = textContent.text.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) {
-      return res.status(500).json({ success: false, error: 'Could not parse AI response', code: 'AI_PARSE_ERROR' });
-    }
-
-    const template = JSON.parse(jsonMatch[0]);
-    res.json({ success: true, data: { template, confidence: 0.85 } });
-  } catch (error) {
-    handleAnthropicError(error, res, 'Template Generation');
+  const textContent = response.content.find(c => c.type === 'text');
+  if (!textContent || textContent.type !== 'text') {
+    return res.status(500).json({ success: false, error: 'No response from AI', code: 'AI_NO_RESPONSE' });
   }
-});
+
+  const jsonMatch = textContent.text.match(/\{[\s\S]*\}/);
+  if (!jsonMatch) {
+    return res.status(500).json({ success: false, error: 'Could not parse AI response', code: 'AI_PARSE_ERROR' });
+  }
+
+  const template = JSON.parse(jsonMatch[0]);
+  res.json({ success: true, data: { template, confidence: 0.85 } });
+}));
 
 /**
  * Local fallback for project structure generation
@@ -888,47 +972,42 @@ function generateLocalStructure(description, category) {
  * Suggest curved paths (Bezier control points) between two sets of positions.
  * Non-streaming (like /design-review).
  */
-router.post('/suggest-drill-paths', authenticateToken, requireAnthropicClient, rateLimitByUser(20, 60000), checkAiTier, checkAiQuota, zodValidate(aiSuggestDrillPathsSchema), async (req, res) => {
+router.post('/suggest-drill-paths', authenticateToken, requireAnthropicClient, rateLimitByUser(20, 60000), checkAiTier, checkAiQuota, zodValidate(aiSuggestDrillPathsSchema), asyncHandler(async (req, res) => {
   const { startPositions, endPositions, minSpacing = 2, maintainShape = false, style = 'smooth' } = req.body;
   const userId = req.user.id;
 
-  try {
-    const performerIds = Object.keys(startPositions);
-    const positionSummary = performerIds.map(id => {
-      const s = startPositions[id];
-      const e = endPositions[id];
-      return `${id}: (${s.x.toFixed(1)},${s.y.toFixed(1)}) → (${e.x.toFixed(1)},${e.y.toFixed(1)})`;
-    }).join('\n');
+  const performerIds = Object.keys(startPositions);
+  const positionSummary = performerIds.map(id => {
+    const s = startPositions[id];
+    const e = endPositions[id];
+    return `${id}: (${s.x.toFixed(1)},${s.y.toFixed(1)}) → (${e.x.toFixed(1)},${e.y.toFixed(1)})`;
+  }).join('\n');
 
-    const prompt = `Given these performer movements on a 0-100 normalized field:\n${positionSummary}\n\nGenerate cubic Bezier control points (cp1, cp2) for each performer so they follow ${style} curved paths. Ensure minimum spacing of ${minSpacing} units between performers during the transition. ${maintainShape ? 'Maintain relative formation shape during the move.' : ''}\n\nRespond with ONLY valid JSON:\n{\n  "curves": { "performerId": { "cp1": { "x": number, "y": number }, "cp2": { "x": number, "y": number } } },\n  "confidence": 0.0-1.0,\n  "description": "brief description of the suggested paths"\n}`;
+  const prompt = `Given these performer movements on a 0-100 normalized field:\n${positionSummary}\n\nGenerate cubic Bezier control points (cp1, cp2) for each performer so they follow ${style} curved paths. Ensure minimum spacing of ${minSpacing} units between performers during the transition. ${maintainShape ? 'Maintain relative formation shape during the move.' : ''}\n\nRespond with ONLY valid JSON:\n{\n  "curves": { "performerId": { "cp1": { "x": number, "y": number }, "cp2": { "x": number, "y": number } } },\n  "confidence": 0.0-1.0,\n  "description": "brief description of the suggested paths"\n}`;
 
-    const dpModel = getModelForTask('drill-paths');
-    const response = await getClient().messages.create({
-      model: dpModel,
-      max_tokens: getMaxTokensForTask('drill-paths'),
-      system: 'You are an expert marching band drill designer specializing in smooth transition paths. Generate cubic Bezier control points that create visually appealing, collision-free curved paths between formations. Coordinates are normalized 0-100.',
-      messages: [{ role: 'user', content: prompt }],
-    });
+  const dpModel = getModelForTask('drill-paths');
+  const response = await getClient().messages.create({
+    model: dpModel,
+    max_tokens: getMaxTokensForTask('drill-paths'),
+    system: 'You are an expert marching band drill designer specializing in smooth transition paths. Generate cubic Bezier control points that create visually appealing, collision-free curved paths between formations. Coordinates are normalized 0-100.' + buildExamplesPrompt('paths', 3),
+    messages: [{ role: 'user', content: prompt }],
+  });
 
-    logAiUsage({ userId, model: dpModel, inputTokens: response.usage?.input_tokens || 0, outputTokens: response.usage?.output_tokens || 0, endpoint: 'suggest-drill-paths' });
+  logAiUsage({ userId, model: dpModel, inputTokens: response.usage?.input_tokens || 0, outputTokens: response.usage?.output_tokens || 0, endpoint: 'suggest-drill-paths' });
 
-    const textContent = response.content.find(c => c.type === 'text');
-    if (!textContent || textContent.type !== 'text') {
-      return res.status(500).json({ success: false, error: 'No response from AI', code: 'AI_NO_RESPONSE' });
-    }
-
-    const jsonMatch = textContent.text.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) {
-      return res.status(500).json({ success: false, error: 'Could not parse AI response', code: 'AI_PARSE_ERROR' });
-    }
-
-    const result = JSON.parse(jsonMatch[0]);
-    res.json({ success: true, ...result });
-
-  } catch (error) {
-    handleAnthropicError(error, res, 'Suggest Drill Paths');
+  const textContent = response.content.find(c => c.type === 'text');
+  if (!textContent || textContent.type !== 'text') {
+    return res.status(500).json({ success: false, error: 'No response from AI', code: 'AI_NO_RESPONSE' });
   }
-});
+
+  const jsonMatch = textContent.text.match(/\{[\s\S]*\}/);
+  if (!jsonMatch) {
+    return res.status(500).json({ success: false, error: 'Could not parse AI response', code: 'AI_PARSE_ERROR' });
+  }
+
+  const result = JSON.parse(jsonMatch[0]);
+  res.json({ success: true, ...result });
+}));
 
 /**
  * POST /api/ai/drill/generate-show
@@ -936,7 +1015,7 @@ router.post('/suggest-drill-paths', authenticateToken, requireAnthropicClient, r
  * Streams individual sets as JSON: {type: 'set', data: {name, counts, positions}}
  */
 router.post('/drill/generate-show', authenticateToken, requireAnthropicClient, rateLimitByUser(5, 60000), checkAiTier, checkAiQuota, zodValidate(aiGenerateShowSchema), async (req, res) => {
-  const { performers, sections, fieldType = 'ncaa_football', defaultCounts = 8 } = req.body;
+  const { performers, sections, fieldType = 'ncaa_football', defaultCounts = 8, musicAnalysis } = req.body;
   const userId = req.user.id;
 
   res.setHeader('Content-Type', 'text/event-stream');
@@ -949,10 +1028,16 @@ router.post('/drill/generate-show', authenticateToken, requireAnthropicClient, r
     const performerSummary = performers.map(p => `${p.id}: ${p.name}${p.section ? ` (${p.section})` : ''}${p.instrument ? ` - ${p.instrument}` : ''}`).join('\n');
     const sectionSummary = sections.map(s => `"${s.name}": ${s.bars} bars, ${s.timeSignature}, ${s.tempoStart} BPM${s.tempoEnd ? ` → ${s.tempoEnd} BPM` : ''}`).join('\n');
 
-    const prompt = `Design a marching band drill show for these performers:\n${performerSummary}\n\nMusic structure:\n${sectionSummary}\n\nField type: ${fieldType}. Default counts per set: ${defaultCounts}.\n\nFor each music section, generate 1-3 sets. Each set must include positions for ALL performers (x,y coordinates 0-100).\n\nReturn each set as a separate JSON block on its own line, formatted exactly as:\n{"type":"set","data":{"name":"Set N","counts":8,"sectionName":"section","positions":{"performerId":{"x":50,"y":50}}}}\n\nGenerate all sets sequentially. After the last set, output:\n{"type":"done","totalSets":N}`;
+    // Load user preferences for personalized generation (4D)
+    const userPrefs = await loadPreferencesForPrompt(userId);
+    const musicAnalysisBlock = musicAnalysis
+      ? `\n\nMusic analysis data:\n${JSON.stringify(musicAnalysis, null, 2)}\nUse this analysis to inform set boundaries, formation density, and energy level.`
+      : '';
+
+    const prompt = `Design a marching band drill show for these performers:\n${performerSummary}\n\nMusic structure:\n${sectionSummary}\n\nField type: ${fieldType}. Default counts per set: ${defaultCounts}.${musicAnalysisBlock}\n\nFor each music section, generate 1-3 sets. Each set must include positions for ALL performers (x,y coordinates 0-100).\n\nReturn each set as a separate JSON block on its own line, formatted exactly as:\n{"type":"set","data":{"name":"Set N","counts":8,"sectionName":"section","positions":{"performerId":{"x":50,"y":50}}}}\n\nGenerate all sets sequentially. After the last set, output:\n{"type":"done","totalSets":N}`;
 
     const showParams = buildApiParams('show-generate', {
-      system: 'You are an expert marching band drill designer. Generate formations that are visually effective, have safe spacing, and create smooth transitions. Positions are normalized 0-100 (x=left-right, y=front-back). Output each set as a separate JSON object on its own line. Do not wrap in markdown code blocks.',
+      system: 'You are an expert marching band drill designer. Generate formations that are visually effective, have safe spacing, and create smooth transitions. Positions are normalized 0-100 (x=left-right, y=front-back). Output each set as a separate JSON object on its own line. Do not wrap in markdown code blocks.' + userPrefs + buildExamplesPrompt('generate', 4),
       messages: [{ role: 'user', content: prompt }],
     });
     const stream = await getClient().messages.stream(showParams);
@@ -1093,16 +1178,15 @@ try {
  * returns structured feedback from Claude.
  * Feature-gated to Pro tier (ai_show_critic).
  */
-router.post('/critique', authenticateToken, requireAnthropicClient, rateLimitByUser(10, 60000), checkShowCriticTier, checkAiQuota, zodValidate(aiCritiqueSchema), async (req, res) => {
+router.post('/critique', authenticateToken, requireAnthropicClient, rateLimitByUser(10, 60000), checkShowCriticTier, checkAiQuota, zodValidate(aiCritiqueSchema), asyncHandler(async (req, res) => {
   const { analysisData, formationData } = req.body;
   const userId = req.user.id;
 
-  try {
-    const issueDetails = formationData.issueDetails
-      ? formationData.issueDetails.map(i => `- [${i.severity}] ${i.type}: ${i.message}`).join('\n')
-      : 'No detailed issue data provided.';
+  const issueDetails = formationData.issueDetails
+    ? formationData.issueDetails.map(i => `- [${i.severity}] ${i.type}: ${i.message}`).join('\n')
+    : 'No detailed issue data provided.';
 
-    const prompt = `Analyze this marching band drill show and provide a detailed critique.
+  const prompt = `Analyze this marching band drill show and provide a detailed critique.
 
 ## Show Overview
 - Performers: ${formationData.performerCount}
@@ -1133,37 +1217,34 @@ Provide your critique as JSON in exactly this format:
 
 Be specific and constructive. Reference actual metrics from the data. For perSetNotes, only include notes for sets that have notable issues or strengths.`;
 
-    const critiqueParams = buildApiParams('critique', {
-      system: 'You are an expert marching band drill designer and show critique specialist. Analyze the following formation data and provide constructive, actionable feedback. Focus on safety (collisions, stride feasibility), visual impact, pacing, and overall design quality. Always respond with valid JSON.',
-      messages: [{ role: 'user', content: prompt }],
-    });
+  const critiqueParams = buildApiParams('critique', {
+    system: 'You are an expert marching band drill designer and show critique specialist. Analyze the following formation data and provide constructive, actionable feedback. Focus on safety (collisions, stride feasibility), visual impact, pacing, and overall design quality. Always respond with valid JSON.' + buildExamplesPrompt('critique', 2),
+    messages: [{ role: 'user', content: prompt }],
+  });
 
-    const response = await getClient().messages.create(critiqueParams);
+  const response = await getClient().messages.create(critiqueParams);
 
-    logAiUsage({
-      userId,
-      model: critiqueParams.model,
-      inputTokens: response.usage?.input_tokens || 0,
-      outputTokens: response.usage?.output_tokens || 0,
-      endpoint: 'critique',
-    });
+  logAiUsage({
+    userId,
+    model: critiqueParams.model,
+    inputTokens: response.usage?.input_tokens || 0,
+    outputTokens: response.usage?.output_tokens || 0,
+    endpoint: 'critique',
+  });
 
-    const textContent = extractTextContent(response);
-    if (!textContent) {
-      return res.status(500).json({ success: false, error: 'No response from AI', code: 'AI_NO_RESPONSE' });
-    }
-
-    const jsonMatch = textContent.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) {
-      return res.status(500).json({ success: false, error: 'Could not parse AI response', code: 'AI_PARSE_ERROR' });
-    }
-
-    const critique = JSON.parse(jsonMatch[0]);
-    res.json({ success: true, data: critique });
-  } catch (error) {
-    handleAnthropicError(error, res, 'Show Critique');
+  const textContent = extractTextContent(response);
+  if (!textContent) {
+    return res.status(500).json({ success: false, error: 'No response from AI', code: 'AI_NO_RESPONSE' });
   }
-});
+
+  const jsonMatch = textContent.match(/\{[\s\S]*\}/);
+  if (!jsonMatch) {
+    return res.status(500).json({ success: false, error: 'Could not parse AI response', code: 'AI_PARSE_ERROR' });
+  }
+
+  const critique = JSON.parse(jsonMatch[0]);
+  res.json({ success: true, data: critique });
+}));
 
 // ============================================================================
 // SANDBOX ENDPOINT (Phase 4 — unauthenticated, IP rate-limited)
@@ -1174,7 +1255,7 @@ Be specific and constructive. Reference actual metrics from the data. For perSet
  * Unauthenticated AI formation generation for TryEditor.
  * Limited to 3 calls per IP per 24 hours.
  */
-router.post('/sandbox-generate', requireAnthropicClient, rateLimitByIP, async (req, res) => {
+router.post('/sandbox-generate', requireAnthropicClient, rateLimitByIP, asyncHandler(async (req, res) => {
   const { prompt, performers } = req.body;
 
   if (!prompt || typeof prompt !== 'string' || prompt.length > 200) {
@@ -1195,55 +1276,50 @@ router.post('/sandbox-generate', requireAnthropicClient, rateLimitByIP, async (r
     });
   }
 
-  try {
-    const performerList = performers.map(p => `${p.id}: "${p.name}"`).join(', ');
+  const performerList = performers.map(p => `${p.id}: "${p.name}"`).join(', ');
 
-    const systemPrompt = `You are a marching band drill designer. Given a formation description and a list of performers, generate x,y positions (0-100 normalized field coordinates, x=left-right, y=front-back) for each performer.
+  const systemPrompt = `You are a marching band drill designer. Given a formation description and a list of performers, generate x,y positions (0-100 normalized field coordinates, x=left-right, y=front-back) for each performer.
 
 Respond with ONLY valid JSON:
 {"positions":{"performerId":{"x":number,"y":number}}}
 
 Keep positions well-spaced (minimum 3 units apart). Be creative with the formation.`;
 
-    const sandboxModel = getModelForTask('chat-sync');
-    const response = await getClient().messages.create({
-      model: sandboxModel,
-      max_tokens: 1024,
-      system: systemPrompt,
-      messages: [{
-        role: 'user',
-        content: `Formation: "${prompt}"\nPerformers: ${performerList}`,
-      }],
-    });
+  const sandboxModel = getModelForTask('chat-sync');
+  const response = await getClient().messages.create({
+    model: sandboxModel,
+    max_tokens: 1024,
+    system: systemPrompt,
+    messages: [{
+      role: 'user',
+      content: `Formation: "${prompt}"\nPerformers: ${performerList}`,
+    }],
+  });
 
-    logAiUsage({
-      userId: 'sandbox',
-      model: sandboxModel,
-      inputTokens: response.usage?.input_tokens || 0,
-      outputTokens: response.usage?.output_tokens || 0,
-      endpoint: 'sandbox-generate',
-    });
+  logAiUsage({
+    userId: 'sandbox',
+    model: sandboxModel,
+    inputTokens: response.usage?.input_tokens || 0,
+    outputTokens: response.usage?.output_tokens || 0,
+    endpoint: 'sandbox-generate',
+  });
 
-    const textContent = response.content.find(c => c.type === 'text');
-    if (!textContent || textContent.type !== 'text') {
-      return res.status(500).json({ success: false, error: 'No response from AI', code: 'AI_NO_RESPONSE' });
-    }
-
-    const jsonMatch = textContent.text.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) {
-      return res.status(500).json({ success: false, error: 'Could not parse AI response', code: 'AI_PARSE_ERROR' });
-    }
-
-    const result = JSON.parse(jsonMatch[0]);
-    res.json({
-      success: true,
-      positions: result.positions,
-      remainingCalls: req.sandboxCallsRemaining,
-    });
-
-  } catch (error) {
-    handleAnthropicError(error, res, 'Sandbox Generate');
+  const textContent = response.content.find(c => c.type === 'text');
+  if (!textContent || textContent.type !== 'text') {
+    return res.status(500).json({ success: false, error: 'No response from AI', code: 'AI_NO_RESPONSE' });
   }
-});
+
+  const jsonMatch = textContent.text.match(/\{[\s\S]*\}/);
+  if (!jsonMatch) {
+    return res.status(500).json({ success: false, error: 'Could not parse AI response', code: 'AI_PARSE_ERROR' });
+  }
+
+  const result = JSON.parse(jsonMatch[0]);
+  res.json({
+    success: true,
+    positions: result.positions,
+    remainingCalls: req.sandboxCallsRemaining,
+  });
+}));
 
 module.exports = router;

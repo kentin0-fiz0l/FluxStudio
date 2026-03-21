@@ -26,6 +26,8 @@ export const FEATURE_FLAGS = {
   WCAG_AA_FORMS: 'wcag_aa_forms',
   /** Try editor CTA variant */
   TRY_CTA_VARIANT: 'try-cta-variant',
+  /** Enable creator onboarding wizard (Auth -> Template -> In-Tool Welcome) */
+  CREATOR_ONBOARDING: 'creator_onboarding',
 } as const;
 
 export type FeatureFlag = (typeof FEATURE_FLAGS)[keyof typeof FEATURE_FLAGS];

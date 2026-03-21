@@ -237,7 +237,7 @@ export function generateAllCoordinateSheets(
 // ============================================================================
 
 export interface DrillBookPage {
-  type: 'cover' | 'chart' | 'coordinates' | 'summary';
+  type: 'cover' | 'toc' | 'chart' | 'coordinates' | 'summary';
   performerId?: string;
   performerName?: string;
   setId?: string;
@@ -275,8 +275,30 @@ export function generateDrillBookPages(
     },
   });
 
-  // Field chart per set (overhead view with "you are here" marker)
+  // Table of Contents page
   const sortedSets = [...sets].sort((a, b) => a.sortOrder - b.sortOrder);
+  // Page numbering: cover=1, toc=2, charts start at 3
+  const tocEntries = sortedSets.map((set, i) => ({
+    name: set.name,
+    rehearsalMark: set.rehearsalMark,
+    counts: set.counts,
+    pageNumber: i + 3, // offset by cover + toc
+  }));
+  const coordsPage = sortedSets.length + 3;
+  const summaryPage = coordsPage + 1;
+
+  pages.push({
+    type: 'toc',
+    performerId,
+    performerName: performer.name,
+    data: {
+      entries: tocEntries,
+      coordinatesPage: coordsPage,
+      summaryPage,
+    },
+  });
+
+  // Field chart per set (overhead view with "you are here" marker)
   for (const set of sortedSets) {
     const kf = formation.keyframes.find((k) => k.id === set.keyframeId);
     if (!kf) continue;

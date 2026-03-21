@@ -537,6 +537,8 @@ export function useCanvasHandlers({ state, formationId, projectId, onSave, sandb
 
   const handleCanvasPointerDown = useCallback((e: React.PointerEvent) => {
     if (e.pointerType === 'touch' && fingerMode === 'pan') return;
+    // Palm rejection: ignore touch events with large contact area (stylus palm resting on screen)
+    if (e.pointerType === 'touch' && (e.width > 40 || e.height > 40)) return;
     if (activeTool !== 'select' || !canvasRef.current) return;
     if (e.button !== 0) return;
     const target = e.target as HTMLElement;

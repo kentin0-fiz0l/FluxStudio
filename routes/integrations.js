@@ -18,6 +18,7 @@ const log = createLogger('Integrations');
 const { authenticateToken } = require('../lib/auth/middleware');
 const { query } = require('../database/config');
 const { zodValidate } = require('../middleware/zodValidate');
+const { asyncHandler } = require('../middleware/errorHandler');
 const { oauthCallbackSchema, slackMessageSchema, slackProjectUpdateSchema, githubCreateIssueSchema, githubLinkRepoSchema } = require('../lib/schemas');
 
 const router = express.Router();
@@ -96,836 +97,672 @@ async function saveProjects(projects) {
 // ========================================
 
 // Get OAuth authorization URL (initiate OAuth flow)
-router.get('/:provider/auth', authenticateToken, async (req, res) => {
-  try {
-    const { provider } = req.params;
-    const userId = req.user.id;
+router.get('/:provider/auth', authenticateToken, asyncHandler(async (req, res) => {
+  const { provider } = req.params;
+  const userId = req.user.id;
 
-    const { url, stateToken } = await getOAuthManager().getAuthorizationURL(provider, userId);
+  const { url, stateToken } = await getOAuthManager().getAuthorizationURL(provider, userId);
 
-    res.json({
-      authorizationUrl: url,
-      stateToken,
-      provider
-    });
-  } catch (error) {
-    log.error(`OAuth init error (${req.params.provider})`, error);
-    res.status(500).json({ success: false, error: error.message, code: 'INTEGRATION_OAUTH_INIT_ERROR' });
-  }
-});
+  res.json({
+    authorizationUrl: url,
+    stateToken,
+    provider
+  });
+}));
 
 // OAuth callback handler (GET - for direct browser redirects)
-router.get('/:provider/callback', async (req, res) => {
-  try {
-    const { provider } = req.params;
-    const { code, state } = req.query;
+router.get('/:provider/callback', asyncHandler(async (req, res) => {
+  const { provider } = req.params;
+  const { code, state } = req.query;
 
-    if (!code || !state) {
-      return res.status(400).json({ success: false, error: 'Missing OAuth code or state', code: 'INTEGRATION_OAUTH_MISSING_PARAMS' });
-    }
-
-    await getOAuthManager().handleCallback(provider, code, state);
-
-    // Redirect to frontend callback page
-    res.redirect(`https://fluxstudio.art/auth/callback/${provider}?code=${encodeURIComponent(code)}&state=${encodeURIComponent(state)}`);
-  } catch (error) {
-    log.error(`OAuth callback error (${req.params.provider})`, error);
-    res.redirect(`https://fluxstudio.art/auth/callback/${provider}?error=${encodeURIComponent(error.message)}`);
+  if (!code || !state) {
+    return res.status(400).json({ success: false, error: 'Missing OAuth code or state', code: 'INTEGRATION_OAUTH_MISSING_PARAMS' });
   }
-});
+
+  await getOAuthManager().handleCallback(provider, code, state);
+
+  // Redirect to frontend callback page
+  res.redirect(`https://fluxstudio.art/auth/callback/${provider}?code=${encodeURIComponent(code)}&state=${encodeURIComponent(state)}`);
+}));
 
 // OAuth callback handler (POST - for frontend OAuth callback page)
-router.post('/:provider/callback', zodValidate(oauthCallbackSchema), async (req, res) => {
-  try {
-    const { provider } = req.params;
-    const { code, state } = req.body;
+router.post('/:provider/callback', zodValidate(oauthCallbackSchema), asyncHandler(async (req, res) => {
+  const { provider } = req.params;
+  const { code, state } = req.body;
 
-    if (!code || !state) {
-      return res.status(400).json({
-        success: false,
-        error: 'Missing OAuth code or state',
-        code: 'INTEGRATION_OAUTH_MISSING_PARAMS'
-      });
-    }
-
-    const result = await getOAuthManager().handleCallback(provider, code, state);
-
-    const providerData = result.userInfo || {};
-    const permissions = providerData.scope || [];
-
-    res.json({
-      success: true,
-      message: `${provider.charAt(0).toUpperCase() + provider.slice(1)} integration successful`,
-      data: {
-        provider,
-        permissions: Array.isArray(permissions) ? permissions : permissions.split ? permissions.split(' ') : [],
-        accountName: providerData.name || providerData.username || providerData.email || null
-      }
-    });
-  } catch (error) {
-    log.error(`OAuth callback error (${req.params.provider})`, error);
-    res.status(500).json({
+  if (!code || !state) {
+    return res.status(400).json({
       success: false,
-      error: error.message || 'OAuth callback failed',
-      code: 'INTEGRATION_OAUTH_CALLBACK_ERROR'
+      error: 'Missing OAuth code or state',
+      code: 'INTEGRATION_OAUTH_MISSING_PARAMS'
     });
   }
-});
+
+  const result = await getOAuthManager().handleCallback(provider, code, state);
+
+  const providerData = result.userInfo || {};
+  const permissions = providerData.scope || [];
+
+  res.json({
+    success: true,
+    message: `${provider.charAt(0).toUpperCase() + provider.slice(1)} integration successful`,
+    data: {
+      provider,
+      permissions: Array.isArray(permissions) ? permissions : permissions.split ? permissions.split(' ') : [],
+      accountName: providerData.name || providerData.username || providerData.email || null
+    }
+  });
+}));
 
 // Get user's active integrations
-router.get('/', authenticateToken, async (req, res) => {
-  try {
-    const integrations = await getOAuthManager().getUserIntegrations(req.user.id);
-    res.json({ integrations });
-  } catch (error) {
-    // Handle missing table gracefully (migrations not run)
-    if (error.code === '42P01' || error.message?.includes('does not exist')) {
-      log.warn('OAuth integrations table does not exist - returning empty array');
-      return res.json({ integrations: [] });
-    }
-    log.error('Get integrations error', error);
-    res.status(500).json({ success: false, error: 'Error retrieving integrations', code: 'INTEGRATION_GET_LIST_ERROR' });
-  }
-});
+router.get('/', authenticateToken, asyncHandler(async (req, res) => {
+  const integrations = await getOAuthManager().getUserIntegrations(req.user.id);
+  res.json({ integrations });
+}));
 
 // Disconnect an integration
-router.delete('/:provider', authenticateToken, async (req, res) => {
-  try {
-    const { provider } = req.params;
-    await getOAuthManager().disconnectIntegration(req.user.id, provider);
+router.delete('/:provider', authenticateToken, asyncHandler(async (req, res) => {
+  const { provider } = req.params;
+  await getOAuthManager().disconnectIntegration(req.user.id, provider);
 
-    res.json({
-      message: `${provider} integration disconnected successfully`,
-      provider
-    });
-  } catch (error) {
-    log.error(`Disconnect integration error (${req.params.provider})`, error);
-    res.status(500).json({ success: false, error: error.message, code: 'INTEGRATION_DISCONNECT_ERROR' });
-  }
-});
+  res.json({
+    message: `${provider} integration disconnected successfully`,
+    provider
+  });
+}));
 
 // ========================================
 // Figma Integration Routes
 // ========================================
 
-router.get('/figma/files', authenticateToken, async (req, res) => {
-  try {
-    const accessToken = await getOAuthManager().getAccessToken(req.user.id, 'figma');
-    const FigmaService = require('../src/services/figmaService').default;
-    const figma = new FigmaService(accessToken);
+router.get('/figma/files', authenticateToken, asyncHandler(async (req, res) => {
+  const accessToken = await getOAuthManager().getAccessToken(req.user.id, 'figma');
+  const FigmaService = require('../src/services/figmaService').default;
+  const figma = new FigmaService(accessToken);
 
-    const me = await figma.getMe();
-    const teamId = me.teams && me.teams.length > 0 ? me.teams[0].id : null;
+  const me = await figma.getMe();
+  const teamId = me.teams && me.teams.length > 0 ? me.teams[0].id : null;
 
-    if (!teamId) {
-      return res.json({ projects: [], files: [] });
+  if (!teamId) {
+    return res.json({ projects: [], files: [] });
+  }
+
+  const projects = await figma.getTeamProjects(teamId);
+
+  res.json({
+    teamId,
+    projects,
+    user: {
+      id: me.id,
+      email: me.email,
+      handle: me.handle
     }
+  });
+}));
 
-    const projects = await figma.getTeamProjects(teamId);
+router.get('/figma/files/:fileKey', authenticateToken, asyncHandler(async (req, res) => {
+  const accessToken = await getOAuthManager().getAccessToken(req.user.id, 'figma');
+  const FigmaService = require('../src/services/figmaService').default;
+  const figma = new FigmaService(accessToken);
 
-    res.json({
-      teamId,
-      projects,
-      user: {
-        id: me.id,
-        email: me.email,
-        handle: me.handle
-      }
-    });
-  } catch (error) {
-    log.error('Figma files error', error);
-    res.status(500).json({ success: false, error: error.message, code: 'INTEGRATION_FIGMA_FILES_ERROR' });
-  }
-});
+  const file = await figma.getFile(req.params.fileKey);
 
-router.get('/figma/files/:fileKey', authenticateToken, async (req, res) => {
-  try {
-    const accessToken = await getOAuthManager().getAccessToken(req.user.id, 'figma');
+  res.json(file);
+}));
+
+router.get('/figma/comments/:fileKey', authenticateToken, asyncHandler(async (req, res) => {
+  const accessToken = await getOAuthManager().getAccessToken(req.user.id, 'figma');
+  const FigmaService = require('../src/services/figmaService').default;
+  const figma = new FigmaService(accessToken);
+
+  const comments = await figma.getComments(req.params.fileKey);
+
+  res.json({ comments });
+}));
+
+router.post('/figma/webhook', asyncHandler(async (req, res) => {
+  const signature = req.headers['x-figma-signature'];
+  const webhookSecret = process.env.FIGMA_WEBHOOK_SECRET;
+
+  if (webhookSecret && signature) {
     const FigmaService = require('../src/services/figmaService').default;
-    const figma = new FigmaService(accessToken);
-
-    const file = await figma.getFile(req.params.fileKey);
-
-    res.json(file);
-  } catch (error) {
-    log.error('Figma file details error', error);
-    res.status(500).json({ success: false, error: error.message, code: 'INTEGRATION_FIGMA_FILE_DETAILS_ERROR' });
-  }
-});
-
-router.get('/figma/comments/:fileKey', authenticateToken, async (req, res) => {
-  try {
-    const accessToken = await getOAuthManager().getAccessToken(req.user.id, 'figma');
-    const FigmaService = require('../src/services/figmaService').default;
-    const figma = new FigmaService(accessToken);
-
-    const comments = await figma.getComments(req.params.fileKey);
-
-    res.json({ comments });
-  } catch (error) {
-    log.error('Figma comments error', error);
-    res.status(500).json({ success: false, error: error.message, code: 'INTEGRATION_FIGMA_COMMENTS_ERROR' });
-  }
-});
-
-router.post('/figma/webhook', async (req, res) => {
-  try {
-    const signature = req.headers['x-figma-signature'];
-    const webhookSecret = process.env.FIGMA_WEBHOOK_SECRET;
-
-    if (webhookSecret && signature) {
-      const FigmaService = require('../src/services/figmaService').default;
-      const isValid = FigmaService.verifyWebhookSignature(
-        JSON.stringify(req.body),
-        signature,
-        webhookSecret
-      );
-
-      if (!isValid) {
-        return res.status(401).json({ success: false, error: 'Invalid webhook signature', code: 'INTEGRATION_FIGMA_WEBHOOK_INVALID_SIG' });
-      }
-    }
-
-    const FigmaService = require('../src/services/figmaService').default;
-    const webhook = FigmaService.parseWebhook(req.body);
-
-    log.info('Figma webhook received', webhook);
-
-    await query(
-      `INSERT INTO integration_webhooks (provider, event_type, event_id, payload, ip_address, signature_valid)
-       VALUES ($1, $2, $3, $4, $5, $6)`,
-      [
-        'figma',
-        webhook.event_type,
-        webhook.timestamp,
-        JSON.stringify(req.body),
-        req.ip,
-        !!webhookSecret && !!signature
-      ]
+    const isValid = FigmaService.verifyWebhookSignature(
+      JSON.stringify(req.body),
+      signature,
+      webhookSecret
     );
 
-    res.json({ success: true });
-  } catch (error) {
-    log.error('Figma webhook error', error);
-    res.status(500).json({ success: false, error: error.message, code: 'INTEGRATION_FIGMA_WEBHOOK_ERROR' });
+    if (!isValid) {
+      return res.status(401).json({ success: false, error: 'Invalid webhook signature', code: 'INTEGRATION_FIGMA_WEBHOOK_INVALID_SIG' });
+    }
   }
-});
+
+  const FigmaService = require('../src/services/figmaService').default;
+  const webhook = FigmaService.parseWebhook(req.body);
+
+  log.info('Figma webhook received', webhook);
+
+  await query(
+    `INSERT INTO integration_webhooks (provider, event_type, event_id, payload, ip_address, signature_valid)
+     VALUES ($1, $2, $3, $4, $5, $6)`,
+    [
+      'figma',
+      webhook.event_type,
+      webhook.timestamp,
+      JSON.stringify(req.body),
+      req.ip,
+      !!webhookSecret && !!signature
+    ]
+  );
+
+  res.json({ success: true });
+}));
 
 // ========================================
 // Slack Integration Routes
 // ========================================
 
-router.get('/slack/channels', authenticateToken, async (req, res) => {
-  try {
-    const accessToken = await getOAuthManager().getAccessToken(req.user.id, 'slack');
-    const SlackService = require('../src/services/slackService').default;
-    const slack = new SlackService(accessToken);
+router.get('/slack/channels', authenticateToken, asyncHandler(async (req, res) => {
+  const accessToken = await getOAuthManager().getAccessToken(req.user.id, 'slack');
+  const SlackService = require('../src/services/slackService').default;
+  const slack = new SlackService(accessToken);
 
-    const channels = await slack.listChannels(true);
+  const channels = await slack.listChannels(true);
 
-    res.json({ channels });
-  } catch (error) {
-    log.error('Slack channels error', error);
-    res.status(500).json({ success: false, error: error.message, code: 'INTEGRATION_SLACK_CHANNELS_ERROR' });
+  res.json({ channels });
+}));
+
+router.post('/slack/message', authenticateToken, zodValidate(slackMessageSchema), asyncHandler(async (req, res) => {
+  const { channel, text, blocks } = req.body;
+
+  if (!channel || !text) {
+    return res.status(400).json({ success: false, error: 'Channel and text are required', code: 'INTEGRATION_SLACK_MISSING_PARAMS' });
   }
-});
 
-router.post('/slack/message', authenticateToken, zodValidate(slackMessageSchema), async (req, res) => {
-  try {
-    const { channel, text, blocks } = req.body;
+  const accessToken = await getOAuthManager().getAccessToken(req.user.id, 'slack');
+  const SlackService = require('../src/services/slackService').default;
+  const slack = new SlackService(accessToken);
 
-    if (!channel || !text) {
-      return res.status(400).json({ success: false, error: 'Channel and text are required', code: 'INTEGRATION_SLACK_MISSING_PARAMS' });
-    }
+  const message = await slack.postMessage(channel, text, { blocks });
 
-    const accessToken = await getOAuthManager().getAccessToken(req.user.id, 'slack');
-    const SlackService = require('../src/services/slackService').default;
-    const slack = new SlackService(accessToken);
+  res.json({ message });
+}));
 
-    const message = await slack.postMessage(channel, text, { blocks });
+router.post('/slack/project-update', authenticateToken, zodValidate(slackProjectUpdateSchema), asyncHandler(async (req, res) => {
+  const { channel, projectName, updateType, details } = req.body;
 
-    res.json({ message });
-  } catch (error) {
-    log.error('Slack post message error', error);
-    res.status(500).json({ success: false, error: error.message, code: 'INTEGRATION_SLACK_MESSAGE_ERROR' });
+  if (!channel || !projectName || !updateType) {
+    return res.status(400).json({ success: false, error: 'Missing required fields', code: 'INTEGRATION_SLACK_MISSING_FIELDS' });
   }
-});
 
-router.post('/slack/project-update', authenticateToken, zodValidate(slackProjectUpdateSchema), async (req, res) => {
-  try {
-    const { channel, projectName, updateType, details } = req.body;
+  const accessToken = await getOAuthManager().getAccessToken(req.user.id, 'slack');
+  const SlackService = require('../src/services/slackService').default;
+  const slack = new SlackService(accessToken);
 
-    if (!channel || !projectName || !updateType) {
-      return res.status(400).json({ success: false, error: 'Missing required fields', code: 'INTEGRATION_SLACK_MISSING_FIELDS' });
-    }
+  const message = await slack.sendProjectUpdate(channel, projectName, updateType, details);
 
-    const accessToken = await getOAuthManager().getAccessToken(req.user.id, 'slack');
-    const SlackService = require('../src/services/slackService').default;
-    const slack = new SlackService(accessToken);
+  res.json({ message });
+}));
 
-    const message = await slack.sendProjectUpdate(channel, projectName, updateType, details);
+router.post('/slack/webhook', asyncHandler(async (req, res) => {
+  const SlackService = require('../src/services/slackService').default;
 
-    res.json({ message });
-  } catch (error) {
-    log.error('Slack project update error', error);
-    res.status(500).json({ success: false, error: error.message, code: 'INTEGRATION_SLACK_PROJECT_UPDATE_ERROR' });
+  const challenge = SlackService.handleChallenge(req.body);
+  if (challenge) {
+    return res.json({ challenge });
   }
-});
 
-router.post('/slack/webhook', async (req, res) => {
-  try {
-    const SlackService = require('../src/services/slackService').default;
+  const signature = req.headers['x-slack-signature'];
+  const timestamp = req.headers['x-slack-request-timestamp'];
+  const webhookSecret = process.env.SLACK_SIGNING_SECRET;
 
-    const challenge = SlackService.handleChallenge(req.body);
-    if (challenge) {
-      return res.json({ challenge });
-    }
-
-    const signature = req.headers['x-slack-signature'];
-    const timestamp = req.headers['x-slack-request-timestamp'];
-    const webhookSecret = process.env.SLACK_SIGNING_SECRET;
-
-    if (webhookSecret && signature && timestamp) {
-      const isValid = SlackService.verifyWebhookSignature(
-        webhookSecret,
-        timestamp,
-        JSON.stringify(req.body),
-        signature
-      );
-
-      if (!isValid) {
-        return res.status(401).json({ success: false, error: 'Invalid webhook signature', code: 'INTEGRATION_SLACK_WEBHOOK_INVALID_SIG' });
-      }
-    }
-
-    const webhook = SlackService.parseWebhook(req.body);
-
-    log.info('Slack webhook received', webhook);
-
-    await query(
-      `INSERT INTO integration_webhooks (provider, event_type, payload, ip_address, signature_valid)
-       VALUES ($1, $2, $3, $4, $5)`,
-      [
-        'slack',
-        webhook.type,
-        JSON.stringify(req.body),
-        req.ip,
-        !!webhookSecret && !!signature
-      ]
+  if (webhookSecret && signature && timestamp) {
+    const isValid = SlackService.verifyWebhookSignature(
+      webhookSecret,
+      timestamp,
+      JSON.stringify(req.body),
+      signature
     );
 
-    res.json({ success: true });
-  } catch (error) {
-    log.error('Slack webhook error', error);
-    res.status(500).json({ success: false, error: error.message, code: 'INTEGRATION_SLACK_WEBHOOK_ERROR' });
+    if (!isValid) {
+      return res.status(401).json({ success: false, error: 'Invalid webhook signature', code: 'INTEGRATION_SLACK_WEBHOOK_INVALID_SIG' });
+    }
   }
-});
+
+  const webhook = SlackService.parseWebhook(req.body);
+
+  log.info('Slack webhook received', webhook);
+
+  await query(
+    `INSERT INTO integration_webhooks (provider, event_type, payload, ip_address, signature_valid)
+     VALUES ($1, $2, $3, $4, $5)`,
+    [
+      'slack',
+      webhook.type,
+      JSON.stringify(req.body),
+      req.ip,
+      !!webhookSecret && !!signature
+    ]
+  );
+
+  res.json({ success: true });
+}));
 
 // ========================================
 // GitHub Integration Routes
 // ========================================
 
-router.get('/github/repositories', authenticateToken, async (req, res) => {
-  try {
-    const accessToken = await getOAuthManager().getAccessToken(req.user.id, 'github');
-    const { Octokit } = require('@octokit/rest');
-    const octokit = new Octokit({ auth: accessToken });
+router.get('/github/repositories', authenticateToken, asyncHandler(async (req, res) => {
+  const accessToken = await getOAuthManager().getAccessToken(req.user.id, 'github');
+  const { Octokit } = require('@octokit/rest');
+  const octokit = new Octokit({ auth: accessToken });
 
-    const { type, sort, direction, per_page } = req.query;
+  const { type, sort, direction, per_page } = req.query;
 
-    const { data } = await octokit.repos.listForAuthenticatedUser({
-      type: type || 'owner',
-      sort: sort || 'updated',
-      direction: direction || 'desc',
-      per_page: per_page ? parseInt(per_page) : 30
-    });
+  const { data } = await octokit.repos.listForAuthenticatedUser({
+    type: type || 'owner',
+    sort: sort || 'updated',
+    direction: direction || 'desc',
+    per_page: per_page ? parseInt(per_page) : 30
+  });
 
-    res.json({ repositories: data });
-  } catch (error) {
-    log.error('GitHub repositories error', error);
-    res.status(500).json({ success: false, error: error.message, code: 'INTEGRATION_GITHUB_REPOS_ERROR' });
+  res.json({ repositories: data });
+}));
+
+router.get('/github/repositories/:owner/:repo', authenticateToken, asyncHandler(async (req, res) => {
+  const accessToken = await getOAuthManager().getAccessToken(req.user.id, 'github');
+  const { Octokit } = require('@octokit/rest');
+  const octokit = new Octokit({ auth: accessToken });
+
+  const { owner, repo } = req.params;
+
+  const { data } = await octokit.repos.get({ owner, repo });
+
+  res.json(data);
+}));
+
+router.get('/github/repositories/:owner/:repo/issues', authenticateToken, asyncHandler(async (req, res) => {
+  const accessToken = await getOAuthManager().getAccessToken(req.user.id, 'github');
+  const { Octokit } = require('@octokit/rest');
+  const octokit = new Octokit({ auth: accessToken });
+
+  const { owner, repo } = req.params;
+  const { state, labels, sort, direction, per_page } = req.query;
+
+  const { data } = await octokit.issues.listForRepo({
+    owner,
+    repo,
+    state: state || 'open',
+    labels,
+    sort: sort || 'created',
+    direction: direction || 'desc',
+    per_page: per_page ? parseInt(per_page) : 30
+  });
+
+  res.json({ issues: data });
+}));
+
+router.get('/github/repositories/:owner/:repo/issues/:issue_number', authenticateToken, asyncHandler(async (req, res) => {
+  const accessToken = await getOAuthManager().getAccessToken(req.user.id, 'github');
+  const { Octokit } = require('@octokit/rest');
+  const octokit = new Octokit({ auth: accessToken });
+
+  const { owner, repo, issue_number } = req.params;
+
+  const { data } = await octokit.issues.get({
+    owner,
+    repo,
+    issue_number: parseInt(issue_number)
+  });
+
+  res.json(data);
+}));
+
+router.post('/github/repositories/:owner/:repo/issues', authenticateToken, zodValidate(githubCreateIssueSchema), asyncHandler(async (req, res) => {
+  const accessToken = await getOAuthManager().getAccessToken(req.user.id, 'github');
+  const { Octokit } = require('@octokit/rest');
+  const octokit = new Octokit({ auth: accessToken });
+
+  const { owner, repo } = req.params;
+  const { title, body, labels, assignees } = req.body;
+
+  if (!title) {
+    return res.status(400).json({ success: false, error: 'Issue title is required', code: 'INTEGRATION_GITHUB_MISSING_TITLE' });
   }
-});
 
-router.get('/github/repositories/:owner/:repo', authenticateToken, async (req, res) => {
-  try {
-    const accessToken = await getOAuthManager().getAccessToken(req.user.id, 'github');
-    const { Octokit } = require('@octokit/rest');
-    const octokit = new Octokit({ auth: accessToken });
+  const { data } = await octokit.issues.create({
+    owner,
+    repo,
+    title,
+    body,
+    labels,
+    assignees
+  });
 
-    const { owner, repo } = req.params;
+  res.json(data);
+}));
 
-    const { data } = await octokit.repos.get({ owner, repo });
+router.patch('/github/repositories/:owner/:repo/issues/:issue_number', authenticateToken, asyncHandler(async (req, res) => {
+  const accessToken = await getOAuthManager().getAccessToken(req.user.id, 'github');
+  const { Octokit } = require('@octokit/rest');
+  const octokit = new Octokit({ auth: accessToken });
 
-    res.json(data);
-  } catch (error) {
-    log.error('GitHub repository error', error);
-    res.status(500).json({ success: false, error: error.message, code: 'INTEGRATION_GITHUB_REPO_ERROR' });
+  const { owner, repo, issue_number } = req.params;
+  const { title, body, state, labels, assignees } = req.body;
+
+  const { data } = await octokit.issues.update({
+    owner,
+    repo,
+    issue_number: parseInt(issue_number),
+    title,
+    body,
+    state,
+    labels,
+    assignees
+  });
+
+  res.json(data);
+}));
+
+router.post('/github/repositories/:owner/:repo/issues/:issue_number/comments', authenticateToken, asyncHandler(async (req, res) => {
+  const accessToken = await getOAuthManager().getAccessToken(req.user.id, 'github');
+  const { Octokit } = require('@octokit/rest');
+  const octokit = new Octokit({ auth: accessToken });
+
+  const { owner, repo, issue_number } = req.params;
+  const { body } = req.body;
+
+  if (!body) {
+    return res.status(400).json({ success: false, error: 'Comment body is required', code: 'INTEGRATION_GITHUB_MISSING_BODY' });
   }
-});
 
-router.get('/github/repositories/:owner/:repo/issues', authenticateToken, async (req, res) => {
-  try {
-    const accessToken = await getOAuthManager().getAccessToken(req.user.id, 'github');
-    const { Octokit } = require('@octokit/rest');
-    const octokit = new Octokit({ auth: accessToken });
+  const { data } = await octokit.issues.createComment({
+    owner,
+    repo,
+    issue_number: parseInt(issue_number),
+    body
+  });
 
-    const { owner, repo } = req.params;
-    const { state, labels, sort, direction, per_page } = req.query;
+  res.json(data);
+}));
 
-    const { data } = await octokit.issues.listForRepo({
-      owner,
-      repo,
-      state: state || 'open',
-      labels,
-      sort: sort || 'created',
-      direction: direction || 'desc',
-      per_page: per_page ? parseInt(per_page) : 30
-    });
+router.get('/github/repositories/:owner/:repo/pulls', authenticateToken, asyncHandler(async (req, res) => {
+  const accessToken = await getOAuthManager().getAccessToken(req.user.id, 'github');
+  const { Octokit } = require('@octokit/rest');
+  const octokit = new Octokit({ auth: accessToken });
 
-    res.json({ issues: data });
-  } catch (error) {
-    log.error('GitHub issues error', error);
-    res.status(500).json({ success: false, error: error.message, code: 'INTEGRATION_GITHUB_ISSUES_ERROR' });
+  const { owner, repo } = req.params;
+  const { state, sort, direction, per_page } = req.query;
+
+  const { data } = await octokit.pulls.list({
+    owner,
+    repo,
+    state: state || 'open',
+    sort: sort || 'created',
+    direction: direction || 'desc',
+    per_page: per_page ? parseInt(per_page) : 30
+  });
+
+  res.json({ pulls: data });
+}));
+
+router.get('/github/repositories/:owner/:repo/commits', authenticateToken, asyncHandler(async (req, res) => {
+  const accessToken = await getOAuthManager().getAccessToken(req.user.id, 'github');
+  const { Octokit } = require('@octokit/rest');
+  const octokit = new Octokit({ auth: accessToken });
+
+  const { owner, repo } = req.params;
+  const { sha, path, per_page } = req.query;
+
+  const { data } = await octokit.repos.listCommits({
+    owner,
+    repo,
+    sha,
+    path,
+    per_page: per_page ? parseInt(per_page) : 30
+  });
+
+  res.json({ commits: data });
+}));
+
+router.get('/github/repositories/:owner/:repo/branches', authenticateToken, asyncHandler(async (req, res) => {
+  const accessToken = await getOAuthManager().getAccessToken(req.user.id, 'github');
+  const { Octokit } = require('@octokit/rest');
+  const octokit = new Octokit({ auth: accessToken });
+
+  const { owner, repo } = req.params;
+
+  const { data } = await octokit.repos.listBranches({ owner, repo });
+
+  const branches = data.map(branch => ({
+    name: branch.name,
+    protected: branch.protected
+  }));
+
+  res.json({ branches });
+}));
+
+router.get('/github/repositories/:owner/:repo/collaborators', authenticateToken, asyncHandler(async (req, res) => {
+  const accessToken = await getOAuthManager().getAccessToken(req.user.id, 'github');
+  const { Octokit } = require('@octokit/rest');
+  const octokit = new Octokit({ auth: accessToken });
+
+  const { owner, repo } = req.params;
+
+  const { data } = await octokit.repos.listCollaborators({ owner, repo });
+
+  const collaborators = data.map(collab => ({
+    login: collab.login,
+    avatar_url: collab.avatar_url,
+    permissions: collab.permissions || { admin: false, push: false, pull: false }
+  }));
+
+  res.json({ collaborators });
+}));
+
+router.post('/github/repositories/:owner/:repo/link', authenticateToken, zodValidate(githubLinkRepoSchema), asyncHandler(async (req, res) => {
+  const { owner, repo } = req.params;
+  const { projectId } = req.body;
+
+  if (!projectId) {
+    return res.status(400).json({ success: false, error: 'Project ID is required', code: 'INTEGRATION_GITHUB_MISSING_PROJECT_ID' });
   }
-});
 
-router.get('/github/repositories/:owner/:repo/issues/:issue_number', authenticateToken, async (req, res) => {
-  try {
-    const accessToken = await getOAuthManager().getAccessToken(req.user.id, 'github');
-    const { Octokit } = require('@octokit/rest');
-    const octokit = new Octokit({ auth: accessToken });
+  await getOAuthManager().getAccessToken(req.user.id, 'github');
 
-    const { owner, repo, issue_number } = req.params;
+  const projects = await getProjects();
+  const projectIndex = projects.findIndex(p => p.id === projectId);
 
-    const { data } = await octokit.issues.get({
-      owner,
-      repo,
-      issue_number: parseInt(issue_number)
-    });
-
-    res.json(data);
-  } catch (error) {
-    log.error('GitHub issue error', error);
-    res.status(500).json({ success: false, error: error.message, code: 'INTEGRATION_GITHUB_ISSUE_ERROR' });
+  if (projectIndex === -1) {
+    return res.status(404).json({ success: false, error: 'Project not found', code: 'INTEGRATION_PROJECT_NOT_FOUND' });
   }
-});
 
-router.post('/github/repositories/:owner/:repo/issues', authenticateToken, zodValidate(githubCreateIssueSchema), async (req, res) => {
-  try {
-    const accessToken = await getOAuthManager().getAccessToken(req.user.id, 'github');
-    const { Octokit } = require('@octokit/rest');
-    const octokit = new Octokit({ auth: accessToken });
+  const isMember = projects[projectIndex].members && projects[projectIndex].members.some(m => m.userId === req.user.id);
+  if (!isMember) {
+    return res.status(403).json({ success: false, error: 'Access denied', code: 'INTEGRATION_ACCESS_DENIED' });
+  }
 
-    const { owner, repo } = req.params;
-    const { title, body, labels, assignees } = req.body;
+  if (!projects[projectIndex].githubMetadata) {
+    projects[projectIndex].githubMetadata = {};
+  }
 
-    if (!title) {
-      return res.status(400).json({ success: false, error: 'Issue title is required', code: 'INTEGRATION_GITHUB_MISSING_TITLE' });
+  projects[projectIndex].githubMetadata = {
+    owner,
+    repo,
+    fullName: `${owner}/${repo}`,
+    linkedAt: new Date().toISOString(),
+    linkedBy: req.user.id
+  };
+
+  await saveProjects(projects);
+
+  res.json({
+    message: 'Repository linked successfully',
+    project: projects[projectIndex]
+  });
+}));
+
+router.get('/github/user', authenticateToken, asyncHandler(async (req, res) => {
+  const accessToken = await getOAuthManager().getAccessToken(req.user.id, 'github');
+  const { Octokit } = require('@octokit/rest');
+  const octokit = new Octokit({ auth: accessToken });
+
+  const { data } = await octokit.users.getAuthenticated();
+
+  res.json({
+    login: data.login,
+    name: data.name,
+    email: data.email,
+    avatar_url: data.avatar_url,
+    bio: data.bio,
+    public_repos: data.public_repos
+  });
+}));
+
+router.post('/github/webhook', asyncHandler(async (req, res) => {
+  const signature = req.headers['x-hub-signature-256'];
+  const webhookSecret = process.env.GITHUB_WEBHOOK_SECRET;
+  const event = req.headers['x-github-event'];
+
+  if (webhookSecret && signature) {
+    const hmac = crypto.createHmac('sha256', webhookSecret);
+    const digest = 'sha256=' + hmac.update(JSON.stringify(req.body)).digest('hex');
+
+    if (signature !== digest) {
+      return res.status(401).json({ success: false, error: 'Invalid webhook signature', code: 'INTEGRATION_GITHUB_WEBHOOK_INVALID_SIG' });
     }
-
-    const { data } = await octokit.issues.create({
-      owner,
-      repo,
-      title,
-      body,
-      labels,
-      assignees
-    });
-
-    res.json(data);
-  } catch (error) {
-    log.error('GitHub create issue error', error);
-    res.status(500).json({ success: false, error: error.message, code: 'INTEGRATION_GITHUB_CREATE_ISSUE_ERROR' });
   }
-});
 
-router.patch('/github/repositories/:owner/:repo/issues/:issue_number', authenticateToken, async (req, res) => {
-  try {
-    const accessToken = await getOAuthManager().getAccessToken(req.user.id, 'github');
-    const { Octokit } = require('@octokit/rest');
-    const octokit = new Octokit({ auth: accessToken });
+  log.info('GitHub webhook received', {
+    event,
+    action: req.body.action,
+    repository: req.body.repository?.full_name
+  });
 
-    const { owner, repo, issue_number } = req.params;
-    const { title, body, state, labels, assignees } = req.body;
-
-    const { data } = await octokit.issues.update({
-      owner,
-      repo,
-      issue_number: parseInt(issue_number),
-      title,
-      body,
-      state,
-      labels,
-      assignees
-    });
-
-    res.json(data);
-  } catch (error) {
-    log.error('GitHub update issue error', error);
-    res.status(500).json({ success: false, error: error.message, code: 'INTEGRATION_GITHUB_UPDATE_ISSUE_ERROR' });
-  }
-});
-
-router.post('/github/repositories/:owner/:repo/issues/:issue_number/comments', authenticateToken, async (req, res) => {
-  try {
-    const accessToken = await getOAuthManager().getAccessToken(req.user.id, 'github');
-    const { Octokit } = require('@octokit/rest');
-    const octokit = new Octokit({ auth: accessToken });
-
-    const { owner, repo, issue_number } = req.params;
-    const { body } = req.body;
-
-    if (!body) {
-      return res.status(400).json({ success: false, error: 'Comment body is required', code: 'INTEGRATION_GITHUB_MISSING_BODY' });
-    }
-
-    const { data } = await octokit.issues.createComment({
-      owner,
-      repo,
-      issue_number: parseInt(issue_number),
-      body
-    });
-
-    res.json(data);
-  } catch (error) {
-    log.error('GitHub add comment error', error);
-    res.status(500).json({ success: false, error: error.message, code: 'INTEGRATION_GITHUB_ADD_COMMENT_ERROR' });
-  }
-});
-
-router.get('/github/repositories/:owner/:repo/pulls', authenticateToken, async (req, res) => {
-  try {
-    const accessToken = await getOAuthManager().getAccessToken(req.user.id, 'github');
-    const { Octokit } = require('@octokit/rest');
-    const octokit = new Octokit({ auth: accessToken });
-
-    const { owner, repo } = req.params;
-    const { state, sort, direction, per_page } = req.query;
-
-    const { data } = await octokit.pulls.list({
-      owner,
-      repo,
-      state: state || 'open',
-      sort: sort || 'created',
-      direction: direction || 'desc',
-      per_page: per_page ? parseInt(per_page) : 30
-    });
-
-    res.json({ pulls: data });
-  } catch (error) {
-    log.error('GitHub pull requests error', error);
-    res.status(500).json({ success: false, error: error.message, code: 'INTEGRATION_GITHUB_PULLS_ERROR' });
-  }
-});
-
-router.get('/github/repositories/:owner/:repo/commits', authenticateToken, async (req, res) => {
-  try {
-    const accessToken = await getOAuthManager().getAccessToken(req.user.id, 'github');
-    const { Octokit } = require('@octokit/rest');
-    const octokit = new Octokit({ auth: accessToken });
-
-    const { owner, repo } = req.params;
-    const { sha, path, per_page } = req.query;
-
-    const { data } = await octokit.repos.listCommits({
-      owner,
-      repo,
-      sha,
-      path,
-      per_page: per_page ? parseInt(per_page) : 30
-    });
-
-    res.json({ commits: data });
-  } catch (error) {
-    log.error('GitHub commits error', error);
-    res.status(500).json({ success: false, error: error.message, code: 'INTEGRATION_GITHUB_COMMITS_ERROR' });
-  }
-});
-
-router.get('/github/repositories/:owner/:repo/branches', authenticateToken, async (req, res) => {
-  try {
-    const accessToken = await getOAuthManager().getAccessToken(req.user.id, 'github');
-    const { Octokit } = require('@octokit/rest');
-    const octokit = new Octokit({ auth: accessToken });
-
-    const { owner, repo } = req.params;
-
-    const { data } = await octokit.repos.listBranches({ owner, repo });
-
-    const branches = data.map(branch => ({
-      name: branch.name,
-      protected: branch.protected
-    }));
-
-    res.json({ branches });
-  } catch (error) {
-    log.error('GitHub branches error', error);
-    res.status(500).json({ success: false, error: error.message, code: 'INTEGRATION_GITHUB_BRANCHES_ERROR' });
-  }
-});
-
-router.get('/github/repositories/:owner/:repo/collaborators', authenticateToken, async (req, res) => {
-  try {
-    const accessToken = await getOAuthManager().getAccessToken(req.user.id, 'github');
-    const { Octokit } = require('@octokit/rest');
-    const octokit = new Octokit({ auth: accessToken });
-
-    const { owner, repo } = req.params;
-
-    const { data } = await octokit.repos.listCollaborators({ owner, repo });
-
-    const collaborators = data.map(collab => ({
-      login: collab.login,
-      avatar_url: collab.avatar_url,
-      permissions: collab.permissions || { admin: false, push: false, pull: false }
-    }));
-
-    res.json({ collaborators });
-  } catch (error) {
-    log.error('GitHub collaborators error', error);
-    res.status(500).json({ success: false, error: error.message, code: 'INTEGRATION_GITHUB_COLLABORATORS_ERROR' });
-  }
-});
-
-router.post('/github/repositories/:owner/:repo/link', authenticateToken, zodValidate(githubLinkRepoSchema), async (req, res) => {
-  try {
-    const { owner, repo } = req.params;
-    const { projectId } = req.body;
-
-    if (!projectId) {
-      return res.status(400).json({ success: false, error: 'Project ID is required', code: 'INTEGRATION_GITHUB_MISSING_PROJECT_ID' });
-    }
-
-    await getOAuthManager().getAccessToken(req.user.id, 'github');
-
-    const projects = await getProjects();
-    const projectIndex = projects.findIndex(p => p.id === projectId);
-
-    if (projectIndex === -1) {
-      return res.status(404).json({ success: false, error: 'Project not found', code: 'INTEGRATION_PROJECT_NOT_FOUND' });
-    }
-
-    const isMember = projects[projectIndex].members && projects[projectIndex].members.some(m => m.userId === req.user.id);
-    if (!isMember) {
-      return res.status(403).json({ success: false, error: 'Access denied', code: 'INTEGRATION_ACCESS_DENIED' });
-    }
-
-    if (!projects[projectIndex].githubMetadata) {
-      projects[projectIndex].githubMetadata = {};
-    }
-
-    projects[projectIndex].githubMetadata = {
-      owner,
-      repo,
-      fullName: `${owner}/${repo}`,
-      linkedAt: new Date().toISOString(),
-      linkedBy: req.user.id
-    };
-
-    await saveProjects(projects);
-
-    res.json({
-      message: 'Repository linked successfully',
-      project: projects[projectIndex]
-    });
-  } catch (error) {
-    log.error('GitHub link repository error', error);
-    res.status(500).json({ success: false, error: error.message, code: 'INTEGRATION_GITHUB_LINK_REPO_ERROR' });
-  }
-});
-
-router.get('/github/user', authenticateToken, async (req, res) => {
-  try {
-    const accessToken = await getOAuthManager().getAccessToken(req.user.id, 'github');
-    const { Octokit } = require('@octokit/rest');
-    const octokit = new Octokit({ auth: accessToken });
-
-    const { data } = await octokit.users.getAuthenticated();
-
-    res.json({
-      login: data.login,
-      name: data.name,
-      email: data.email,
-      avatar_url: data.avatar_url,
-      bio: data.bio,
-      public_repos: data.public_repos
-    });
-  } catch (error) {
-    log.error('GitHub user error', error);
-    res.status(500).json({ success: false, error: error.message, code: 'INTEGRATION_GITHUB_USER_ERROR' });
-  }
-});
-
-router.post('/github/webhook', async (req, res) => {
-  try {
-    const signature = req.headers['x-hub-signature-256'];
-    const webhookSecret = process.env.GITHUB_WEBHOOK_SECRET;
-    const event = req.headers['x-github-event'];
-
-    if (webhookSecret && signature) {
-      const hmac = crypto.createHmac('sha256', webhookSecret);
-      const digest = 'sha256=' + hmac.update(JSON.stringify(req.body)).digest('hex');
-
-      if (signature !== digest) {
-        return res.status(401).json({ success: false, error: 'Invalid webhook signature', code: 'INTEGRATION_GITHUB_WEBHOOK_INVALID_SIG' });
-      }
-    }
-
-    log.info('GitHub webhook received', {
+  await query(
+    `INSERT INTO integration_webhooks (provider, event_type, payload, ip_address, signature_valid)
+     VALUES ($1, $2, $3, $4, $5)`,
+    [
+      'github',
       event,
-      action: req.body.action,
-      repository: req.body.repository?.full_name
+      JSON.stringify(req.body),
+      req.ip,
+      !!webhookSecret && !!signature
+    ]
+  );
+
+  res.json({ success: true });
+
+  const syncService = getGitHubSyncService();
+  if (syncService && event === 'issues') {
+    log.info(`GitHub issue ${req.body.action}: ${req.body.issue?.title}`);
+
+    setImmediate(async () => {
+      try {
+        await syncService.processWebhookEvent(req.body);
+        log.info('GitHub issue webhook processed successfully');
+      } catch (error) {
+        log.error('Error processing GitHub issue webhook', error);
+      }
     });
-
-    await query(
-      `INSERT INTO integration_webhooks (provider, event_type, payload, ip_address, signature_valid)
-       VALUES ($1, $2, $3, $4, $5)`,
-      [
-        'github',
-        event,
-        JSON.stringify(req.body),
-        req.ip,
-        !!webhookSecret && !!signature
-      ]
-    );
-
-    res.json({ success: true });
-
-    const syncService = getGitHubSyncService();
-    if (syncService && event === 'issues') {
-      log.info(`GitHub issue ${req.body.action}: ${req.body.issue?.title}`);
-
-      setImmediate(async () => {
-        try {
-          await syncService.processWebhookEvent(req.body);
-          log.info('GitHub issue webhook processed successfully');
-        } catch (error) {
-          log.error('Error processing GitHub issue webhook', error);
-        }
-      });
-    }
-  } catch (error) {
-    log.error('GitHub webhook error', error);
-    res.status(500).json({ success: false, error: error.message, code: 'INTEGRATION_GITHUB_WEBHOOK_ERROR' });
   }
-});
+}));
 
 // GitHub Sync API Endpoints
 
-router.post('/github/sync/:linkId', authenticateToken, async (req, res) => {
-  try {
-    const syncService = getGitHubSyncService();
-    if (!syncService) {
-      return res.status(503).json({
-        success: false,
-        error: 'GitHub Sync Service not available (requires database mode)',
-        code: 'INTEGRATION_SYNC_SERVICE_UNAVAILABLE'
-      });
-    }
-
-    const { linkId } = req.params;
-    const result = await syncService.syncIssuesFromGitHub(linkId);
-
-    res.json({
-      message: 'Sync completed successfully',
-      ...result
+router.post('/github/sync/:linkId', authenticateToken, asyncHandler(async (req, res) => {
+  const syncService = getGitHubSyncService();
+  if (!syncService) {
+    return res.status(503).json({
+      success: false,
+      error: 'GitHub Sync Service not available (requires database mode)',
+      code: 'INTEGRATION_SYNC_SERVICE_UNAVAILABLE'
     });
-  } catch (error) {
-    log.error('GitHub manual sync error', error);
-    res.status(500).json({ success: false, error: error.message, code: 'INTEGRATION_GITHUB_SYNC_ERROR' });
   }
-});
 
-router.post('/github/sync/start', authenticateToken, async (req, res) => {
-  try {
-    const syncService = getGitHubSyncService();
-    if (!syncService) {
-      return res.status(503).json({
-        success: false,
-        error: 'GitHub Sync Service not available (requires database mode)',
-        code: 'INTEGRATION_SYNC_SERVICE_UNAVAILABLE'
-      });
-    }
+  const { linkId } = req.params;
+  const result = await syncService.syncIssuesFromGitHub(linkId);
 
-    if (req.user.userType !== 'admin') {
-      return res.status(403).json({ success: false, error: 'Admin access required', code: 'INTEGRATION_ADMIN_REQUIRED' });
-    }
+  res.json({
+    message: 'Sync completed successfully',
+    ...result
+  });
+}));
 
-    syncService.startAutoSync();
-
-    res.json({
-      message: 'Auto-sync started successfully',
-      interval: syncService.syncInterval
+router.post('/github/sync/start', authenticateToken, asyncHandler(async (req, res) => {
+  const syncService = getGitHubSyncService();
+  if (!syncService) {
+    return res.status(503).json({
+      success: false,
+      error: 'GitHub Sync Service not available (requires database mode)',
+      code: 'INTEGRATION_SYNC_SERVICE_UNAVAILABLE'
     });
-  } catch (error) {
-    log.error('GitHub start auto-sync error', error);
-    res.status(500).json({ success: false, error: error.message, code: 'INTEGRATION_START_SYNC_ERROR' });
   }
-});
 
-router.post('/github/sync/stop', authenticateToken, async (req, res) => {
-  try {
-    const syncService = getGitHubSyncService();
-    if (!syncService) {
-      return res.status(503).json({
-        success: false,
-        error: 'GitHub Sync Service not available (requires database mode)',
-        code: 'INTEGRATION_SYNC_SERVICE_UNAVAILABLE'
-      });
-    }
+  if (req.user.userType !== 'admin') {
+    return res.status(403).json({ success: false, error: 'Admin access required', code: 'INTEGRATION_ADMIN_REQUIRED' });
+  }
 
-    if (req.user.userType !== 'admin') {
-      return res.status(403).json({ success: false, error: 'Admin access required', code: 'INTEGRATION_ADMIN_REQUIRED' });
-    }
+  syncService.startAutoSync();
 
-    syncService.stopAutoSync();
+  res.json({
+    message: 'Auto-sync started successfully',
+    interval: syncService.syncInterval
+  });
+}));
 
-    res.json({
-      message: 'Auto-sync stopped successfully'
+router.post('/github/sync/stop', authenticateToken, asyncHandler(async (req, res) => {
+  const syncService = getGitHubSyncService();
+  if (!syncService) {
+    return res.status(503).json({
+      success: false,
+      error: 'GitHub Sync Service not available (requires database mode)',
+      code: 'INTEGRATION_SYNC_SERVICE_UNAVAILABLE'
     });
-  } catch (error) {
-    log.error('GitHub stop auto-sync error', error);
-    res.status(500).json({ success: false, error: error.message, code: 'INTEGRATION_STOP_SYNC_ERROR' });
   }
-});
 
-router.get('/github/sync/status/:linkId', authenticateToken, async (req, res) => {
-  try {
-    const syncService = getGitHubSyncService();
-    if (!syncService) {
-      return res.status(503).json({
-        success: false,
-        error: 'GitHub Sync Service not available (requires database mode)',
-        code: 'INTEGRATION_SYNC_SERVICE_UNAVAILABLE'
-      });
-    }
+  if (req.user.userType !== 'admin') {
+    return res.status(403).json({ success: false, error: 'Admin access required', code: 'INTEGRATION_ADMIN_REQUIRED' });
+  }
 
-    const { linkId } = req.params;
-    const link = await syncService.getRepositoryLink(linkId);
+  syncService.stopAutoSync();
 
-    if (!link) {
-      return res.status(404).json({ success: false, error: 'Repository link not found', code: 'INTEGRATION_REPO_LINK_NOT_FOUND' });
-    }
+  res.json({
+    message: 'Auto-sync stopped successfully'
+  });
+}));
 
-    res.json({
-      link: {
-        id: link.id,
-        owner: link.owner,
-        repo: link.repo,
-        fullName: link.full_name,
-        syncStatus: link.sync_status,
-        lastSyncedAt: link.last_synced_at,
-        lastError: link.last_error,
-        autoCreateTasks: link.auto_create_tasks,
-        syncIssues: link.sync_issues
-      },
-      isAutoSyncRunning: syncService.isRunning
+router.get('/github/sync/status/:linkId', authenticateToken, asyncHandler(async (req, res) => {
+  const syncService = getGitHubSyncService();
+  if (!syncService) {
+    return res.status(503).json({
+      success: false,
+      error: 'GitHub Sync Service not available (requires database mode)',
+      code: 'INTEGRATION_SYNC_SERVICE_UNAVAILABLE'
     });
-  } catch (error) {
-    log.error('GitHub sync status error', error);
-    res.status(500).json({ success: false, error: error.message, code: 'INTEGRATION_SYNC_STATUS_ERROR' });
   }
-});
+
+  const { linkId } = req.params;
+  const link = await syncService.getRepositoryLink(linkId);
+
+  if (!link) {
+    return res.status(404).json({ success: false, error: 'Repository link not found', code: 'INTEGRATION_REPO_LINK_NOT_FOUND' });
+  }
+
+  res.json({
+    link: {
+      id: link.id,
+      owner: link.owner,
+      repo: link.repo,
+      fullName: link.full_name,
+      syncStatus: link.sync_status,
+      lastSyncedAt: link.last_synced_at,
+      lastError: link.last_error,
+      autoCreateTasks: link.auto_create_tasks,
+      syncIssues: link.sync_issues
+    },
+    isAutoSyncRunning: syncService.isRunning
+  });
+}));
 
 module.exports = router;

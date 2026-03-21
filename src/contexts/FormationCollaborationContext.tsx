@@ -162,6 +162,8 @@ export function FormationCollaborationProvider({
     removeKeyframe: yjsResult.removeKeyframe,
     updatePosition: yjsResult.updatePosition,
     updatePositions: yjsResult.updatePositions,
+    updatePathCurve: yjsResult.updatePathCurve,
+    batchUpdatePathCurves: yjsResult.batchUpdatePathCurves,
     setAudioTrack: yjsResult.setAudioTrack,
     addSet: yjsResult.addSet,
     updateSet: yjsResult.updateSet,

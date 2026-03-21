@@ -26,6 +26,7 @@ const log = createLogger('Files');
 const { zodValidate } = require('../middleware/zodValidate');
 const { attachFileSchema, attachFileByProjectSchema } = require('../lib/schemas');
 const { requireProjectAccess, canUserAccessProject } = require('../middleware/requireProjectAccess');
+const { asyncHandler } = require('../middleware/errorHandler');
 
 const router = express.Router();
 
@@ -76,174 +77,154 @@ const allowedExtensions = [
  * GET /api/files
  * List files with filtering and pagination
  */
-router.get('/', authenticateToken, async (req, res) => {
-  try {
-    const {
-      projectId,
-      type,
-      source,
-      search,
-      limit = 50,
-      offset = 0,
-      sort = 'created_at DESC'
-    } = req.query;
+router.get('/', authenticateToken, asyncHandler(async (req, res) => {
+  const {
+    projectId,
+    type,
+    source,
+    search,
+    limit = 50,
+    offset = 0,
+    sort = 'created_at DESC'
+  } = req.query;
 
-    const result = await filesAdapter.listFiles({
-      userId: req.user.id,
-      projectId,
-      type,
-      source,
-      search,
-      limit: parseInt(limit),
-      offset: parseInt(offset),
-      sort
-    });
+  const result = await filesAdapter.listFiles({
+    userId: req.user.id,
+    projectId,
+    type,
+    source,
+    search,
+    limit: parseInt(limit),
+    offset: parseInt(offset),
+    sort
+  });
 
-    res.json({
-      success: true,
-      files: result.items,
-      total: result.total,
-      page: result.page,
-      pageSize: result.pageSize,
-      totalPages: result.totalPages
-    });
-  } catch (error) {
-    log.error('Error listing files', error);
-    res.status(500).json({ success: false, error: 'Failed to list files', code: 'FILES_LIST_FAILED' });
-  }
-});
+  res.json({
+    success: true,
+    files: result.items,
+    total: result.total,
+    page: result.page,
+    pageSize: result.pageSize,
+    totalPages: result.totalPages
+  });
+}));
 
 /**
  * GET /api/files/:fileId
  * Get single file details
  */
-router.get('/:fileId', authenticateToken, async (req, res) => {
-  try {
-    const { fileId } = req.params;
-    const file = await filesAdapter.getFileById(fileId, req.user.id);
+router.get('/:fileId', authenticateToken, asyncHandler(async (req, res) => {
+  const { fileId } = req.params;
+  const file = await filesAdapter.getFileById(fileId, req.user.id);
 
-    if (!file) {
-      return res.status(404).json({ success: false, error: 'File not found', code: 'FILE_NOT_FOUND' });
-    }
-
-    res.json({ success: true, file });
-  } catch (error) {
-    log.error('Error getting file', error);
-    res.status(500).json({ success: false, error: 'Failed to get file', code: 'FILE_FETCH_FAILED' });
+  if (!file) {
+    return res.status(404).json({ success: false, error: 'File not found', code: 'FILE_NOT_FOUND' });
   }
-});
+
+  res.json({ success: true, file });
+}));
 
 /**
  * POST /api/files/upload
  * Upload one or more files
  */
-router.post('/upload', authenticateToken, rateLimitByUser(20, 60000), fileUpload.array('files', 10), validateUploadedFiles, async (req, res) => {
-  try {
-    const userId = req.user.id;
-    const { projectId, organizationId } = req.body;
+router.post('/upload', authenticateToken, rateLimitByUser(20, 60000), fileUpload.array('files', 10), validateUploadedFiles, asyncHandler(async (req, res) => {
+  const userId = req.user.id;
+  const { projectId, organizationId } = req.body;
 
-    if (!req.files || req.files.length === 0) {
-      return res.status(400).json({ success: false, error: 'No files uploaded', code: 'NO_FILES_UPLOADED' });
-    }
-
-    const uploadedFiles = [];
-
-    for (const file of req.files) {
-      // Validate file size
-      if (file.size > 100 * 1024 * 1024) {
-        return res.status(400).json({
-          success: false, error: 'File too large', code: 'FILE_TOO_LARGE',
-          filename: file.originalname,
-          maxSize: '100MB'
-        });
-      }
-
-      // Validate file type
-      const ext = file.originalname.toLowerCase().split('.').pop();
-      if (!allowedExtensions.includes(ext)) {
-        return res.status(400).json({
-          success: false, error: 'File type not allowed', code: 'INVALID_FILE_TYPE',
-          filename: file.originalname,
-          allowed: allowedExtensions
-        });
-      }
-
-      // Upload to storage
-      const storageKey = await fileStorage.upload(file.buffer, {
-        filename: file.originalname,
-        contentType: file.mimetype,
-        userId
-      });
-
-      // Create database record
-      const newFile = await filesAdapter.createFile({
-        userId,
-        organizationId,
-        projectId,
-        name: file.originalname,
-        mimeType: file.mimetype,
-        sizeBytes: file.size,
-        storageKey,
-        source: 'upload'
-      });
-
-      uploadedFiles.push(newFile);
-    }
-
-    // Log activity for file uploads
-    if (activityLogger && projectId) {
-      if (uploadedFiles.length === 1) {
-        await activityLogger.fileUploaded(userId, projectId, uploadedFiles[0]);
-      } else if (uploadedFiles.length > 1) {
-        await activityLogger.filesUploaded(userId, projectId, uploadedFiles);
-      }
-    }
-
-    res.status(201).json({
-      success: true,
-      files: uploadedFiles,
-      message: `${uploadedFiles.length} file(s) uploaded successfully`
-    });
-  } catch (error) {
-    log.error('Error uploading files', error);
-    res.status(500).json({ success: false, error: 'Failed to upload files', code: 'FILE_UPLOAD_FAILED' });
+  if (!req.files || req.files.length === 0) {
+    return res.status(400).json({ success: false, error: 'No files uploaded', code: 'NO_FILES_UPLOADED' });
   }
-});
+
+  const uploadedFiles = [];
+
+  for (const file of req.files) {
+    // Validate file size
+    if (file.size > 100 * 1024 * 1024) {
+      return res.status(400).json({
+        success: false, error: 'File too large', code: 'FILE_TOO_LARGE',
+        filename: file.originalname,
+        maxSize: '100MB'
+      });
+    }
+
+    // Validate file type
+    const ext = file.originalname.toLowerCase().split('.').pop();
+    if (!allowedExtensions.includes(ext)) {
+      return res.status(400).json({
+        success: false, error: 'File type not allowed', code: 'INVALID_FILE_TYPE',
+        filename: file.originalname,
+        allowed: allowedExtensions
+      });
+    }
+
+    // Upload to storage
+    const storageKey = await fileStorage.upload(file.buffer, {
+      filename: file.originalname,
+      contentType: file.mimetype,
+      userId
+    });
+
+    // Create database record
+    const newFile = await filesAdapter.createFile({
+      userId,
+      organizationId,
+      projectId,
+      name: file.originalname,
+      mimeType: file.mimetype,
+      sizeBytes: file.size,
+      storageKey,
+      source: 'upload'
+    });
+
+    uploadedFiles.push(newFile);
+  }
+
+  // Log activity for file uploads
+  if (activityLogger && projectId) {
+    if (uploadedFiles.length === 1) {
+      await activityLogger.fileUploaded(userId, projectId, uploadedFiles[0]);
+    } else if (uploadedFiles.length > 1) {
+      await activityLogger.filesUploaded(userId, projectId, uploadedFiles);
+    }
+  }
+
+  res.status(201).json({
+    success: true,
+    files: uploadedFiles,
+    message: `${uploadedFiles.length} file(s) uploaded successfully`
+  });
+}));
 
 /**
  * DELETE /api/files/:fileId
  * Delete a file
  */
-router.delete('/:fileId', authenticateToken, async (req, res) => {
-  try {
-    const { fileId } = req.params;
-    const userId = req.user.id;
+router.delete('/:fileId', authenticateToken, asyncHandler(async (req, res) => {
+  const { fileId } = req.params;
+  const userId = req.user.id;
 
-    const file = await filesAdapter.getFileById(fileId, userId);
-    if (!file) {
-      return res.status(404).json({ success: false, error: 'File not found', code: 'FILE_NOT_FOUND' });
-    }
-
-    // Delete from storage
-    if (file.storageKey) {
-      await fileStorage.delete(file.storageKey);
-    }
-
-    // Delete from database
-    await filesAdapter.deleteFile(fileId, userId);
-
-    // Log activity for file deletion
-    if (activityLogger && file.projectId) {
-      await activityLogger.fileDeleted(userId, file.projectId, file);
-    }
-
-    logAction(userId, 'delete', 'file', fileId, { name: file.originalName }, req);
-    res.json({ success: true, message: 'File deleted successfully' });
-  } catch (error) {
-    log.error('Error deleting file', error);
-    res.status(500).json({ success: false, error: 'Failed to delete file', code: 'FILE_DELETE_FAILED' });
+  const file = await filesAdapter.getFileById(fileId, userId);
+  if (!file) {
+    return res.status(404).json({ success: false, error: 'File not found', code: 'FILE_NOT_FOUND' });
   }
-});
+
+  // Delete from storage
+  if (file.storageKey) {
+    await fileStorage.delete(file.storageKey);
+  }
+
+  // Delete from database
+  await filesAdapter.deleteFile(fileId, userId);
+
+  // Log activity for file deletion
+  if (activityLogger && file.projectId) {
+    await activityLogger.fileDeleted(userId, file.projectId, file);
+  }
+
+  logAction(userId, 'delete', 'file', fileId, { name: file.originalName }, req);
+  res.json({ success: true, message: 'File deleted successfully' });
+}));
 
 // ==================== Project Files Join Table Endpoints ====================
 
@@ -251,196 +232,158 @@ router.delete('/:fileId', authenticateToken, async (req, res) => {
  * GET /api/files/:fileId/projects
  * Get projects a file is attached to (via project_files join table)
  */
-router.get('/:fileId/projects', authenticateToken, async (req, res) => {
-  try {
-    const { fileId } = req.params;
-    const projects = await filesAdapter.getFileProjects(fileId);
-    res.json({ success: true, projects });
-  } catch (error) {
-    log.error('Error getting file projects', error);
-    res.status(500).json({ success: false, error: 'Failed to get file projects', code: 'FILE_PROJECTS_FETCH_FAILED' });
-  }
-});
+router.get('/:fileId/projects', authenticateToken, asyncHandler(async (req, res) => {
+  const { fileId } = req.params;
+  const projects = await filesAdapter.getFileProjects(fileId);
+  res.json({ success: true, projects });
+}));
 
 /**
  * POST /api/files/:fileId/attach
  * Attach file to project (via project_files join table - allows many-to-many)
  */
-router.post('/:fileId/attach', authenticateToken, zodValidate(attachFileSchema), async (req, res) => {
-  try {
-    const { fileId } = req.params;
-    const { projectId, role = 'reference', notes } = req.body;
+router.post('/:fileId/attach', authenticateToken, zodValidate(attachFileSchema), asyncHandler(async (req, res) => {
+  const { fileId } = req.params;
+  const { projectId, role = 'reference', notes } = req.body;
 
-    // Verify file exists and user has access
-    const file = await filesAdapter.getFileById(fileId, req.user.id);
-    if (!file) {
-      return res.status(404).json({ success: false, error: 'File not found', code: 'FILE_NOT_FOUND' });
-    }
-
-    // Verify user has access to the target project
-    const hasAccess = await canUserAccessProject(req.user.id, projectId);
-    if (!hasAccess) {
-      return res.status(403).json({ success: false, error: 'You do not have permission to access this project', code: 'PROJECT_ACCESS_DENIED' });
-    }
-
-    // Attach file to project
-    await filesAdapter.attachFileToProject({
-      fileId,
-      projectId,
-      role,
-      addedBy: req.user.id,
-      notes
-    });
-
-    res.json({ success: true, message: 'File attached to project' });
-  } catch (error) {
-    log.error('Error attaching file to project', error);
-    res.status(500).json({ success: false, error: 'Failed to attach file to project', code: 'FILE_ATTACH_FAILED' });
+  // Verify file exists and user has access
+  const file = await filesAdapter.getFileById(fileId, req.user.id);
+  if (!file) {
+    return res.status(404).json({ success: false, error: 'File not found', code: 'FILE_NOT_FOUND' });
   }
-});
+
+  // Verify user has access to the target project
+  const hasAccess = await canUserAccessProject(req.user.id, projectId);
+  if (!hasAccess) {
+    return res.status(403).json({ success: false, error: 'You do not have permission to access this project', code: 'PROJECT_ACCESS_DENIED' });
+  }
+
+  // Attach file to project
+  await filesAdapter.attachFileToProject({
+    fileId,
+    projectId,
+    role,
+    addedBy: req.user.id,
+    notes
+  });
+
+  res.json({ success: true, message: 'File attached to project' });
+}));
 
 /**
  * DELETE /api/files/:fileId/attach/:projectId
  * Detach file from project (via project_files join table)
  */
-router.delete('/:fileId/attach/:projectId', authenticateToken, requireProjectAccess(), async (req, res) => {
-  try {
-    const { fileId, projectId } = req.params;
+router.delete('/:fileId/attach/:projectId', authenticateToken, requireProjectAccess(), asyncHandler(async (req, res) => {
+  const { fileId, projectId } = req.params;
 
-    await filesAdapter.detachFileFromProject({ fileId, projectId });
+  await filesAdapter.detachFileFromProject({ fileId, projectId });
 
-    res.json({ success: true, message: 'File detached from project' });
-  } catch (error) {
-    log.error('Error detaching file from project', error);
-    res.status(500).json({ success: false, error: 'Failed to detach file from project', code: 'FILE_DETACH_FAILED' });
-  }
-});
+  res.json({ success: true, message: 'File detached from project' });
+}));
 
 /**
  * GET /api/project-files/:projectId
  * Get files attached to project (via project_files join table)
  */
-router.get('/project-files/:projectId', authenticateToken, requireProjectAccess(), async (req, res) => {
-  try {
-    const { projectId } = req.params;
-    const { limit = 50, offset = 0 } = req.query;
+router.get('/project-files/:projectId', authenticateToken, requireProjectAccess(), asyncHandler(async (req, res) => {
+  const { projectId } = req.params;
+  const { limit = 50, offset = 0 } = req.query;
 
-    const result = await filesAdapter.getProjectFiles(projectId, {
-      limit: parseInt(limit),
-      offset: parseInt(offset)
-    });
+  const result = await filesAdapter.getProjectFiles(projectId, {
+    limit: parseInt(limit),
+    offset: parseInt(offset)
+  });
 
-    res.json({
-      success: true,
-      files: result.files,
-      total: result.total,
-      hasMore: result.hasMore
-    });
-  } catch (error) {
-    log.error('Error getting project files', error);
-    res.status(500).json({ success: false, error: 'Failed to get project files', code: 'PROJECT_FILES_FETCH_FAILED' });
-  }
-});
+  res.json({
+    success: true,
+    files: result.files,
+    total: result.total,
+    hasMore: result.hasMore
+  });
+}));
 
 /**
  * POST /api/projects/:projectId/attach-file
  * Attach existing file to project (alternative route matching REST conventions)
  */
-router.post('/projects/:projectId/attach-file', authenticateToken, requireProjectAccess(), zodValidate(attachFileByProjectSchema), async (req, res) => {
-  try {
-    const { projectId } = req.params;
-    const { fileId, role = 'reference', notes } = req.body;
+router.post('/projects/:projectId/attach-file', authenticateToken, requireProjectAccess(), zodValidate(attachFileByProjectSchema), asyncHandler(async (req, res) => {
+  const { projectId } = req.params;
+  const { fileId, role = 'reference', notes } = req.body;
 
-    // Verify file exists
-    const file = await filesAdapter.getFileById(fileId, req.user.id);
-    if (!file) {
-      return res.status(404).json({ success: false, error: 'File not found', code: 'FILE_NOT_FOUND' });
-    }
-
-    await filesAdapter.attachFileToProject({
-      fileId,
-      projectId,
-      role,
-      addedBy: req.user.id,
-      notes
-    });
-
-    res.json({ success: true, message: 'File attached to project', file });
-  } catch (error) {
-    log.error('Error attaching file to project', error);
-    res.status(500).json({ success: false, error: 'Failed to attach file to project', code: 'FILE_ATTACH_FAILED' });
+  // Verify file exists
+  const file = await filesAdapter.getFileById(fileId, req.user.id);
+  if (!file) {
+    return res.status(404).json({ success: false, error: 'File not found', code: 'FILE_NOT_FOUND' });
   }
-});
+
+  await filesAdapter.attachFileToProject({
+    fileId,
+    projectId,
+    role,
+    addedBy: req.user.id,
+    notes
+  });
+
+  res.json({ success: true, message: 'File attached to project', file });
+}));
 
 /**
  * DELETE /api/projects/:projectId/files/:fileId/detach
  * Detach file from project (alternative route)
  */
-router.delete('/projects/:projectId/files/:fileId/detach', authenticateToken, requireProjectAccess(), async (req, res) => {
-  try {
-    const { projectId, fileId } = req.params;
+router.delete('/projects/:projectId/files/:fileId/detach', authenticateToken, requireProjectAccess(), asyncHandler(async (req, res) => {
+  const { projectId, fileId } = req.params;
 
-    await filesAdapter.detachFileFromProject({ fileId, projectId });
+  await filesAdapter.detachFileFromProject({ fileId, projectId });
 
-    res.json({ success: true, message: 'File detached from project' });
-  } catch (error) {
-    log.error('Error detaching file from project', error);
-    res.status(500).json({ success: false, error: 'Failed to detach file from project', code: 'FILE_DETACH_FAILED' });
-  }
-});
+  res.json({ success: true, message: 'File detached from project' });
+}));
 
 /**
  * GET /api/projects/:projectId/files
  * Get project files (with print status)
  */
-router.get('/projects/:projectId/files', authenticateToken, async (req, res) => {
-  try {
-    const { projectId } = req.params;
-    const userId = req.user.id;
+router.get('/projects/:projectId/files', authenticateToken, asyncHandler(async (req, res) => {
+  const { projectId } = req.params;
+  const userId = req.user.id;
 
-    // Check project access
-    const hasAccess = await canUserAccessProject(userId, projectId);
-    if (!hasAccess) {
-      return res.status(403).json({
-        success: false, error: 'You do not have permission to access this project', code: 'ACCESS_DENIED'
-      });
-    }
-
-    // Get files linked to project from database
-    const result = await query(`
-      SELECT
-        pf.id,
-        pf.filename as name,
-        pf.file_size as size,
-        pf.created_at as "uploadedAt",
-        pf.uploaded_by as "uploadedBy",
-        pj.status as "printStatus",
-        pj.progress as "printProgress",
-        pj.id as "printJobId"
-      FROM printing_files pf
-      LEFT JOIN print_jobs pj ON pf.filename = pj.file_name
-        AND pj.project_id = pf.project_id
-        AND pj.status IN ('queued', 'printing')
-      WHERE pf.project_id = $1
-      ORDER BY pf.created_at DESC
-    `, [projectId]);
-
-    // Add file type detection
-    const files = result.rows.map(file => ({
-      ...file,
-      type: file.name ? file.name.split('.').pop()?.toLowerCase() : 'unknown',
-      printStatus: file.printStatus || 'idle'
-    }));
-
-    res.json({ success: true, files });
-
-  } catch (error) {
-    log.error('Failed to get project files', { error: error.message });
-    res.status(500).json({
-      success: false, error: 'Failed to get project files', code: 'PROJECT_FILES_FETCH_FAILED'
+  // Check project access
+  const hasAccess = await canUserAccessProject(userId, projectId);
+  if (!hasAccess) {
+    return res.status(403).json({
+      success: false, error: 'You do not have permission to access this project', code: 'ACCESS_DENIED'
     });
   }
-});
+
+  // Get files linked to project from database
+  const result = await query(`
+    SELECT
+      pf.id,
+      pf.filename as name,
+      pf.file_size as size,
+      pf.created_at as "uploadedAt",
+      pf.uploaded_by as "uploadedBy",
+      pj.status as "printStatus",
+      pj.progress as "printProgress",
+      pj.id as "printJobId"
+    FROM printing_files pf
+    LEFT JOIN print_jobs pj ON pf.filename = pj.file_name
+      AND pj.project_id = pf.project_id
+      AND pj.status IN ('queued', 'printing')
+    WHERE pf.project_id = $1
+    ORDER BY pf.created_at DESC
+  `, [projectId]);
+
+  // Add file type detection
+  const files = result.rows.map(file => ({
+    ...file,
+    type: file.name ? file.name.split('.').pop()?.toLowerCase() : 'unknown',
+    printStatus: file.printStatus || 'idle'
+  }));
+
+  res.json({ success: true, files });
+}));
 
 /**
  * POST /api/projects/:projectId/files/upload
@@ -451,106 +394,8 @@ router.post('/projects/:projectId/files/upload',
   rateLimitByUser(20, 60000),
   fileUpload.array('files', 10),
   validateUploadedFiles,
-  async (req, res) => {
-    try {
-      const { projectId } = req.params;
-      const userId = req.user.id;
-
-      // Check project access
-      const hasAccess = await canUserAccessProject(userId, projectId);
-      if (!hasAccess) {
-        return res.status(403).json({
-          success: false, error: 'You do not have permission to access this project', code: 'ACCESS_DENIED'
-        });
-      }
-
-      if (!req.files || req.files.length === 0) {
-        return res.status(400).json({ success: false, error: 'No files uploaded', code: 'NO_FILES_UPLOADED' });
-      }
-
-      // Validate file sizes (max 100MB per file)
-      const MAX_FILE_SIZE = 100 * 1024 * 1024;
-      for (const file of req.files) {
-        if (file.size > MAX_FILE_SIZE) {
-          return res.status(400).json({
-            success: false, error: 'File too large', code: 'FILE_TOO_LARGE',
-            filename: file.originalname,
-            maxSize: '100MB'
-          });
-        }
-      }
-
-      // Validate file types
-      for (const file of req.files) {
-        const ext = file.originalname.toLowerCase().split('.').pop();
-        if (!allowedExtensions.includes(ext)) {
-          return res.status(400).json({
-            success: false, error: 'File type not allowed', code: 'INVALID_FILE_TYPE',
-            filename: file.originalname,
-            allowed: allowedExtensions
-          });
-        }
-      }
-
-      const { createId } = require('@paralleldrive/cuid2');
-      const uploadedFiles = [];
-
-      for (const file of req.files) {
-        try {
-          // Check if already linked
-          const existingLink = await query(
-            'SELECT id FROM printing_files WHERE filename = $1 AND project_id = $2',
-            [file.originalname, projectId]
-          );
-
-          if (existingLink.rows.length === 0) {
-            const fileId = createId();
-            await query(`
-              INSERT INTO printing_files (
-                id, project_id, filename, file_size, uploaded_by
-              ) VALUES ($1, $2, $3, $4, $5)
-            `, [
-              fileId,
-              projectId,
-              file.originalname,
-              file.size,
-              userId
-            ]);
-
-            uploadedFiles.push({
-              id: fileId,
-              name: file.originalname,
-              size: file.size,
-              type: file.originalname.split('.').pop()?.toLowerCase()
-            });
-          }
-        } catch (linkError) {
-          log.error('File link error', { error: linkError.message });
-        }
-      }
-
-      res.json({
-        success: true,
-        files: uploadedFiles,
-        message: `${uploadedFiles.length} file(s) uploaded successfully`
-      });
-
-    } catch (error) {
-      log.error('File upload error', { error: error.message });
-      res.status(500).json({
-        success: false, error: 'File upload failed', code: 'FILE_UPLOAD_FAILED'
-      });
-    }
-  }
-);
-
-/**
- * DELETE /api/projects/:projectId/files/:fileId
- * Delete project file
- */
-router.delete('/projects/:projectId/files/:fileId', csrfProtection, authenticateToken, async (req, res) => {
-  try {
-    const { projectId, fileId } = req.params;
+  asyncHandler(async (req, res) => {
+    const { projectId } = req.params;
     const userId = req.user.id;
 
     // Check project access
@@ -561,35 +406,118 @@ router.delete('/projects/:projectId/files/:fileId', csrfProtection, authenticate
       });
     }
 
-    // Get file info
-    const fileResult = await query(
-      'SELECT filename FROM printing_files WHERE id = $1 AND project_id = $2',
-      [fileId, projectId]
-    );
-
-    if (fileResult.rows.length === 0) {
-      return res.status(404).json({ success: false, error: 'File not found', code: 'FILE_NOT_FOUND' });
+    if (!req.files || req.files.length === 0) {
+      return res.status(400).json({ success: false, error: 'No files uploaded', code: 'NO_FILES_UPLOADED' });
     }
 
-    // Delete from database
-    await query('DELETE FROM printing_files WHERE id = $1', [fileId]);
+    // Validate file sizes (max 100MB per file)
+    const MAX_FILE_SIZE = 100 * 1024 * 1024;
+    for (const file of req.files) {
+      if (file.size > MAX_FILE_SIZE) {
+        return res.status(400).json({
+          success: false, error: 'File too large', code: 'FILE_TOO_LARGE',
+          filename: file.originalname,
+          maxSize: '100MB'
+        });
+      }
+    }
+
+    // Validate file types
+    for (const file of req.files) {
+      const ext = file.originalname.toLowerCase().split('.').pop();
+      if (!allowedExtensions.includes(ext)) {
+        return res.status(400).json({
+          success: false, error: 'File type not allowed', code: 'INVALID_FILE_TYPE',
+          filename: file.originalname,
+          allowed: allowedExtensions
+        });
+      }
+    }
+
+    const { createId } = require('@paralleldrive/cuid2');
+    const uploadedFiles = [];
+
+    for (const file of req.files) {
+      try {
+        // Check if already linked
+        const existingLink = await query(
+          'SELECT id FROM printing_files WHERE filename = $1 AND project_id = $2',
+          [file.originalname, projectId]
+        );
+
+        if (existingLink.rows.length === 0) {
+          const fileId = createId();
+          await query(`
+            INSERT INTO printing_files (
+              id, project_id, filename, file_size, uploaded_by
+            ) VALUES ($1, $2, $3, $4, $5)
+          `, [
+            fileId,
+            projectId,
+            file.originalname,
+            file.size,
+            userId
+          ]);
+
+          uploadedFiles.push({
+            id: fileId,
+            name: file.originalname,
+            size: file.size,
+            type: file.originalname.split('.').pop()?.toLowerCase()
+          });
+        }
+      } catch (linkError) {
+        log.error('File link error', { error: linkError.message });
+      }
+    }
 
     res.json({
       success: true,
-      message: 'File deleted successfully'
+      files: uploadedFiles,
+      message: `${uploadedFiles.length} file(s) uploaded successfully`
     });
+  })
+);
 
-  } catch (error) {
-    log.error('File deletion error', { error: error.message });
-    res.status(500).json({
-      success: false, error: 'Failed to delete file', code: 'FILE_DELETE_FAILED'
+/**
+ * DELETE /api/projects/:projectId/files/:fileId
+ * Delete project file
+ */
+router.delete('/projects/:projectId/files/:fileId', csrfProtection, authenticateToken, asyncHandler(async (req, res) => {
+  const { projectId, fileId } = req.params;
+  const userId = req.user.id;
+
+  // Check project access
+  const hasAccess = await canUserAccessProject(userId, projectId);
+  if (!hasAccess) {
+    return res.status(403).json({
+      success: false, error: 'You do not have permission to access this project', code: 'ACCESS_DENIED'
     });
   }
-});
+
+  // Get file info
+  const fileResult = await query(
+    'SELECT filename FROM printing_files WHERE id = $1 AND project_id = $2',
+    [fileId, projectId]
+  );
+
+  if (fileResult.rows.length === 0) {
+    return res.status(404).json({ success: false, error: 'File not found', code: 'FILE_NOT_FOUND' });
+  }
+
+  // Delete from database
+  await query('DELETE FROM printing_files WHERE id = $1', [fileId]);
+
+  res.json({
+    success: true,
+    message: 'File deleted successfully'
+  });
+}));
 
 /**
  * GET /files/storage/*storageKey
  * Serve stored files (for file URLs)
+ * NOTE: Uses stream.pipe(res) - kept with try/catch for streaming safety
  */
 router.get('/storage/*storageKey', authenticateToken, async (req, res) => {
   try {

@@ -9,6 +9,7 @@ const { authenticateToken } = require('../lib/auth/middleware');
 const { query } = require('../database/config');
 const { createLogger } = require('../lib/logger');
 const log = createLogger('Usage');
+const { asyncHandler } = require('../middleware/errorHandler');
 
 const router = express.Router();
 
@@ -118,67 +119,57 @@ async function getOrCreateUsage(userId) {
  * GET /api/usage
  * Current period usage for authenticated user
  */
-router.get('/', authenticateToken, async (req, res) => {
+router.get('/', authenticateToken, asyncHandler(async (req, res) => {
+  const usage = await getOrCreateUsage(req.user.id);
+
+  // Get user's plan
+  let planId = 'free';
   try {
-    const usage = await getOrCreateUsage(req.user.id);
+    const userResult = await query('SELECT plan_id FROM users WHERE id = $1', [req.user.id]);
+    if (userResult.rows.length > 0) {
+      planId = userResult.rows[0].plan_id || 'free';
+    }
+  } catch { /* column may not exist yet */ }
 
-    // Get user's plan
-    let planId = 'free';
-    try {
-      const userResult = await query('SELECT plan_id FROM users WHERE id = $1', [req.user.id]);
-      if (userResult.rows.length > 0) {
-        planId = userResult.rows[0].plan_id || 'free';
-      }
-    } catch { /* column may not exist yet */ }
+  const limits = getLimits(planId);
 
-    const limits = getLimits(planId);
-
-    res.json({
-      success: true,
-      usage: {
-        projects: { current: usage.projects_count, limit: limits.projects },
-        storage: { current: parseInt(usage.storage_bytes, 10), limit: limits.storageBytes },
-        aiCalls: { current: usage.ai_calls_count, limit: limits.aiCallsPerMonth },
-        collaborators: { current: usage.collaborators_count, limit: limits.collaborators },
-      },
-      plan: planId,
-      period: {
-        start: usage.period_start,
-        end: usage.period_end,
-      },
-    });
-  } catch (error) {
-    log.error('Get usage error', error);
-    res.status(500).json({ success: false, error: 'Failed to get usage', code: 'GET_USAGE_ERROR' });
-  }
-});
+  res.json({
+    success: true,
+    usage: {
+      projects: { current: usage.projects_count, limit: limits.projects },
+      storage: { current: parseInt(usage.storage_bytes, 10), limit: limits.storageBytes },
+      aiCalls: { current: usage.ai_calls_count, limit: limits.aiCallsPerMonth },
+      collaborators: { current: usage.collaborators_count, limit: limits.collaborators },
+    },
+    plan: planId,
+    period: {
+      start: usage.period_start,
+      end: usage.period_end,
+    },
+  });
+}));
 
 /**
  * GET /api/usage/limits
  * Plan limits for authenticated user
  */
-router.get('/limits', authenticateToken, async (req, res) => {
+router.get('/limits', authenticateToken, asyncHandler(async (req, res) => {
+  let planId = 'free';
   try {
-    let planId = 'free';
-    try {
-      const userResult = await query('SELECT plan_id FROM users WHERE id = $1', [req.user.id]);
-      if (userResult.rows.length > 0) {
-        planId = userResult.rows[0].plan_id || 'free';
-      }
-    } catch { /* column may not exist yet */ }
+    const userResult = await query('SELECT plan_id FROM users WHERE id = $1', [req.user.id]);
+    if (userResult.rows.length > 0) {
+      planId = userResult.rows[0].plan_id || 'free';
+    }
+  } catch { /* column may not exist yet */ }
 
-    const limits = getLimits(planId);
+  const limits = getLimits(planId);
 
-    res.json({
-      success: true,
-      plan: planId,
-      limits,
-    });
-  } catch (error) {
-    log.error('Get limits error', error);
-    res.status(500).json({ success: false, error: 'Failed to get limits', code: 'GET_LIMITS_ERROR' });
-  }
-});
+  res.json({
+    success: true,
+    plan: planId,
+    limits,
+  });
+}));
 
 // Export helpers for use by quota middleware
 router.getOrCreateUsage = getOrCreateUsage;

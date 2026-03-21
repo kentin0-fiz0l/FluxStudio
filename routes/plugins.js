@@ -23,213 +23,178 @@ router.use(authenticateToken);
 /**
  * GET /api/plugins — List installed plugins for current user
  */
-router.get('/', async (req, res) => {
-  try {
-    const result = await query(
-      `SELECT id, plugin_id, manifest, state, settings, installed_at, updated_at
-       FROM user_plugins
-       WHERE user_id = $1
-       ORDER BY installed_at DESC`,
-      [req.user.id]
-    );
+router.get('/', asyncHandler(async (req, res) => {
+  const result = await query(
+    `SELECT id, plugin_id, manifest, state, settings, installed_at, updated_at
+     FROM user_plugins
+     WHERE user_id = $1
+     ORDER BY installed_at DESC`,
+    [req.user.id]
+  );
 
-    res.json({
-      success: true,
-      plugins: result.rows.map(row => ({
-        id: row.id,
-        pluginId: row.plugin_id,
-        manifest: row.manifest,
-        state: row.state,
-        settings: row.settings,
-        installedAt: row.installed_at,
-        updatedAt: row.updated_at,
-      })),
-    });
-  } catch (error) {
-    log.error('Error listing plugins', error);
-    res.status(500).json({ success: false, error: 'Failed to list plugins' });
-  }
-});
+  res.json({
+    success: true,
+    plugins: result.rows.map(row => ({
+      id: row.id,
+      pluginId: row.plugin_id,
+      manifest: row.manifest,
+      state: row.state,
+      settings: row.settings,
+      installedAt: row.installed_at,
+      updatedAt: row.updated_at,
+    })),
+  });
+}));
 
 /**
  * POST /api/plugins/install — Install a plugin
  */
-router.post('/install', zodValidate(installPluginSchema), async (req, res) => {
-  try {
-    const { manifest } = req.body;
+router.post('/install', zodValidate(installPluginSchema), asyncHandler(async (req, res) => {
+  const { manifest } = req.body;
 
-    if (!manifest?.id || !manifest?.name || !manifest?.version || !manifest?.main) {
-      return res.status(400).json({
-        success: false,
-        error: 'Invalid plugin manifest. Required: id, name, version, main',
-      });
-    }
-
-    // Check if already installed
-    const existing = await query(
-      'SELECT id FROM user_plugins WHERE user_id = $1 AND plugin_id = $2',
-      [req.user.id, manifest.id]
-    );
-
-    if (existing.rows.length > 0) {
-      return res.status(409).json({
-        success: false,
-        error: 'Plugin already installed',
-      });
-    }
-
-    const result = await query(
-      `INSERT INTO user_plugins (user_id, plugin_id, manifest, state, settings)
-       VALUES ($1, $2, $3, 'inactive', $4)
-       RETURNING *`,
-      [
-        req.user.id,
-        manifest.id,
-        JSON.stringify(manifest),
-        JSON.stringify({}),
-      ]
-    );
-
-    const row = result.rows[0];
-    logAction(req.user.id, 'install', 'plugin', row.plugin_id, { name: manifest.name }, req);
-    res.status(201).json({
-      success: true,
-      plugin: {
-        id: row.id,
-        pluginId: row.plugin_id,
-        manifest: row.manifest,
-        state: row.state,
-        settings: row.settings,
-        installedAt: row.installed_at,
-        updatedAt: row.updated_at,
-      },
+  if (!manifest?.id || !manifest?.name || !manifest?.version || !manifest?.main) {
+    return res.status(400).json({
+      success: false,
+      error: 'Invalid plugin manifest. Required: id, name, version, main',
     });
-  } catch (error) {
-    log.error('Error installing plugin', error);
-    res.status(500).json({ success: false, error: 'Failed to install plugin' });
   }
-});
+
+  // Check if already installed
+  const existing = await query(
+    'SELECT id FROM user_plugins WHERE user_id = $1 AND plugin_id = $2',
+    [req.user.id, manifest.id]
+  );
+
+  if (existing.rows.length > 0) {
+    return res.status(409).json({
+      success: false,
+      error: 'Plugin already installed',
+    });
+  }
+
+  const result = await query(
+    `INSERT INTO user_plugins (user_id, plugin_id, manifest, state, settings)
+     VALUES ($1, $2, $3, 'inactive', $4)
+     RETURNING *`,
+    [
+      req.user.id,
+      manifest.id,
+      JSON.stringify(manifest),
+      JSON.stringify({}),
+    ]
+  );
+
+  const row = result.rows[0];
+  logAction(req.user.id, 'install', 'plugin', row.plugin_id, { name: manifest.name }, req);
+  res.status(201).json({
+    success: true,
+    plugin: {
+      id: row.id,
+      pluginId: row.plugin_id,
+      manifest: row.manifest,
+      state: row.state,
+      settings: row.settings,
+      installedAt: row.installed_at,
+      updatedAt: row.updated_at,
+    },
+  });
+}));
 
 /**
  * POST /api/plugins/:pluginId/activate — Mark plugin as active
  */
-router.post('/:pluginId/activate', async (req, res) => {
-  try {
-    const result = await query(
-      `UPDATE user_plugins
-       SET state = 'active', updated_at = NOW()
-       WHERE user_id = $1 AND plugin_id = $2
-       RETURNING *`,
-      [req.user.id, req.params.pluginId]
-    );
+router.post('/:pluginId/activate', asyncHandler(async (req, res) => {
+  const result = await query(
+    `UPDATE user_plugins
+     SET state = 'active', updated_at = NOW()
+     WHERE user_id = $1 AND plugin_id = $2
+     RETURNING *`,
+    [req.user.id, req.params.pluginId]
+  );
 
-    if (result.rows.length === 0) {
-      return res.status(404).json({ success: false, error: 'Plugin not found' });
-    }
-
-    res.json({ success: true, state: 'active' });
-  } catch (error) {
-    log.error('Error activating plugin', error);
-    res.status(500).json({ success: false, error: 'Failed to activate plugin' });
+  if (result.rows.length === 0) {
+    return res.status(404).json({ success: false, error: 'Plugin not found' });
   }
-});
+
+  res.json({ success: true, state: 'active' });
+}));
 
 /**
  * POST /api/plugins/:pluginId/deactivate — Mark plugin as inactive
  */
-router.post('/:pluginId/deactivate', async (req, res) => {
-  try {
-    const result = await query(
-      `UPDATE user_plugins
-       SET state = 'inactive', updated_at = NOW()
-       WHERE user_id = $1 AND plugin_id = $2
-       RETURNING *`,
-      [req.user.id, req.params.pluginId]
-    );
+router.post('/:pluginId/deactivate', asyncHandler(async (req, res) => {
+  const result = await query(
+    `UPDATE user_plugins
+     SET state = 'inactive', updated_at = NOW()
+     WHERE user_id = $1 AND plugin_id = $2
+     RETURNING *`,
+    [req.user.id, req.params.pluginId]
+  );
 
-    if (result.rows.length === 0) {
-      return res.status(404).json({ success: false, error: 'Plugin not found' });
-    }
-
-    res.json({ success: true, state: 'inactive' });
-  } catch (error) {
-    log.error('Error deactivating plugin', error);
-    res.status(500).json({ success: false, error: 'Failed to deactivate plugin' });
+  if (result.rows.length === 0) {
+    return res.status(404).json({ success: false, error: 'Plugin not found' });
   }
-});
+
+  res.json({ success: true, state: 'inactive' });
+}));
 
 /**
  * DELETE /api/plugins/:pluginId — Uninstall a plugin
  */
-router.delete('/:pluginId', async (req, res) => {
-  try {
-    const result = await query(
-      'DELETE FROM user_plugins WHERE user_id = $1 AND plugin_id = $2 RETURNING id',
-      [req.user.id, req.params.pluginId]
-    );
+router.delete('/:pluginId', asyncHandler(async (req, res) => {
+  const result = await query(
+    'DELETE FROM user_plugins WHERE user_id = $1 AND plugin_id = $2 RETURNING id',
+    [req.user.id, req.params.pluginId]
+  );
 
-    if (result.rows.length === 0) {
-      return res.status(404).json({ success: false, error: 'Plugin not found' });
-    }
-
-    logAction(req.user.id, 'uninstall', 'plugin', req.params.pluginId, {}, req);
-    res.json({ success: true });
-  } catch (error) {
-    log.error('Error uninstalling plugin', error);
-    res.status(500).json({ success: false, error: 'Failed to uninstall plugin' });
+  if (result.rows.length === 0) {
+    return res.status(404).json({ success: false, error: 'Plugin not found' });
   }
-});
+
+  logAction(req.user.id, 'uninstall', 'plugin', req.params.pluginId, {}, req);
+  res.json({ success: true });
+}));
 
 /**
  * GET /api/plugins/:pluginId/settings — Get plugin settings
  */
-router.get('/:pluginId/settings', async (req, res) => {
-  try {
-    const result = await query(
-      'SELECT settings FROM user_plugins WHERE user_id = $1 AND plugin_id = $2',
-      [req.user.id, req.params.pluginId]
-    );
+router.get('/:pluginId/settings', asyncHandler(async (req, res) => {
+  const result = await query(
+    'SELECT settings FROM user_plugins WHERE user_id = $1 AND plugin_id = $2',
+    [req.user.id, req.params.pluginId]
+  );
 
-    if (result.rows.length === 0) {
-      return res.status(404).json({ success: false, error: 'Plugin not found' });
-    }
-
-    res.json({ success: true, settings: result.rows[0].settings });
-  } catch (error) {
-    log.error('Error getting plugin settings', error);
-    res.status(500).json({ success: false, error: 'Failed to get settings' });
+  if (result.rows.length === 0) {
+    return res.status(404).json({ success: false, error: 'Plugin not found' });
   }
-});
+
+  res.json({ success: true, settings: result.rows[0].settings });
+}));
 
 /**
  * PUT /api/plugins/:pluginId/settings — Update plugin settings
  */
-router.put('/:pluginId/settings', zodValidate(updatePluginSettingsSchema), async (req, res) => {
-  try {
-    const { settings } = req.body;
+router.put('/:pluginId/settings', zodValidate(updatePluginSettingsSchema), asyncHandler(async (req, res) => {
+  const { settings } = req.body;
 
-    if (!settings || typeof settings !== 'object') {
-      return res.status(400).json({ success: false, error: 'Settings object required' });
-    }
-
-    const result = await query(
-      `UPDATE user_plugins
-       SET settings = settings || $3::jsonb, updated_at = NOW()
-       WHERE user_id = $1 AND plugin_id = $2
-       RETURNING settings`,
-      [req.user.id, req.params.pluginId, JSON.stringify(settings)]
-    );
-
-    if (result.rows.length === 0) {
-      return res.status(404).json({ success: false, error: 'Plugin not found' });
-    }
-
-    res.json({ success: true, settings: result.rows[0].settings });
-  } catch (error) {
-    log.error('Error updating plugin settings', error);
-    res.status(500).json({ success: false, error: 'Failed to update settings' });
+  if (!settings || typeof settings !== 'object') {
+    return res.status(400).json({ success: false, error: 'Settings object required' });
   }
-});
+
+  const result = await query(
+    `UPDATE user_plugins
+     SET settings = settings || $3::jsonb, updated_at = NOW()
+     WHERE user_id = $1 AND plugin_id = $2
+     RETURNING settings`,
+    [req.user.id, req.params.pluginId, JSON.stringify(settings)]
+  );
+
+  if (result.rows.length === 0) {
+    return res.status(404).json({ success: false, error: 'Plugin not found' });
+  }
+
+  res.json({ success: true, settings: result.rows[0].settings });
+}));
 
 /**
  * GET /api/plugins/marketplace — Search marketplace

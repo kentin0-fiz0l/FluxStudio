@@ -21,6 +21,7 @@ import {
 import type { Section } from '../../contexts/metmap/types';
 import { useAuth } from '@/store/slices/authSlice';
 import { getWebSocketUrl } from '../../utils/apiHelpers';
+import { tempoEventBus } from '../../services/formation/tempoEventBus';
 
 // ==================== Types ====================
 
@@ -46,6 +47,12 @@ interface UseMetMapCollaborationReturn {
   awareness: Awareness | null;
   /** Number of reconnect attempts (for connection quality UI) */
   reconnectAttempts: number;
+  /** Y.UndoManager for MetMap sections (for unified undo) */
+  undoManager: Y.UndoManager | null;
+  /** Undo last MetMap change */
+  yUndo: () => void;
+  /** Redo last undone MetMap change */
+  yRedo: () => void;
   /** Push local section changes to the Yjs document */
   pushSections: (sections: Section[]) => void;
   /** Push a single section update */
@@ -75,11 +82,14 @@ export function useMetMapCollaboration(
   const [doc, setDoc] = useState<Y.Doc | null>(null);
   const [awareness, setAwareness] = useState<Awareness | null>(null);
 
+  const [undoMgr, setUndoMgr] = useState<Y.UndoManager | null>(null);
+
   const socketRef = useRef<Socket | null>(null);
   const providerRef = useRef<YSocketIOProvider | null>(null);
   const docRef = useRef<Y.Doc | null>(null);
   const collabRef = useRef<MetMapCollaborationAPI | null>(null);
   const unsubRef = useRef<(() => void) | null>(null);
+  const undoManagerRef = useRef<Y.UndoManager | null>(null);
   const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Connect and set up collaboration
@@ -118,6 +128,14 @@ export function useMetMapCollaboration(
     const collab = createMetMapCollaboration(ydoc);
     collabRef.current = collab;
 
+    // Create Y.UndoManager for the sections array
+    const sectionsArray = ydoc.getArray('sections');
+    const um = new Y.UndoManager([sectionsArray], {
+      trackedOrigins: new Set([null, undefined]),
+    });
+    undoManagerRef.current = um;
+    setUndoMgr(um);
+
     // Listen for status changes
     provider.on('status', ((providerStatus: ProviderStatus) => {
       if (providerStatus === 'synced') {
@@ -148,6 +166,26 @@ export function useMetMapCollaboration(
       if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
       debounceTimerRef.current = setTimeout(() => {
         onRemoteSectionsChange(sections);
+
+        // Publish cross-tool events for Drill Writer sync
+        const now = Date.now();
+        sections.forEach((section, index) => {
+          tempoEventBus.publish('tempo-change', {
+            sectionIndex: index,
+            bpm: section.tempoStart,
+            sectionName: section.name,
+            timestamp: now,
+          });
+        });
+
+        tempoEventBus.publish('section-boundary-change', {
+          boundaries: sections.map((s) => ({
+            startMs: s.startBar,
+            endMs: s.startBar + s.bars,
+            sectionName: s.name,
+          })),
+          timestamp: now,
+        });
       }, debounceMs);
     });
     unsubRef.current = unsub;
@@ -157,6 +195,7 @@ export function useMetMapCollaboration(
     // Cleanup
     return () => {
       if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
+      um.destroy();
       unsub();
       collab.destroy();
       provider.destroy();
@@ -168,12 +207,14 @@ export function useMetMapCollaboration(
       providerRef.current = null;
       collabRef.current = null;
       unsubRef.current = null;
+      undoManagerRef.current = null;
 
       setStatus('disconnected');
       setSynced(false);
       setPeerCount(1);
       setDoc(null);
       setAwareness(null);
+      setUndoMgr(null);
       setReconnectAttempts(0);
     };
   }, [songId, token, enabled, debounceMs, branchId, onRemoteSectionsChange]);
@@ -203,6 +244,15 @@ export function useMetMapCollaboration(
     providerRef.current?.forceReconnect();
   }, []);
 
+  // Y.UndoManager undo/redo
+  const yUndo = useCallback(() => {
+    undoManagerRef.current?.undo();
+  }, []);
+
+  const yRedo = useCallback(() => {
+    undoManagerRef.current?.redo();
+  }, []);
+
   return {
     status,
     synced,
@@ -210,6 +260,9 @@ export function useMetMapCollaboration(
     doc,
     awareness,
     reconnectAttempts,
+    undoManager: undoMgr,
+    yUndo,
+    yRedo,
     pushSections,
     pushSectionUpdate,
     pushSectionAdd,

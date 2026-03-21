@@ -14,6 +14,7 @@ const log = createLogger('Formations');
 const { zodValidate } = require('../middleware/zodValidate');
 const { canUserAccessProject } = require('../middleware/requireProjectAccess');
 const { query } = require('../database/config');
+const { asyncHandler } = require('../middleware/errorHandler');
 const {
   createFormationSchema,
   updateFormationSchema,
@@ -60,179 +61,149 @@ async function verifyFormationAccess(formationId, userId, res) {
  * GET /api/projects/:projectId/formations
  * List formations for a project
  */
-router.get('/projects/:projectId/formations', authenticateToken, async (req, res) => {
-  try {
-    const { projectId } = req.params;
-    const { includeArchived } = req.query;
+router.get('/projects/:projectId/formations', authenticateToken, asyncHandler(async (req, res) => {
+  const { projectId } = req.params;
+  const { includeArchived } = req.query;
 
-    const hasAccess = await canUserAccessProject(req.user.id, projectId);
-    if (!hasAccess) {
-      return res.status(403).json({
-        success: false, error: 'You do not have permission to access this project', code: 'ACCESS_DENIED'
-      });
-    }
-
-    const formations = await formationsAdapter.listFormationsForProject({
-      projectId,
-      includeArchived: includeArchived === 'true'
+  const hasAccess = await canUserAccessProject(req.user.id, projectId);
+  if (!hasAccess) {
+    return res.status(403).json({
+      success: false, error: 'You do not have permission to access this project', code: 'ACCESS_DENIED'
     });
-
-    res.json({ success: true, formations });
-  } catch (error) {
-    log.error('Error listing formations', error);
-    res.status(500).json({ success: false, error: 'Failed to list formations', code: 'FORMATION_LIST_ERROR' });
   }
-});
+
+  const formations = await formationsAdapter.listFormationsForProject({
+    projectId,
+    includeArchived: includeArchived === 'true'
+  });
+
+  res.json({ success: true, formations });
+}));
 
 /**
  * POST /api/projects/:projectId/formations
  * Create a new formation
  */
-router.post('/projects/:projectId/formations', authenticateToken, rateLimitByUser(10, 60000), zodValidate(createFormationSchema), async (req, res) => {
-  try {
-    const { projectId } = req.params;
-    const { name, description, stageWidth, stageHeight, gridSize } = req.body;
+router.post('/projects/:projectId/formations', authenticateToken, rateLimitByUser(10, 60000), zodValidate(createFormationSchema), asyncHandler(async (req, res) => {
+  const { projectId } = req.params;
+  const { name, description, stageWidth, stageHeight, gridSize } = req.body;
 
-    const hasAccess = await canUserAccessProject(req.user.id, projectId);
-    if (!hasAccess) {
-      return res.status(403).json({
-        success: false, error: 'You do not have permission to access this project', code: 'ACCESS_DENIED'
-      });
-    }
-
-    const formation = await formationsAdapter.createFormation({
-      projectId,
-      name: name.trim(),
-      description,
-      stageWidth,
-      stageHeight,
-      gridSize,
-      createdBy: req.user.id
+  const hasAccess = await canUserAccessProject(req.user.id, projectId);
+  if (!hasAccess) {
+    return res.status(403).json({
+      success: false, error: 'You do not have permission to access this project', code: 'ACCESS_DENIED'
     });
-
-    res.status(201).json({ success: true, formation });
-  } catch (error) {
-    log.error('Error creating formation', error);
-    res.status(500).json({ success: false, error: 'Failed to create formation', code: 'FORMATION_CREATE_ERROR' });
   }
-});
+
+  const formation = await formationsAdapter.createFormation({
+    projectId,
+    name: name.trim(),
+    description,
+    stageWidth,
+    stageHeight,
+    gridSize,
+    createdBy: req.user.id
+  });
+
+  res.status(201).json({ success: true, formation });
+}));
 
 /**
  * GET /api/formations/:formationId
  * Get a single formation with all data (performers, keyframes, positions)
  */
-router.get('/formations/:formationId', authenticateToken, async (req, res) => {
-  try {
-    const { formationId } = req.params;
+router.get('/formations/:formationId', authenticateToken, asyncHandler(async (req, res) => {
+  const { formationId } = req.params;
 
-    const formation = await verifyFormationAccess(formationId, req.user.id, res);
-    if (formation === undefined) return; // 403 already sent
-    if (!formation) {
-      return res.status(404).json({ success: false, error: 'Formation not found', code: 'FORMATION_NOT_FOUND' });
-    }
-
-    res.json({ success: true, formation });
-  } catch (error) {
-    log.error('Error getting formation', error);
-    res.status(500).json({ success: false, error: 'Failed to get formation', code: 'FORMATION_GET_ERROR' });
+  const formation = await verifyFormationAccess(formationId, req.user.id, res);
+  if (formation === undefined) return; // 403 already sent
+  if (!formation) {
+    return res.status(404).json({ success: false, error: 'Formation not found', code: 'FORMATION_NOT_FOUND' });
   }
-});
+
+  res.json({ success: true, formation });
+}));
 
 /**
  * PATCH /api/formations/:formationId
  * Update formation metadata
  */
-router.patch('/formations/:formationId', authenticateToken, rateLimitByUser(10, 60000), zodValidate(updateFormationSchema), async (req, res) => {
-  try {
-    const { formationId } = req.params;
-    const { name, description, stageWidth, stageHeight, gridSize, isArchived, audioTrack } = req.body;
+router.patch('/formations/:formationId', authenticateToken, rateLimitByUser(10, 60000), zodValidate(updateFormationSchema), asyncHandler(async (req, res) => {
+  const { formationId } = req.params;
+  const { name, description, stageWidth, stageHeight, gridSize, isArchived, audioTrack } = req.body;
 
-    const formation = await verifyFormationAccess(formationId, req.user.id, res);
-    if (formation === undefined) return;
-    if (!formation) {
-      return res.status(404).json({ success: false, error: 'Formation not found', code: 'FORMATION_NOT_FOUND' });
-    }
-
-    const updatedFormation = await formationsAdapter.updateFormation(formationId, {
-      name,
-      description,
-      stageWidth,
-      stageHeight,
-      gridSize,
-      isArchived,
-      audioTrack
-    });
-
-    res.json({ success: true, formation: updatedFormation });
-  } catch (error) {
-    log.error('Error updating formation', error);
-    res.status(500).json({ success: false, error: 'Failed to update formation', code: 'FORMATION_UPDATE_ERROR' });
+  const formation = await verifyFormationAccess(formationId, req.user.id, res);
+  if (formation === undefined) return;
+  if (!formation) {
+    return res.status(404).json({ success: false, error: 'Formation not found', code: 'FORMATION_NOT_FOUND' });
   }
-});
+
+  const updatedFormation = await formationsAdapter.updateFormation(formationId, {
+    name,
+    description,
+    stageWidth,
+    stageHeight,
+    gridSize,
+    isArchived,
+    audioTrack
+  });
+
+  res.json({ success: true, formation: updatedFormation });
+}));
 
 /**
  * DELETE /api/formations/:formationId
  * Delete a formation
  */
-router.delete('/formations/:formationId', authenticateToken, rateLimitByUser(10, 60000), async (req, res) => {
-  try {
-    const { formationId } = req.params;
+router.delete('/formations/:formationId', authenticateToken, rateLimitByUser(10, 60000), asyncHandler(async (req, res) => {
+  const { formationId } = req.params;
 
-    const formation = await verifyFormationAccess(formationId, req.user.id, res);
-    if (formation === undefined) return;
-    if (!formation) {
-      return res.status(404).json({ success: false, error: 'Formation not found', code: 'FORMATION_NOT_FOUND' });
-    }
-
-    await formationsAdapter.deleteFormation(formationId);
-
-    res.json({ success: true, message: 'Formation deleted' });
-  } catch (error) {
-    log.error('Error deleting formation', error);
-    res.status(500).json({ success: false, error: 'Failed to delete formation', code: 'FORMATION_DELETE_ERROR' });
+  const formation = await verifyFormationAccess(formationId, req.user.id, res);
+  if (formation === undefined) return;
+  if (!formation) {
+    return res.status(404).json({ success: false, error: 'Formation not found', code: 'FORMATION_NOT_FOUND' });
   }
-});
+
+  await formationsAdapter.deleteFormation(formationId);
+
+  res.json({ success: true, message: 'Formation deleted' });
+}));
 
 /**
  * PUT /api/formations/:formationId/save
  * Bulk save formation data (performers, keyframes, positions)
  */
-router.put('/formations/:formationId/save', authenticateToken, rateLimitByUser(10, 60000), zodValidate(saveFormationSchema), async (req, res) => {
-  try {
-    const { formationId } = req.params;
-    const {
-      name, performers: performersData, keyframes: keyframesData,
-      drillSettings, sets, fieldConfig,
-      groups, sectionShapeMap,
-      metmapSongId, tempoMap, useConstantTempo
-    } = req.body;
+router.put('/formations/:formationId/save', authenticateToken, rateLimitByUser(10, 60000), zodValidate(saveFormationSchema), asyncHandler(async (req, res) => {
+  const { formationId } = req.params;
+  const {
+    name, performers: performersData, keyframes: keyframesData,
+    drillSettings, sets, fieldConfig,
+    groups, sectionShapeMap,
+    metmapSongId, tempoMap, useConstantTempo
+  } = req.body;
 
-    const existingFormation = await verifyFormationAccess(formationId, req.user.id, res);
-    if (existingFormation === undefined) return;
-    if (!existingFormation) {
-      return res.status(404).json({ success: false, error: 'Formation not found', code: 'FORMATION_NOT_FOUND' });
-    }
-
-    const formation = await formationsAdapter.saveFormation(formationId, {
-      name,
-      performers: performersData || [],
-      keyframes: keyframesData || [],
-      drillSettings,
-      sets,
-      fieldConfig,
-      groups,
-      sectionShapeMap,
-      metmapSongId,
-      tempoMap,
-      useConstantTempo,
-    });
-
-    res.json({ success: true, formation });
-  } catch (error) {
-    log.error('Error saving formation', error);
-    res.status(500).json({ success: false, error: 'Failed to save formation', code: 'FORMATION_SAVE_ERROR' });
+  const existingFormation = await verifyFormationAccess(formationId, req.user.id, res);
+  if (existingFormation === undefined) return;
+  if (!existingFormation) {
+    return res.status(404).json({ success: false, error: 'Formation not found', code: 'FORMATION_NOT_FOUND' });
   }
-});
+
+  const formation = await formationsAdapter.saveFormation(formationId, {
+    name,
+    performers: performersData || [],
+    keyframes: keyframesData || [],
+    drillSettings,
+    sets,
+    fieldConfig,
+    groups,
+    sectionShapeMap,
+    metmapSongId,
+    tempoMap,
+    useConstantTempo,
+  });
+
+  res.json({ success: true, formation });
+}));
 
 // ==================== Audio Endpoints ====================
 
@@ -240,55 +211,45 @@ router.put('/formations/:formationId/save', authenticateToken, rateLimitByUser(1
  * POST /api/formations/:formationId/audio
  * Upload audio track for a formation
  */
-router.post('/formations/:formationId/audio', authenticateToken, rateLimitByUser(10, 60000), zodValidate(formationAudioSchema), async (req, res) => {
-  try {
-    const { formationId } = req.params;
-    const { id, url, filename, duration } = req.body;
+router.post('/formations/:formationId/audio', authenticateToken, rateLimitByUser(10, 60000), zodValidate(formationAudioSchema), asyncHandler(async (req, res) => {
+  const { formationId } = req.params;
+  const { id, url, filename, duration } = req.body;
 
-    const formation = await verifyFormationAccess(formationId, req.user.id, res);
-    if (formation === undefined) return;
-    if (!formation) {
-      return res.status(404).json({ success: false, error: 'Formation not found', code: 'FORMATION_NOT_FOUND' });
-    }
-
-    const audioTrack = {
-      id: id || `audio-${Date.now()}`,
-      url,
-      filename,
-      duration: duration || 0
-    };
-
-    const updatedFormation = await formationsAdapter.updateFormation(formationId, { audioTrack });
-
-    res.json({ success: true, formation: updatedFormation, audioTrack });
-  } catch (error) {
-    log.error('Error uploading audio', error);
-    res.status(500).json({ success: false, error: 'Failed to upload audio', code: 'FORMATION_AUDIO_UPLOAD_ERROR' });
+  const formation = await verifyFormationAccess(formationId, req.user.id, res);
+  if (formation === undefined) return;
+  if (!formation) {
+    return res.status(404).json({ success: false, error: 'Formation not found', code: 'FORMATION_NOT_FOUND' });
   }
-});
+
+  const audioTrack = {
+    id: id || `audio-${Date.now()}`,
+    url,
+    filename,
+    duration: duration || 0
+  };
+
+  const updatedFormation = await formationsAdapter.updateFormation(formationId, { audioTrack });
+
+  res.json({ success: true, formation: updatedFormation, audioTrack });
+}));
 
 /**
  * DELETE /api/formations/:formationId/audio
  * Remove audio track from a formation
  */
-router.delete('/formations/:formationId/audio', authenticateToken, rateLimitByUser(10, 60000), async (req, res) => {
-  try {
-    const { formationId } = req.params;
+router.delete('/formations/:formationId/audio', authenticateToken, rateLimitByUser(10, 60000), asyncHandler(async (req, res) => {
+  const { formationId } = req.params;
 
-    const formation = await verifyFormationAccess(formationId, req.user.id, res);
-    if (formation === undefined) return;
-    if (!formation) {
-      return res.status(404).json({ success: false, error: 'Formation not found', code: 'FORMATION_NOT_FOUND' });
-    }
-
-    const updatedFormation = await formationsAdapter.updateFormation(formationId, { audioTrack: null });
-
-    res.json({ success: true, formation: updatedFormation, message: 'Audio removed' });
-  } catch (error) {
-    log.error('Error removing audio', error);
-    res.status(500).json({ success: false, error: 'Failed to remove audio', code: 'FORMATION_AUDIO_REMOVE_ERROR' });
+  const formation = await verifyFormationAccess(formationId, req.user.id, res);
+  if (formation === undefined) return;
+  if (!formation) {
+    return res.status(404).json({ success: false, error: 'Formation not found', code: 'FORMATION_NOT_FOUND' });
   }
-});
+
+  const updatedFormation = await formationsAdapter.updateFormation(formationId, { audioTrack: null });
+
+  res.json({ success: true, formation: updatedFormation, message: 'Audio removed' });
+}));
 
 // ==================== Mount Sub-Routers ====================
 
@@ -301,125 +262,100 @@ router.use('/', keyframes);
  * GET /api/formations/:formationId/scene-objects
  * List all scene objects for a formation
  */
-router.get('/formations/:formationId/scene-objects', authenticateToken, async (req, res) => {
-  try {
-    const { formationId } = req.params;
+router.get('/formations/:formationId/scene-objects', authenticateToken, asyncHandler(async (req, res) => {
+  const { formationId } = req.params;
 
-    const formation = await verifyFormationAccess(formationId, req.user.id, res);
-    if (formation === undefined) return;
-    if (!formation) {
-      return res.status(404).json({ success: false, error: 'Formation not found', code: 'FORMATION_NOT_FOUND' });
-    }
-
-    const objects = await sceneObjectsAdapter.listByFormation(formationId);
-    res.json({ success: true, sceneObjects: objects });
-  } catch (error) {
-    log.error('Error listing scene objects', error);
-    res.status(500).json({ success: false, error: 'Failed to list scene objects', code: 'FORMATION_LIST_SCENE_OBJECTS_ERROR' });
+  const formation = await verifyFormationAccess(formationId, req.user.id, res);
+  if (formation === undefined) return;
+  if (!formation) {
+    return res.status(404).json({ success: false, error: 'Formation not found', code: 'FORMATION_NOT_FOUND' });
   }
-});
+
+  const objects = await sceneObjectsAdapter.listByFormation(formationId);
+  res.json({ success: true, sceneObjects: objects });
+}));
 
 /**
  * POST /api/formations/:formationId/scene-objects
  * Create a single scene object
  */
-router.post('/formations/:formationId/scene-objects', authenticateToken, rateLimitByUser(10, 60000), zodValidate(createSceneObjectSchema), async (req, res) => {
-  try {
-    const { formationId } = req.params;
-    const { id, name, type, position, source, attachedToPerformerId, visible, locked, layer } = req.body;
+router.post('/formations/:formationId/scene-objects', authenticateToken, rateLimitByUser(10, 60000), zodValidate(createSceneObjectSchema), asyncHandler(async (req, res) => {
+  const { formationId } = req.params;
+  const { id, name, type, position, source, attachedToPerformerId, visible, locked, layer } = req.body;
 
-    const formation = await verifyFormationAccess(formationId, req.user.id, res);
-    if (formation === undefined) return;
-    if (!formation) {
-      return res.status(404).json({ success: false, error: 'Formation not found', code: 'FORMATION_NOT_FOUND' });
-    }
-
-    const object = await sceneObjectsAdapter.create({
-      formationId, id, name, type, position, source,
-      attachedToPerformerId, visible, locked, layer
-    });
-
-    res.status(201).json({ success: true, sceneObject: object });
-  } catch (error) {
-    log.error('Error creating scene object', error);
-    res.status(500).json({ success: false, error: 'Failed to create scene object', code: 'FORMATION_CREATE_SCENE_OBJECT_ERROR' });
+  const formation = await verifyFormationAccess(formationId, req.user.id, res);
+  if (formation === undefined) return;
+  if (!formation) {
+    return res.status(404).json({ success: false, error: 'Formation not found', code: 'FORMATION_NOT_FOUND' });
   }
-});
+
+  const object = await sceneObjectsAdapter.create({
+    formationId, id, name, type, position, source,
+    attachedToPerformerId, visible, locked, layer
+  });
+
+  res.status(201).json({ success: true, sceneObject: object });
+}));
 
 /**
  * PATCH /api/formations/:formationId/scene-objects/:objectId
  * Update a scene object
  */
-router.patch('/formations/:formationId/scene-objects/:objectId', authenticateToken, rateLimitByUser(10, 60000), zodValidate(updateSceneObjectSchema), async (req, res) => {
-  try {
-    const { formationId, objectId } = req.params;
-    const { name, type, position, source, attachedToPerformerId, visible, locked, layer } = req.body;
+router.patch('/formations/:formationId/scene-objects/:objectId', authenticateToken, rateLimitByUser(10, 60000), zodValidate(updateSceneObjectSchema), asyncHandler(async (req, res) => {
+  const { formationId, objectId } = req.params;
+  const { name, type, position, source, attachedToPerformerId, visible, locked, layer } = req.body;
 
-    const formation = await verifyFormationAccess(formationId, req.user.id, res);
-    if (formation === undefined) return;
-    if (!formation) {
-      return res.status(404).json({ success: false, error: 'Formation not found', code: 'FORMATION_NOT_FOUND' });
-    }
-
-    const object = await sceneObjectsAdapter.update(objectId, {
-      name, type, position, source, attachedToPerformerId, visible, locked, layer
-    });
-
-    if (!object) {
-      return res.status(404).json({ success: false, error: 'Scene object not found', code: 'FORMATION_SCENE_OBJECT_NOT_FOUND' });
-    }
-
-    res.json({ success: true, sceneObject: object });
-  } catch (error) {
-    log.error('Error updating scene object', error);
-    res.status(500).json({ success: false, error: 'Failed to update scene object', code: 'FORMATION_UPDATE_SCENE_OBJECT_ERROR' });
+  const formation = await verifyFormationAccess(formationId, req.user.id, res);
+  if (formation === undefined) return;
+  if (!formation) {
+    return res.status(404).json({ success: false, error: 'Formation not found', code: 'FORMATION_NOT_FOUND' });
   }
-});
+
+  const object = await sceneObjectsAdapter.update(objectId, {
+    name, type, position, source, attachedToPerformerId, visible, locked, layer
+  });
+
+  if (!object) {
+    return res.status(404).json({ success: false, error: 'Scene object not found', code: 'FORMATION_SCENE_OBJECT_NOT_FOUND' });
+  }
+
+  res.json({ success: true, sceneObject: object });
+}));
 
 /**
  * DELETE /api/formations/:formationId/scene-objects/:objectId
  * Delete a scene object
  */
-router.delete('/formations/:formationId/scene-objects/:objectId', authenticateToken, rateLimitByUser(10, 60000), async (req, res) => {
-  try {
-    const { formationId, objectId } = req.params;
+router.delete('/formations/:formationId/scene-objects/:objectId', authenticateToken, rateLimitByUser(10, 60000), asyncHandler(async (req, res) => {
+  const { formationId, objectId } = req.params;
 
-    const formation = await verifyFormationAccess(formationId, req.user.id, res);
-    if (formation === undefined) return;
-    if (!formation) {
-      return res.status(404).json({ success: false, error: 'Formation not found', code: 'FORMATION_NOT_FOUND' });
-    }
-
-    await sceneObjectsAdapter.remove(objectId);
-    res.json({ success: true, message: 'Scene object deleted' });
-  } catch (error) {
-    log.error('Error deleting scene object', error);
-    res.status(500).json({ success: false, error: 'Failed to delete scene object', code: 'FORMATION_DELETE_SCENE_OBJECT_ERROR' });
+  const formation = await verifyFormationAccess(formationId, req.user.id, res);
+  if (formation === undefined) return;
+  if (!formation) {
+    return res.status(404).json({ success: false, error: 'Formation not found', code: 'FORMATION_NOT_FOUND' });
   }
-});
+
+  await sceneObjectsAdapter.remove(objectId);
+  res.json({ success: true, message: 'Scene object deleted' });
+}));
 
 /**
  * PUT /api/formations/:formationId/scene-objects
  * Bulk sync all scene objects (primary save path)
  */
-router.put('/formations/:formationId/scene-objects', authenticateToken, rateLimitByUser(10, 60000), zodValidate(bulkSyncSceneObjectsSchema), async (req, res) => {
-  try {
-    const { formationId } = req.params;
-    const { objects } = req.body;
+router.put('/formations/:formationId/scene-objects', authenticateToken, rateLimitByUser(10, 60000), zodValidate(bulkSyncSceneObjectsSchema), asyncHandler(async (req, res) => {
+  const { formationId } = req.params;
+  const { objects } = req.body;
 
-    const formation = await verifyFormationAccess(formationId, req.user.id, res);
-    if (formation === undefined) return;
-    if (!formation) {
-      return res.status(404).json({ success: false, error: 'Formation not found', code: 'FORMATION_NOT_FOUND' });
-    }
-
-    const result = await sceneObjectsAdapter.bulkSync(formationId, objects);
-    res.json({ success: true, sceneObjects: result });
-  } catch (error) {
-    log.error('Error bulk syncing scene objects', error);
-    res.status(500).json({ success: false, error: 'Failed to sync scene objects', code: 'FORMATION_SYNC_SCENE_OBJECTS_ERROR' });
+  const formation = await verifyFormationAccess(formationId, req.user.id, res);
+  if (formation === undefined) return;
+  if (!formation) {
+    return res.status(404).json({ success: false, error: 'Formation not found', code: 'FORMATION_NOT_FOUND' });
   }
-});
+
+  const result = await sceneObjectsAdapter.bulkSync(formationId, objects);
+  res.json({ success: true, sceneObjects: result });
+}));
 
 // ============================================================================
 // PUBLIC / SHARE ENDPOINTS (no auth required for GET)
@@ -430,65 +366,55 @@ router.put('/formations/:formationId/scene-objects', authenticateToken, rateLimi
  * Fetch a formation for public sharing (no auth required)
  * Returns stripped-down formation data (no sensitive fields)
  */
-router.get('/formations/:formationId/share', async (req, res) => {
-  try {
-    const { formationId } = req.params;
-    const formation = await formationsAdapter.getFormationById(formationId);
+router.get('/formations/:formationId/share', asyncHandler(async (req, res) => {
+  const { formationId } = req.params;
+  const formation = await formationsAdapter.getFormationById(formationId);
 
-    if (!formation) {
-      return res.status(404).json({ success: false, error: 'Formation not found', code: 'FORMATION_NOT_FOUND' });
-    }
-
-    // Return public-safe fields including audio for playback
-    res.json({
-      success: true,
-      data: {
-        id: formation.id,
-        name: formation.name,
-        description: formation.description,
-        stageWidth: formation.stageWidth || 100,
-        stageHeight: formation.stageHeight || 100,
-        gridSize: formation.gridSize || 5,
-        performers: formation.performers || [],
-        keyframes: formation.keyframes || [],
-        sets: formation.sets || [],
-        audioTrack: formation.audioTrack || null,
-        musicTrackUrl: formation.musicTrackUrl || formation.audioTrack?.url || null,
-        musicDuration: formation.musicDuration || formation.audioTrack?.duration || null,
-        tempoMap: formation.tempoMap || null,
-        drillSettings: formation.drillSettings || null,
-        fieldConfig: formation.fieldConfig || null,
-      },
-    });
-  } catch (error) {
-    log.error('Error fetching shared formation', error);
-    res.status(500).json({ success: false, error: 'Failed to fetch formation', code: 'FORMATION_FETCH_ERROR' });
+  if (!formation) {
+    return res.status(404).json({ success: false, error: 'Formation not found', code: 'FORMATION_NOT_FOUND' });
   }
-});
+
+  // Return public-safe fields including audio for playback
+  res.json({
+    success: true,
+    data: {
+      id: formation.id,
+      name: formation.name,
+      description: formation.description,
+      stageWidth: formation.stageWidth || 100,
+      stageHeight: formation.stageHeight || 100,
+      gridSize: formation.gridSize || 5,
+      performers: formation.performers || [],
+      keyframes: formation.keyframes || [],
+      sets: formation.sets || [],
+      audioTrack: formation.audioTrack || null,
+      musicTrackUrl: formation.musicTrackUrl || formation.audioTrack?.url || null,
+      musicDuration: formation.musicDuration || formation.audioTrack?.duration || null,
+      tempoMap: formation.tempoMap || null,
+      drillSettings: formation.drillSettings || null,
+      fieldConfig: formation.fieldConfig || null,
+    },
+  });
+}));
 
 /**
  * POST /api/formations/:formationId/share
  * Generate a share link for a formation (auth required)
  */
-router.post('/formations/:formationId/share', authenticateToken, rateLimitByUser(10, 60000), async (req, res) => {
-  try {
-    const { formationId } = req.params;
+router.post('/formations/:formationId/share', authenticateToken, rateLimitByUser(10, 60000), asyncHandler(async (req, res) => {
+  const { formationId } = req.params;
 
-    const formation = await verifyFormationAccess(formationId, req.user.id, res);
-    if (formation === undefined) return;
-    if (!formation) {
-      return res.status(404).json({ success: false, error: 'Formation not found', code: 'FORMATION_NOT_FOUND' });
-    }
-
-    // Share URL is deterministic based on formation ID
-    const shareUrl = `${req.protocol}://${req.get('host')}/share/${formationId}`;
-
-    res.json({ success: true, shareUrl });
-  } catch (error) {
-    log.error('Error generating share link', error);
-    res.status(500).json({ success: false, error: 'Failed to generate share link', code: 'FORMATION_SHARE_ERROR' });
+  const formation = await verifyFormationAccess(formationId, req.user.id, res);
+  if (formation === undefined) return;
+  if (!formation) {
+    return res.status(404).json({ success: false, error: 'Formation not found', code: 'FORMATION_NOT_FOUND' });
   }
-});
+
+  // Share URL is deterministic based on formation ID
+  const shareUrl = `${req.protocol}://${req.get('host')}/share/${formationId}`;
+
+  res.json({ success: true, shareUrl });
+}));
 
 // ============================================================================
 // SERVER-SIDE OG TAGS FOR SHARE LINKS
@@ -553,82 +479,77 @@ async function handleShareOG(req, res) {
  * Generate a dynamic OG image (1200x630) for a shared formation.
  * Uses Sharp to render an SVG overlay onto a branded background.
  */
-router.get('/og/:formationId.png', async (req, res) => {
+router.get('/og/:formationId.png', asyncHandler(async (req, res) => {
+  const sharp = require('sharp');
+  const { formationId } = req.params;
+
+  let title = 'Flux Studio Formation';
+  let subtitle = 'Design marching band formations in your browser';
+  let performerCount = 0;
+
   try {
-    const sharp = require('sharp');
-    const { formationId } = req.params;
-
-    let title = 'Flux Studio Formation';
-    let subtitle = 'Design marching band formations in your browser';
-    let performerCount = 0;
-
-    try {
-      const formation = await formationsAdapter.getFormationById(formationId);
-      if (formation) {
-        title = formation.name || title;
-        performerCount = (formation.performers || []).length;
-        subtitle = formation.description || `${performerCount} performers`;
-      }
-    } catch {
-      // Use defaults
+    const formation = await formationsAdapter.getFormationById(formationId);
+    if (formation) {
+      title = formation.name || title;
+      performerCount = (formation.performers || []).length;
+      subtitle = formation.description || `${performerCount} performers`;
     }
-
-    // Truncate long titles
-    if (title.length > 40) title = title.slice(0, 37) + '...';
-    if (subtitle.length > 60) subtitle = subtitle.slice(0, 57) + '...';
-
-    const svg = `
-      <svg width="1200" height="630" xmlns="http://www.w3.org/2000/svg">
-        <defs>
-          <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" style="stop-color:#0a0a0a"/>
-            <stop offset="100%" style="stop-color:#1a1a2e"/>
-          </linearGradient>
-          <linearGradient id="accent" x1="0%" y1="0%" x2="100%" y2="0%">
-            <stop offset="0%" style="stop-color:#8b5cf6"/>
-            <stop offset="50%" style="stop-color:#6366f1"/>
-            <stop offset="100%" style="stop-color:#ec4899"/>
-          </linearGradient>
-        </defs>
-        <rect width="1200" height="630" fill="url(#bg)"/>
-        <!-- Accent bar -->
-        <rect x="0" y="0" width="1200" height="4" fill="url(#accent)"/>
-        <!-- Logo text -->
-        <text x="80" y="100" font-family="system-ui,sans-serif" font-size="28" font-weight="700" fill="url(#accent)">
-          FLUX STUDIO
-        </text>
-        <!-- Formation title -->
-        <text x="80" y="320" font-family="system-ui,sans-serif" font-size="56" font-weight="700" fill="#ffffff">
-          ${escapeHtml(title)}
-        </text>
-        <!-- Subtitle -->
-        <text x="80" y="380" font-family="system-ui,sans-serif" font-size="24" fill="#9ca3af">
-          ${escapeHtml(subtitle)}
-        </text>
-        ${performerCount > 0 ? `
-        <!-- Performer count badge -->
-        <rect x="80" y="420" width="${String(performerCount).length * 16 + 180}" height="40" rx="20" fill="rgba(139,92,246,0.2)"/>
-        <text x="100" y="446" font-family="system-ui,sans-serif" font-size="18" fill="#a78bfa">
-          ${performerCount} performer${performerCount === 1 ? '' : 's'}
-        </text>
-        ` : ''}
-        <!-- Bottom tagline -->
-        <text x="80" y="580" font-family="system-ui,sans-serif" font-size="18" fill="#6b7280">
-          fluxstudio.art — Design marching band formations
-        </text>
-      </svg>
-    `;
-
-    const png = await sharp(Buffer.from(svg)).png({ quality: 90 }).toBuffer();
-
-    res.setHeader('Content-Type', 'image/png');
-    res.setHeader('Cache-Control', 'public, max-age=86400'); // 24h cache
-    res.send(png);
-  } catch (err) {
-    log.error('Error generating OG image', { error: err.message });
-    res.status(500).send('Error generating image');
+  } catch {
+    // Use defaults
   }
-});
+
+  // Truncate long titles
+  if (title.length > 40) title = title.slice(0, 37) + '...';
+  if (subtitle.length > 60) subtitle = subtitle.slice(0, 57) + '...';
+
+  const svg = `
+    <svg width="1200" height="630" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" style="stop-color:#0a0a0a"/>
+          <stop offset="100%" style="stop-color:#1a1a2e"/>
+        </linearGradient>
+        <linearGradient id="accent" x1="0%" y1="0%" x2="100%" y2="0%">
+          <stop offset="0%" style="stop-color:#8b5cf6"/>
+          <stop offset="50%" style="stop-color:#6366f1"/>
+          <stop offset="100%" style="stop-color:#ec4899"/>
+        </linearGradient>
+      </defs>
+      <rect width="1200" height="630" fill="url(#bg)"/>
+      <!-- Accent bar -->
+      <rect x="0" y="0" width="1200" height="4" fill="url(#accent)"/>
+      <!-- Logo text -->
+      <text x="80" y="100" font-family="system-ui,sans-serif" font-size="28" font-weight="700" fill="url(#accent)">
+        FLUX STUDIO
+      </text>
+      <!-- Formation title -->
+      <text x="80" y="320" font-family="system-ui,sans-serif" font-size="56" font-weight="700" fill="#ffffff">
+        ${escapeHtml(title)}
+      </text>
+      <!-- Subtitle -->
+      <text x="80" y="380" font-family="system-ui,sans-serif" font-size="24" fill="#9ca3af">
+        ${escapeHtml(subtitle)}
+      </text>
+      ${performerCount > 0 ? `
+      <!-- Performer count badge -->
+      <rect x="80" y="420" width="${String(performerCount).length * 16 + 180}" height="40" rx="20" fill="rgba(139,92,246,0.2)"/>
+      <text x="100" y="446" font-family="system-ui,sans-serif" font-size="18" fill="#a78bfa">
+        ${performerCount} performer${performerCount === 1 ? '' : 's'}
+      </text>
+      ` : ''}
+      <!-- Bottom tagline -->
+      <text x="80" y="580" font-family="system-ui,sans-serif" font-size="18" fill="#6b7280">
+        fluxstudio.art — Design marching band formations
+      </text>
+    </svg>
+  `;
+
+  const png = await sharp(Buffer.from(svg)).png({ quality: 90 }).toBuffer();
+
+  res.setHeader('Content-Type', 'image/png');
+  res.setHeader('Cache-Control', 'public, max-age=86400'); // 24h cache
+  res.send(png);
+}));
 
 // ============================================================================
 // TEMPLATE OG IMAGE — Server-side position data for built-in templates
@@ -922,188 +843,178 @@ const templateOgCache = new Map();
  * Generate a dynamic OG image (1200x630) for a formation template page.
  * Renders performer positions as dots on a field visualization.
  */
-router.get('/og/template/:templateId.png', async (req, res) => {
-  try {
-    const { templateId } = req.params;
-    const template = TEMPLATE_OG_DATA[templateId];
+router.get('/og/template/:templateId.png', asyncHandler(async (req, res) => {
+  const { templateId } = req.params;
+  const template = TEMPLATE_OG_DATA[templateId];
 
-    if (!template) {
-      return res.status(404).send('Template not found');
-    }
-
-    // Return cached image if available
-    if (templateOgCache.has(templateId)) {
-      const cached = templateOgCache.get(templateId);
-      res.setHeader('Content-Type', 'image/png');
-      res.setHeader('Cache-Control', 'public, max-age=604800'); // 7-day cache (static)
-      return res.send(cached);
-    }
-
-    const sharp = require('sharp');
-
-    let title = template.name;
-    const subtitle = template.description;
-    const performerCount = template.positions.length;
-
-    if (title.length > 35) title = title.slice(0, 32) + '...';
-
-    // Category badge colors
-    const categoryColors = {
-      basic: { bg: 'rgba(34,197,94,0.15)', text: '#4ade80', label: 'Basic' },
-      intermediate: { bg: 'rgba(59,130,246,0.15)', text: '#60a5fa', label: 'Intermediate' },
-      advanced: { bg: 'rgba(168,85,247,0.15)', text: '#c084fc', label: 'Advanced' },
-      drill: { bg: 'rgba(236,72,153,0.15)', text: '#f472b6', label: 'Drill' },
-      custom: { bg: 'rgba(251,146,60,0.15)', text: '#fb923c', label: 'Custom' },
-    };
-    const cat = categoryColors[template.category] || categoryColors.basic;
-
-    // Dot colors for performers (cycle through)
-    const dotColors = ['#6366f1', '#8b5cf6', '#a855f7', '#ec4899', '#f43f5e', '#ef4444', '#f97316', '#eab308', '#22c55e', '#06b6d4'];
-
-    // Field area: right side of the image (500x400 area)
-    const fieldX = 640;
-    const fieldY = 100;
-    const fieldW = 480;
-    const fieldH = 420;
-
-    // Generate dots SVG
-    const dotsSvg = template.positions.map((pos, i) => {
-      const cx = fieldX + (pos.x / 100) * fieldW;
-      const cy = fieldY + (pos.y / 100) * fieldH;
-      const color = dotColors[i % dotColors.length];
-      return `<circle cx="${cx}" cy="${cy}" r="8" fill="${color}" opacity="0.9"/>`;
-    }).join('\n        ');
-
-    // Generate grid lines on the field
-    const gridLinesSvg = [];
-    for (let gx = 0; gx <= 4; gx++) {
-      const x = fieldX + (gx / 4) * fieldW;
-      gridLinesSvg.push(`<line x1="${x}" y1="${fieldY}" x2="${x}" y2="${fieldY + fieldH}" stroke="#333" stroke-width="1" opacity="0.3"/>`);
-    }
-    for (let gy = 0; gy <= 4; gy++) {
-      const y = fieldY + (gy / 4) * fieldH;
-      gridLinesSvg.push(`<line x1="${fieldX}" y1="${y}" x2="${fieldX + fieldW}" y2="${y}" stroke="#333" stroke-width="1" opacity="0.3"/>`);
-    }
-
-    const svg = `
-      <svg width="1200" height="630" xmlns="http://www.w3.org/2000/svg">
-        <defs>
-          <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" style="stop-color:#0a0a0a"/>
-            <stop offset="100%" style="stop-color:#1a1a2e"/>
-          </linearGradient>
-          <linearGradient id="accent" x1="0%" y1="0%" x2="100%" y2="0%">
-            <stop offset="0%" style="stop-color:#8b5cf6"/>
-            <stop offset="50%" style="stop-color:#6366f1"/>
-            <stop offset="100%" style="stop-color:#ec4899"/>
-          </linearGradient>
-        </defs>
-        <rect width="1200" height="630" fill="url(#bg)"/>
-        <!-- Accent bar -->
-        <rect x="0" y="0" width="1200" height="4" fill="url(#accent)"/>
-
-        <!-- Logo text -->
-        <text x="60" y="80" font-family="system-ui,sans-serif" font-size="24" font-weight="700" fill="url(#accent)">
-          FLUX STUDIO
-        </text>
-        <!-- "Formation Template" label -->
-        <text x="60" y="110" font-family="system-ui,sans-serif" font-size="16" fill="#6b7280">
-          Formation Template
-        </text>
-
-        <!-- Template title -->
-        <text x="60" y="230" font-family="system-ui,sans-serif" font-size="48" font-weight="700" fill="#ffffff">
-          ${escapeHtml(title)}
-        </text>
-        <!-- Description -->
-        <text x="60" y="280" font-family="system-ui,sans-serif" font-size="20" fill="#9ca3af">
-          ${escapeHtml(subtitle.length > 50 ? subtitle.slice(0, 47) + '...' : subtitle)}
-        </text>
-
-        <!-- Category badge -->
-        <rect x="60" y="310" width="${cat.label.length * 12 + 24}" height="32" rx="16" fill="${cat.bg}"/>
-        <text x="72" y="332" font-family="system-ui,sans-serif" font-size="15" font-weight="600" fill="${cat.text}">
-          ${cat.label}
-        </text>
-
-        <!-- Performer count -->
-        <text x="60" y="380" font-family="system-ui,sans-serif" font-size="18" fill="#a78bfa">
-          ${performerCount} performer${performerCount === 1 ? '' : 's'}
-        </text>
-
-        <!-- Field visualization area -->
-        <rect x="${fieldX}" y="${fieldY}" width="${fieldW}" height="${fieldH}" rx="12" fill="rgba(255,255,255,0.03)" stroke="rgba(255,255,255,0.08)" stroke-width="1"/>
-        <!-- Grid lines -->
-        ${gridLinesSvg.join('\n        ')}
-        <!-- Performer dots -->
-        ${dotsSvg}
-
-        <!-- Bottom tagline -->
-        <text x="60" y="580" font-family="system-ui,sans-serif" font-size="16" fill="#6b7280">
-          fluxstudio.art/templates — Browse formation templates
-        </text>
-      </svg>
-    `;
-
-    const png = await sharp(Buffer.from(svg)).png({ quality: 90 }).toBuffer();
-
-    // Cache the result (templates are static)
-    templateOgCache.set(templateId, png);
-
-    res.setHeader('Content-Type', 'image/png');
-    res.setHeader('Cache-Control', 'public, max-age=604800'); // 7-day cache
-    res.send(png);
-  } catch (err) {
-    log.error('Error generating template OG image', { error: err.message });
-    res.status(500).send('Error generating image');
+  if (!template) {
+    return res.status(404).send('Template not found');
   }
-});
+
+  // Return cached image if available
+  if (templateOgCache.has(templateId)) {
+    const cached = templateOgCache.get(templateId);
+    res.setHeader('Content-Type', 'image/png');
+    res.setHeader('Cache-Control', 'public, max-age=604800'); // 7-day cache (static)
+    return res.send(cached);
+  }
+
+  const sharp = require('sharp');
+
+  let title = template.name;
+  const subtitle = template.description;
+  const performerCount = template.positions.length;
+
+  if (title.length > 35) title = title.slice(0, 32) + '...';
+
+  // Category badge colors
+  const categoryColors = {
+    basic: { bg: 'rgba(34,197,94,0.15)', text: '#4ade80', label: 'Basic' },
+    intermediate: { bg: 'rgba(59,130,246,0.15)', text: '#60a5fa', label: 'Intermediate' },
+    advanced: { bg: 'rgba(168,85,247,0.15)', text: '#c084fc', label: 'Advanced' },
+    drill: { bg: 'rgba(236,72,153,0.15)', text: '#f472b6', label: 'Drill' },
+    custom: { bg: 'rgba(251,146,60,0.15)', text: '#fb923c', label: 'Custom' },
+  };
+  const cat = categoryColors[template.category] || categoryColors.basic;
+
+  // Dot colors for performers (cycle through)
+  const dotColors = ['#6366f1', '#8b5cf6', '#a855f7', '#ec4899', '#f43f5e', '#ef4444', '#f97316', '#eab308', '#22c55e', '#06b6d4'];
+
+  // Field area: right side of the image (500x400 area)
+  const fieldX = 640;
+  const fieldY = 100;
+  const fieldW = 480;
+  const fieldH = 420;
+
+  // Generate dots SVG
+  const dotsSvg = template.positions.map((pos, i) => {
+    const cx = fieldX + (pos.x / 100) * fieldW;
+    const cy = fieldY + (pos.y / 100) * fieldH;
+    const color = dotColors[i % dotColors.length];
+    return `<circle cx="${cx}" cy="${cy}" r="8" fill="${color}" opacity="0.9"/>`;
+  }).join('\n        ');
+
+  // Generate grid lines on the field
+  const gridLinesSvg = [];
+  for (let gx = 0; gx <= 4; gx++) {
+    const x = fieldX + (gx / 4) * fieldW;
+    gridLinesSvg.push(`<line x1="${x}" y1="${fieldY}" x2="${x}" y2="${fieldY + fieldH}" stroke="#333" stroke-width="1" opacity="0.3"/>`);
+  }
+  for (let gy = 0; gy <= 4; gy++) {
+    const y = fieldY + (gy / 4) * fieldH;
+    gridLinesSvg.push(`<line x1="${fieldX}" y1="${y}" x2="${fieldX + fieldW}" y2="${y}" stroke="#333" stroke-width="1" opacity="0.3"/>`);
+  }
+
+  const svg = `
+    <svg width="1200" height="630" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" style="stop-color:#0a0a0a"/>
+          <stop offset="100%" style="stop-color:#1a1a2e"/>
+        </linearGradient>
+        <linearGradient id="accent" x1="0%" y1="0%" x2="100%" y2="0%">
+          <stop offset="0%" style="stop-color:#8b5cf6"/>
+          <stop offset="50%" style="stop-color:#6366f1"/>
+          <stop offset="100%" style="stop-color:#ec4899"/>
+        </linearGradient>
+      </defs>
+      <rect width="1200" height="630" fill="url(#bg)"/>
+      <!-- Accent bar -->
+      <rect x="0" y="0" width="1200" height="4" fill="url(#accent)"/>
+
+      <!-- Logo text -->
+      <text x="60" y="80" font-family="system-ui,sans-serif" font-size="24" font-weight="700" fill="url(#accent)">
+        FLUX STUDIO
+      </text>
+      <!-- "Formation Template" label -->
+      <text x="60" y="110" font-family="system-ui,sans-serif" font-size="16" fill="#6b7280">
+        Formation Template
+      </text>
+
+      <!-- Template title -->
+      <text x="60" y="230" font-family="system-ui,sans-serif" font-size="48" font-weight="700" fill="#ffffff">
+        ${escapeHtml(title)}
+      </text>
+      <!-- Description -->
+      <text x="60" y="280" font-family="system-ui,sans-serif" font-size="20" fill="#9ca3af">
+        ${escapeHtml(subtitle.length > 50 ? subtitle.slice(0, 47) + '...' : subtitle)}
+      </text>
+
+      <!-- Category badge -->
+      <rect x="60" y="310" width="${cat.label.length * 12 + 24}" height="32" rx="16" fill="${cat.bg}"/>
+      <text x="72" y="332" font-family="system-ui,sans-serif" font-size="15" font-weight="600" fill="${cat.text}">
+        ${cat.label}
+      </text>
+
+      <!-- Performer count -->
+      <text x="60" y="380" font-family="system-ui,sans-serif" font-size="18" fill="#a78bfa">
+        ${performerCount} performer${performerCount === 1 ? '' : 's'}
+      </text>
+
+      <!-- Field visualization area -->
+      <rect x="${fieldX}" y="${fieldY}" width="${fieldW}" height="${fieldH}" rx="12" fill="rgba(255,255,255,0.03)" stroke="rgba(255,255,255,0.08)" stroke-width="1"/>
+      <!-- Grid lines -->
+      ${gridLinesSvg.join('\n        ')}
+      <!-- Performer dots -->
+      ${dotsSvg}
+
+      <!-- Bottom tagline -->
+      <text x="60" y="580" font-family="system-ui,sans-serif" font-size="16" fill="#6b7280">
+        fluxstudio.art/templates — Browse formation templates
+      </text>
+    </svg>
+  `;
+
+  const png = await sharp(Buffer.from(svg)).png({ quality: 90 }).toBuffer();
+
+  // Cache the result (templates are static)
+  templateOgCache.set(templateId, png);
+
+  res.setHeader('Content-Type', 'image/png');
+  res.setHeader('Cache-Control', 'public, max-age=604800'); // 7-day cache
+  res.send(png);
+}));
 
 /**
  * GET /api/og-image.png
  * Default static OG image for the site (non-formation pages).
  */
-router.get('/og-image.png', async (req, res) => {
-  try {
-    const sharp = require('sharp');
+router.get('/og-image.png', asyncHandler(async (req, res) => {
+  const sharp = require('sharp');
 
-    const svg = `
-      <svg width="1200" height="630" xmlns="http://www.w3.org/2000/svg">
-        <defs>
-          <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" style="stop-color:#0a0a0a"/>
-            <stop offset="100%" style="stop-color:#1a1a2e"/>
-          </linearGradient>
-          <linearGradient id="accent" x1="0%" y1="0%" x2="100%" y2="0%">
-            <stop offset="0%" style="stop-color:#8b5cf6"/>
-            <stop offset="50%" style="stop-color:#6366f1"/>
-            <stop offset="100%" style="stop-color:#ec4899"/>
-          </linearGradient>
-        </defs>
-        <rect width="1200" height="630" fill="url(#bg)"/>
-        <rect x="0" y="0" width="1200" height="4" fill="url(#accent)"/>
-        <text x="600" y="260" font-family="system-ui,sans-serif" font-size="72" font-weight="700" fill="url(#accent)" text-anchor="middle">
-          FLUX STUDIO
-        </text>
-        <text x="600" y="340" font-family="system-ui,sans-serif" font-size="28" fill="#9ca3af" text-anchor="middle">
-          Creative collaboration platform for design teams
-        </text>
-        <text x="600" y="400" font-family="system-ui,sans-serif" font-size="22" fill="#6b7280" text-anchor="middle">
-          Design formations, collaborate in real time, ship together
-        </text>
-      </svg>
-    `;
+  const svg = `
+    <svg width="1200" height="630" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" style="stop-color:#0a0a0a"/>
+          <stop offset="100%" style="stop-color:#1a1a2e"/>
+        </linearGradient>
+        <linearGradient id="accent" x1="0%" y1="0%" x2="100%" y2="0%">
+          <stop offset="0%" style="stop-color:#8b5cf6"/>
+          <stop offset="50%" style="stop-color:#6366f1"/>
+          <stop offset="100%" style="stop-color:#ec4899"/>
+        </linearGradient>
+      </defs>
+      <rect width="1200" height="630" fill="url(#bg)"/>
+      <rect x="0" y="0" width="1200" height="4" fill="url(#accent)"/>
+      <text x="600" y="260" font-family="system-ui,sans-serif" font-size="72" font-weight="700" fill="url(#accent)" text-anchor="middle">
+        FLUX STUDIO
+      </text>
+      <text x="600" y="340" font-family="system-ui,sans-serif" font-size="28" fill="#9ca3af" text-anchor="middle">
+        Creative collaboration platform for design teams
+      </text>
+      <text x="600" y="400" font-family="system-ui,sans-serif" font-size="22" fill="#6b7280" text-anchor="middle">
+        Design formations, collaborate in real time, ship together
+      </text>
+    </svg>
+  `;
 
-    const png = await sharp(Buffer.from(svg)).png({ quality: 90 }).toBuffer();
+  const png = await sharp(Buffer.from(svg)).png({ quality: 90 }).toBuffer();
 
-    res.setHeader('Content-Type', 'image/png');
-    res.setHeader('Cache-Control', 'public, max-age=604800'); // 7-day cache
-    res.send(png);
-  } catch (err) {
-    log.error('Error generating default OG image', { error: err.message });
-    res.status(500).send('Error generating image');
-  }
-});
+  res.setHeader('Content-Type', 'image/png');
+  res.setHeader('Cache-Control', 'public, max-age=604800'); // 7-day cache
+  res.send(png);
+}));
 
 // Full path (local dev / direct access)
 router.get('/share/:formationId', handleShareOG);

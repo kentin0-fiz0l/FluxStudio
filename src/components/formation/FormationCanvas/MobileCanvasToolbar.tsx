@@ -5,14 +5,58 @@
  * Overflow sheet (slide-up): export, save, view toggles, settings
  */
 
-import React, { useState } from 'react';
+import React, { useState, useCallback, useRef } from 'react';
 import {
   MousePointer, Hand, Plus, Undo2, Redo2, Play, Pause,
   Save, Download, Grid, Eye, EyeOff, Map,
   Loader2, Check, X, ChevronUp,
 } from 'lucide-react';
 
-type Tool = 'select' | 'pan' | 'add' | 'line' | 'arc' | 'block' | 'comment';
+type Tool = 'select' | 'pan' | 'add' | 'line' | 'arc' | 'block' | 'comment' | 'curve';
+
+/** Trigger haptic feedback if available */
+function hapticFeedback(duration = 10) {
+  try {
+    if (navigator.vibrate) navigator.vibrate(duration);
+  } catch {
+    // Ignore - vibrate not supported
+  }
+}
+
+/** Hook for long-press gesture (500ms hold) */
+function useLongPress(callback: () => void, delay = 500) {
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const movedRef = useRef(false);
+
+  const start = useCallback(() => {
+    movedRef.current = false;
+    timerRef.current = setTimeout(() => {
+      if (!movedRef.current) {
+        hapticFeedback(20);
+        callback();
+      }
+    }, delay);
+  }, [callback, delay]);
+
+  const cancel = useCallback(() => {
+    if (timerRef.current) {
+      clearTimeout(timerRef.current);
+      timerRef.current = null;
+    }
+  }, []);
+
+  const move = useCallback(() => {
+    movedRef.current = true;
+    cancel();
+  }, [cancel]);
+
+  return {
+    onTouchStart: start,
+    onTouchEnd: cancel,
+    onTouchMove: move,
+    onTouchCancel: cancel,
+  };
+}
 
 interface MobileCanvasToolbarProps {
   activeTool: Tool;
@@ -68,7 +112,20 @@ export const MobileCanvasToolbar: React.FC<MobileCanvasToolbarProps> = React.mem
   onPause,
 }) => {
   const [overflowOpen, setOverflowOpen] = useState(false);
+  const [contextMenuTool, setContextMenuTool] = useState<Tool | null>(null);
   const isPlaying = playbackState.isPlaying;
+
+  // Long-press on select tool shows context menu with shape tools
+  const selectLongPress = useLongPress(() => {
+    setContextMenuTool(contextMenuTool === 'select' ? null : 'select');
+  });
+
+  // Wrap tool changes with haptic feedback
+  const handleToolChange = useCallback((tool: Tool) => {
+    hapticFeedback();
+    setActiveTool(tool);
+    setContextMenuTool(null);
+  }, [setActiveTool]);
 
   return (
     <>
@@ -171,22 +228,40 @@ export const MobileCanvasToolbar: React.FC<MobileCanvasToolbarProps> = React.mem
         aria-label="Canvas tools"
       >
         <div className="flex items-center justify-around px-2 py-1">
-          {/* Select tool */}
+          {/* Select tool (long-press for context menu) */}
           <button
-            onClick={() => setActiveTool('select')}
+            onClick={() => handleToolChange('select')}
+            {...selectLongPress}
             className={`${touchTarget} flex flex-col items-center justify-center rounded-lg ${
               activeTool === 'select' ? 'text-blue-500' : 'text-gray-500 dark:text-gray-400'
             }`}
-            aria-label="Select tool"
+            aria-label="Select tool (hold for more options)"
             aria-pressed={activeTool === 'select'}
           >
             <MousePointer className="w-5 h-5" />
             <span className="text-[10px] mt-0.5">Select</span>
           </button>
 
+          {/* Long-press context menu for shape tools */}
+          {contextMenuTool === 'select' && (
+            <div className="absolute bottom-[70px] left-2 z-50 bg-white dark:bg-gray-800 rounded-xl shadow-xl border border-gray-200 dark:border-gray-700 p-2 space-y-1">
+              {(['line', 'arc', 'block'] as Tool[]).map((tool) => (
+                <button
+                  key={tool}
+                  onClick={() => handleToolChange(tool)}
+                  className={`${touchTarget} flex items-center gap-2 w-full px-3 rounded-lg text-sm ${
+                    activeTool === tool ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-500' : 'text-gray-700 dark:text-gray-300'
+                  }`}
+                >
+                  {tool.charAt(0).toUpperCase() + tool.slice(1)} Tool
+                </button>
+              ))}
+            </div>
+          )}
+
           {/* Pan / finger mode toggle */}
           <button
-            onClick={() => setFingerMode(fingerMode === 'select' ? 'pan' : 'select')}
+            onClick={() => { hapticFeedback(); setFingerMode(fingerMode === 'select' ? 'pan' : 'select'); }}
             className={`${touchTarget} flex flex-col items-center justify-center rounded-lg ${
               fingerMode === 'pan' ? 'text-blue-500' : 'text-gray-500 dark:text-gray-400'
             }`}
@@ -198,7 +273,7 @@ export const MobileCanvasToolbar: React.FC<MobileCanvasToolbarProps> = React.mem
 
           {/* Add performer */}
           <button
-            onClick={() => setActiveTool('add')}
+            onClick={() => handleToolChange('add')}
             className={`${touchTarget} flex flex-col items-center justify-center rounded-lg ${
               activeTool === 'add' ? 'text-blue-500' : 'text-gray-500 dark:text-gray-400'
             }`}

@@ -67,6 +67,7 @@ export function ExportDialog({
   const [exportSuccess, setExportSuccess] = useState(false);
   const [exportError, setExportError] = useState<string | null>(null);
   const [exportProgress, setExportProgress] = useState<ExportProgress | null>(null);
+  const [batchProgress, setBatchProgress] = useState<{ current: number; total: number; performerName: string } | null>(null);
 
   const hasPerformers = performers && performers.length > 0;
 
@@ -146,12 +147,20 @@ export function ExportDialog({
     setExportSuccess(false);
     setExportError(null);
     setExportProgress(null);
+    setBatchProgress(null);
 
     try {
       if (selectedFormat === 'drill_book' && onExportDrillBook) {
         const ids = options.selectedPerformerScope === 'all' && performers
           ? performers.map(p => p.id)
           : options.selectedPerformerIds;
+        // Show batch progress for multi-performer export
+        if (ids.length > 1 && performers) {
+          for (let i = 0; i < ids.length; i++) {
+            const p = performers.find(perf => perf.id === ids[i]);
+            setBatchProgress({ current: i + 1, total: ids.length, performerName: p?.name ?? `Performer ${i + 1}` });
+          }
+        }
         await onExportDrillBook(ids);
       } else if (selectedFormat === 'coordinate_sheet' && onExportCoordinateSheet) {
         const ids = options.selectedPerformerScope === 'all' && performers
@@ -294,6 +303,23 @@ export function ExportDialog({
               )}
 
               <ExportProgressView exportProgress={exportProgress} />
+
+              {batchProgress && isExporting && (
+                <div className="mb-4 p-3 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Loader2 className="w-4 h-4 animate-spin text-blue-500" aria-hidden="true" />
+                    <span className="text-sm font-medium text-blue-800 dark:text-blue-300">
+                      Exporting {batchProgress.performerName} ({batchProgress.current}/{batchProgress.total})
+                    </span>
+                  </div>
+                  <div className="w-full bg-blue-200 dark:bg-blue-800 rounded-full h-1.5">
+                    <div
+                      className="bg-blue-500 h-1.5 rounded-full transition-all"
+                      style={{ width: `${(batchProgress.current / batchProgress.total) * 100}%` }}
+                    />
+                  </div>
+                </div>
+              )}
 
               {exportError && !isExporting && (
                 <div className="flex items-start gap-3 p-3 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 mb-4">

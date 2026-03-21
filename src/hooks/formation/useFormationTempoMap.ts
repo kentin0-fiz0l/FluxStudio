@@ -8,17 +8,28 @@
  * Consumed by every component needing count/time conversion.
  */
 
-import { useMemo } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import type { Formation } from '../../services/formationTypes';
 import type { Section } from '../../contexts/metmap/types';
 import type { TempoMap } from '../../services/tempoMap';
 import { buildTempoMapFromSections, buildConstantTempoMap } from '../../services/tempoMap';
 import { getTotalCounts } from '../../services/drillSetService';
+import { tempoEventBus } from '../../services/formation/tempoEventBus';
 
 export function useFormationTempoMap(
   formation: Formation | null,
   linkedSongSections?: Section[],
 ): TempoMap {
+  // Track tempo-change events to trigger recalculation
+  const [tempoChangeVersion, setTempoChangeVersion] = useState(0);
+
+  useEffect(() => {
+    const unsub = tempoEventBus.subscribe('tempo-change', () => {
+      setTempoChangeVersion((v) => v + 1);
+    });
+    return unsub;
+  }, []);
+
   return useMemo(() => {
     if (!formation) {
       return buildConstantTempoMap(120, 0);
@@ -49,6 +60,7 @@ export function useFormationTempoMap(
     const totalCounts = formation.sets ? getTotalCounts(formation.sets) : 0;
 
     return buildConstantTempoMap(bpm, Math.max(totalCounts, countsPerPhrase), countsPerPhrase);
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- tempoChangeVersion triggers recalc on cross-tool events
   }, [
     formation?.metmapSongId,
     formation?.useConstantTempo,
@@ -57,5 +69,6 @@ export function useFormationTempoMap(
     formation?.drillSettings?.countsPerPhrase,
     formation?.sets,
     linkedSongSections,
+    tempoChangeVersion,
   ]);
 }

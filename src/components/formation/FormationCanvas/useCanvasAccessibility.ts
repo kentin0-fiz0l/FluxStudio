@@ -69,6 +69,7 @@ const TOOL_LABELS: Record<Tool, string> = {
   arc: 'Arc shape tool',
   block: 'Block shape tool',
   comment: 'Comment tool',
+  curve: 'Curve edit tool',
 };
 
 export function useCanvasAccessibility({

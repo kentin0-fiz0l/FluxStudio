@@ -70,58 +70,48 @@ router.get('/channels/:teamId', authenticateToken, asyncHandler(async (req, res)
 }));
 
 // GET /organizations - List user's organizations
-router.get('/organizations', authenticateToken, async (req, res) => {
-  try {
-    const teams = JSON.parse(fs.readFileSync(TEAMS_FILE, 'utf8')).teams || [];
-    const userTeams = teams.filter(team =>
-      team.members && team.members.some(member => member.userId === req.user.id)
-    );
+router.get('/organizations', authenticateToken, asyncHandler(async (req, res) => {
+  const teams = JSON.parse(fs.readFileSync(TEAMS_FILE, 'utf8')).teams || [];
+  const userTeams = teams.filter(team =>
+    team.members && team.members.some(member => member.userId === req.user.id)
+  );
 
-    const organizations = userTeams.map(team => ({
-      id: team.id,
-      name: team.name,
-      description: team.description,
-      role: team.members.find(m => m.userId === req.user.id)?.role || 'member',
-      createdAt: team.createdAt,
-      memberCount: team.members.length
-    }));
+  const organizations = userTeams.map(team => ({
+    id: team.id,
+    name: team.name,
+    description: team.description,
+    role: team.members.find(m => m.userId === req.user.id)?.role || 'member',
+    createdAt: team.createdAt,
+    memberCount: team.members.length
+  }));
 
-    res.json({ organizations });
-  } catch (error) {
-    log.error('Error fetching organizations', error);
-    res.status(500).json({ success: false, error: 'Failed to fetch organizations', code: 'FETCH_ORGANIZATIONS_ERROR' });
-  }
-});
+  res.json({ organizations });
+}));
 
 // POST /organizations - Create organization
-router.post('/organizations', authenticateToken, zodValidate(createOrganizationSchema), async (req, res) => {
-  try {
-    const { name, description } = req.body;
+router.post('/organizations', authenticateToken, zodValidate(createOrganizationSchema), asyncHandler(async (req, res) => {
+  const { name, description } = req.body;
 
-    if (!name) {
-      return res.status(400).json({ success: false, error: 'Organization name is required', code: 'ORG_MISSING_NAME' });
-    }
-
-    const teams = JSON.parse(fs.readFileSync(TEAMS_FILE, 'utf8')).teams || [];
-    const newOrg = {
-      id: crypto.randomUUID(),
-      name,
-      description: description || '',
-      createdAt: new Date().toISOString(),
-      createdBy: req.user.id,
-      members: [
-        { userId: req.user.id, role: 'owner', joinedAt: new Date().toISOString() }
-      ]
-    };
-
-    teams.push(newOrg);
-    fs.writeFileSync(TEAMS_FILE, JSON.stringify({ teams }, null, 2));
-
-    res.json(newOrg);
-  } catch (error) {
-    log.error('Error creating organization', error);
-    res.status(500).json({ success: false, error: 'Failed to create organization', code: 'CREATE_ORGANIZATION_ERROR' });
+  if (!name) {
+    return res.status(400).json({ success: false, error: 'Organization name is required', code: 'ORG_MISSING_NAME' });
   }
-});
+
+  const teams = JSON.parse(fs.readFileSync(TEAMS_FILE, 'utf8')).teams || [];
+  const newOrg = {
+    id: crypto.randomUUID(),
+    name,
+    description: description || '',
+    createdAt: new Date().toISOString(),
+    createdBy: req.user.id,
+    members: [
+      { userId: req.user.id, role: 'owner', joinedAt: new Date().toISOString() }
+    ]
+  };
+
+  teams.push(newOrg);
+  fs.writeFileSync(TEAMS_FILE, JSON.stringify({ teams }, null, 2));
+
+  res.json(newOrg);
+}));
 
 module.exports = router;

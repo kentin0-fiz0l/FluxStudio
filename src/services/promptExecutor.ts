@@ -105,6 +105,46 @@ function executeDistribute(
 }
 
 // ============================================================================
+// Relative Move (4F)
+// ============================================================================
+
+function executeRelativeMove(
+  command: Extract<ParsedCommand, { type: 'relative-move' }>,
+  performers: Performer[],
+  currentPositions: Map<string, Position>,
+): PromptExecutionResult {
+  const affectedIds = resolvePerformerFilter(command.performerFilter, performers);
+  if (affectedIds.length === 0) {
+    return { proposedPositions: new Map(), affectedPerformerIds: [], description: 'No performers matched filter' };
+  }
+
+  const { dx, dy, rotation } = command.params;
+  const proposedPositions = new Map(currentPositions);
+
+  for (const id of affectedIds) {
+    const current = currentPositions.get(id);
+    if (!current) continue;
+
+    proposedPositions.set(id, {
+      x: Math.max(0, Math.min(100, current.x + dx)),
+      y: Math.max(0, Math.min(100, current.y + dy)),
+      rotation: rotation !== undefined ? (current.rotation || 0) + rotation : current.rotation,
+    });
+  }
+
+  const parts: string[] = [];
+  if (dx !== 0) parts.push(`${Math.abs(dx / 1.25).toFixed(0)} steps ${dx > 0 ? 'right' : 'left'}`);
+  if (dy !== 0) parts.push(`${Math.abs(dy / 1.25).toFixed(0)} steps ${dy > 0 ? 'back' : 'forward'}`);
+  if (rotation !== undefined) parts.push(`rotate ${rotation} degrees`);
+
+  return {
+    proposedPositions,
+    affectedPerformerIds: affectedIds,
+    description: `Move ${affectedIds.length} performer(s): ${parts.join(', ')}`,
+  };
+}
+
+// ============================================================================
 // Morph
 // ============================================================================
 
@@ -213,6 +253,8 @@ export function executePromptCommand(
       );
     case 'morph':
       return executeMorph(command, performers, currentPositions);
+    case 'relative-move':
+      return executeRelativeMove(command, performers, currentPositions);
     case 'basic_formation':
       return executeBasicFormation(command, performers, currentPositions, fieldConfig);
   }

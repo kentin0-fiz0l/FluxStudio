@@ -19,179 +19,155 @@ const { zodValidate } = require('../middleware/zodValidate');
 const { pushSubscribeSchema, pushUnsubscribeSchema, pushPreferencesSchema } = require('../lib/schemas');
 const { createLogger } = require('../lib/logger');
 const log = createLogger('Push');
+const { asyncHandler } = require('../middleware/errorHandler');
 
 /**
  * POST /api/push/subscribe
  * Subscribe to push notifications
  */
-router.post('/subscribe', authenticateToken, zodValidate(pushSubscribeSchema), async (req, res) => {
-  try {
-    const { endpoint, keys } = req.body;
+router.post('/subscribe', authenticateToken, zodValidate(pushSubscribeSchema), asyncHandler(async (req, res) => {
+  const { endpoint, keys } = req.body;
 
-    if (!endpoint || !keys?.p256dh || !keys?.auth) {
-      return res.status(400).json({ success: false, error: 'Invalid subscription data', code: 'PUSH_INVALID_SUBSCRIPTION' });
-    }
-
-    // Check if subscription already exists
-    const existing = await query(
-      'SELECT id FROM push_subscriptions WHERE endpoint = $1',
-      [endpoint]
-    );
-
-    if (existing.rows.length > 0) {
-      // Update existing subscription
-      await query(`
-        UPDATE push_subscriptions
-        SET user_id = $1, p256dh_key = $2, auth_key = $3, last_used_at = NOW()
-        WHERE endpoint = $4
-      `, [req.user.id, keys.p256dh, keys.auth, endpoint]);
-    } else {
-      // Create new subscription
-      const id = uuidv4();
-      await query(`
-        INSERT INTO push_subscriptions (id, user_id, endpoint, p256dh_key, auth_key, user_agent)
-        VALUES ($1, $2, $3, $4, $5, $6)
-      `, [id, req.user.id, endpoint, keys.p256dh, keys.auth, req.headers['user-agent'] || null]);
-    }
-
-    res.json({ success: true });
-  } catch (error) {
-    log.error('Error subscribing to push', error);
-    res.status(500).json({ success: false, error: 'Failed to subscribe to push notifications', code: 'PUSH_SUBSCRIBE_ERROR' });
+  if (!endpoint || !keys?.p256dh || !keys?.auth) {
+    return res.status(400).json({ success: false, error: 'Invalid subscription data', code: 'PUSH_INVALID_SUBSCRIPTION' });
   }
-});
+
+  // Check if subscription already exists
+  const existing = await query(
+    'SELECT id FROM push_subscriptions WHERE endpoint = $1',
+    [endpoint]
+  );
+
+  if (existing.rows.length > 0) {
+    // Update existing subscription
+    await query(`
+      UPDATE push_subscriptions
+      SET user_id = $1, p256dh_key = $2, auth_key = $3, last_used_at = NOW()
+      WHERE endpoint = $4
+    `, [req.user.id, keys.p256dh, keys.auth, endpoint]);
+  } else {
+    // Create new subscription
+    const id = uuidv4();
+    await query(`
+      INSERT INTO push_subscriptions (id, user_id, endpoint, p256dh_key, auth_key, user_agent)
+      VALUES ($1, $2, $3, $4, $5, $6)
+    `, [id, req.user.id, endpoint, keys.p256dh, keys.auth, req.headers['user-agent'] || null]);
+  }
+
+  res.json({ success: true });
+}));
 
 /**
  * POST /api/push/unsubscribe
  * Unsubscribe from push notifications
  */
-router.post('/unsubscribe', authenticateToken, zodValidate(pushUnsubscribeSchema), async (req, res) => {
-  try {
-    const { endpoint } = req.body;
+router.post('/unsubscribe', authenticateToken, zodValidate(pushUnsubscribeSchema), asyncHandler(async (req, res) => {
+  const { endpoint } = req.body;
 
-    if (!endpoint) {
-      return res.status(400).json({ success: false, error: 'Endpoint is required', code: 'PUSH_MISSING_ENDPOINT' });
-    }
-
-    await query(
-      'DELETE FROM push_subscriptions WHERE endpoint = $1 AND user_id = $2',
-      [endpoint, req.user.id]
-    );
-
-    res.json({ success: true });
-  } catch (error) {
-    log.error('Error unsubscribing from push', error);
-    res.status(500).json({ success: false, error: 'Failed to unsubscribe from push notifications', code: 'PUSH_UNSUBSCRIBE_ERROR' });
+  if (!endpoint) {
+    return res.status(400).json({ success: false, error: 'Endpoint is required', code: 'PUSH_MISSING_ENDPOINT' });
   }
-});
+
+  await query(
+    'DELETE FROM push_subscriptions WHERE endpoint = $1 AND user_id = $2',
+    [endpoint, req.user.id]
+  );
+
+  res.json({ success: true });
+}));
 
 /**
  * GET /api/push/preferences
  * Get user's notification preferences
  */
-router.get('/preferences', authenticateToken, async (req, res) => {
-  try {
-    const result = await query(
-      'SELECT * FROM user_notification_preferences WHERE user_id = $1',
-      [req.user.id]
-    );
+router.get('/preferences', authenticateToken, asyncHandler(async (req, res) => {
+  const result = await query(
+    'SELECT * FROM user_notification_preferences WHERE user_id = $1',
+    [req.user.id]
+  );
 
-    if (result.rows.length === 0) {
-      // Return defaults
-      return res.json({
-        pushEnabled: true,
-        pushMessages: true,
-        pushProjectUpdates: true,
-        pushMentions: true,
-        pushComments: true,
-        quietHoursStart: null,
-        quietHoursEnd: null
-      });
-    }
-
-    const prefs = result.rows[0];
-    res.json({
-      pushEnabled: prefs.push_enabled,
-      pushMessages: prefs.push_messages,
-      pushProjectUpdates: prefs.push_project_updates,
-      pushMentions: prefs.push_mentions,
-      pushComments: prefs.push_comments,
-      quietHoursStart: prefs.quiet_hours_start,
-      quietHoursEnd: prefs.quiet_hours_end
+  if (result.rows.length === 0) {
+    // Return defaults
+    return res.json({
+      pushEnabled: true,
+      pushMessages: true,
+      pushProjectUpdates: true,
+      pushMentions: true,
+      pushComments: true,
+      quietHoursStart: null,
+      quietHoursEnd: null
     });
-  } catch (error) {
-    log.error('Error getting notification preferences', error);
-    res.status(500).json({ success: false, error: 'Failed to get notification preferences', code: 'PUSH_GET_PREFERENCES_ERROR' });
   }
-});
+
+  const prefs = result.rows[0];
+  res.json({
+    pushEnabled: prefs.push_enabled,
+    pushMessages: prefs.push_messages,
+    pushProjectUpdates: prefs.push_project_updates,
+    pushMentions: prefs.push_mentions,
+    pushComments: prefs.push_comments,
+    quietHoursStart: prefs.quiet_hours_start,
+    quietHoursEnd: prefs.quiet_hours_end
+  });
+}));
 
 /**
  * PUT /api/push/preferences
  * Update user's notification preferences
  */
-router.put('/preferences', authenticateToken, validateInput.sanitizeInput, zodValidate(pushPreferencesSchema), async (req, res) => {
-  try {
-    const {
-      pushEnabled,
-      pushMessages,
-      pushProjectUpdates,
-      pushMentions,
-      pushComments,
-      quietHoursStart,
-      quietHoursEnd
-    } = req.body;
+router.put('/preferences', authenticateToken, validateInput.sanitizeInput, zodValidate(pushPreferencesSchema), asyncHandler(async (req, res) => {
+  const {
+    pushEnabled,
+    pushMessages,
+    pushProjectUpdates,
+    pushMentions,
+    pushComments,
+    quietHoursStart,
+    quietHoursEnd
+  } = req.body;
 
-    await query(`
-      INSERT INTO user_notification_preferences (
-        user_id, push_enabled, push_messages, push_project_updates,
-        push_mentions, push_comments, quiet_hours_start, quiet_hours_end
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-      ON CONFLICT (user_id) DO UPDATE SET
-        push_enabled = EXCLUDED.push_enabled,
-        push_messages = EXCLUDED.push_messages,
-        push_project_updates = EXCLUDED.push_project_updates,
-        push_mentions = EXCLUDED.push_mentions,
-        push_comments = EXCLUDED.push_comments,
-        quiet_hours_start = EXCLUDED.quiet_hours_start,
-        quiet_hours_end = EXCLUDED.quiet_hours_end,
-        updated_at = NOW()
-    `, [
-      req.user.id,
-      pushEnabled !== false,
-      pushMessages !== false,
-      pushProjectUpdates !== false,
-      pushMentions !== false,
-      pushComments !== false,
-      quietHoursStart || null,
-      quietHoursEnd || null
-    ]);
+  await query(`
+    INSERT INTO user_notification_preferences (
+      user_id, push_enabled, push_messages, push_project_updates,
+      push_mentions, push_comments, quiet_hours_start, quiet_hours_end
+    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+    ON CONFLICT (user_id) DO UPDATE SET
+      push_enabled = EXCLUDED.push_enabled,
+      push_messages = EXCLUDED.push_messages,
+      push_project_updates = EXCLUDED.push_project_updates,
+      push_mentions = EXCLUDED.push_mentions,
+      push_comments = EXCLUDED.push_comments,
+      quiet_hours_start = EXCLUDED.quiet_hours_start,
+      quiet_hours_end = EXCLUDED.quiet_hours_end,
+      updated_at = NOW()
+  `, [
+    req.user.id,
+    pushEnabled !== false,
+    pushMessages !== false,
+    pushProjectUpdates !== false,
+    pushMentions !== false,
+    pushComments !== false,
+    quietHoursStart || null,
+    quietHoursEnd || null
+  ]);
 
-    res.json({ success: true });
-  } catch (error) {
-    log.error('Error updating notification preferences', error);
-    res.status(500).json({ success: false, error: 'Failed to update notification preferences', code: 'PUSH_UPDATE_PREFERENCES_ERROR' });
-  }
-});
+  res.json({ success: true });
+}));
 
 /**
  * GET /api/push/status
  * Get subscription status
  */
-router.get('/status', authenticateToken, async (req, res) => {
-  try {
-    const result = await query(
-      'SELECT COUNT(*) as count FROM push_subscriptions WHERE user_id = $1',
-      [req.user.id]
-    );
+router.get('/status', authenticateToken, asyncHandler(async (req, res) => {
+  const result = await query(
+    'SELECT COUNT(*) as count FROM push_subscriptions WHERE user_id = $1',
+    [req.user.id]
+  );
 
-    res.json({
-      subscriptionCount: parseInt(result.rows[0].count, 10),
-      isSubscribed: parseInt(result.rows[0].count, 10) > 0
-    });
-  } catch (error) {
-    log.error('Error getting push status', error);
-    res.status(500).json({ success: false, error: 'Failed to get push status', code: 'PUSH_STATUS_ERROR' });
-  }
-});
+  res.json({
+    subscriptionCount: parseInt(result.rows[0].count, 10),
+    isSubscribed: parseInt(result.rows[0].count, 10) > 0
+  });
+}));
 
 module.exports = router;

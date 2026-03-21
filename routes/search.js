@@ -15,15 +15,15 @@ const { createLogger } = require('../lib/logger');
 const log = createLogger('Search');
 const { zodValidateQuery } = require('../middleware/zodValidateQuery');
 const { searchQuerySchema } = require('../lib/schemas');
+const { asyncHandler } = require('../middleware/errorHandler');
 
 /**
  * GET /api/search
  * Full-text search across projects, files, tasks, messages
  * Query params: q (required), types (comma-separated), limit, offset, sortBy, sortOrder
  */
-router.get('/', authenticateToken, zodValidateQuery(searchQuerySchema), async (req, res) => {
-  try {
-    const { q, types, limit, offset, sortBy, sortOrder } = req.query;
+router.get('/', authenticateToken, zodValidateQuery(searchQuerySchema), asyncHandler(async (req, res) => {
+  const { q, types, limit, offset, sortBy, sortOrder } = req.query;
 
     const searchQuery = q.trim();
     const maxLimit = limit;
@@ -235,18 +235,14 @@ router.get('/', authenticateToken, zodValidateQuery(searchQuerySchema), async (r
     const total = results.length;
     const paginatedResults = results.slice(searchOffset, searchOffset + maxLimit);
 
-    res.json({
-      success: true,
-      results: paginatedResults,
-      total,
-      hasMore: searchOffset + maxLimit < total,
-      facets,
-      searchTime: Date.now(),
-    });
-  } catch (error) {
-    log.error('Search error', error, { userId: req.user?.id, query: req.query?.q });
-    res.status(500).json({ success: false, error: 'Search failed', code: 'SEARCH_ERROR' });
-  }
-});
+  res.json({
+    success: true,
+    results: paginatedResults,
+    total,
+    hasMore: searchOffset + maxLimit < total,
+    facets,
+    searchTime: Date.now(),
+  });
+}));
 
 module.exports = router;

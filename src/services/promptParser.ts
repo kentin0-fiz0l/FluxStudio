@@ -15,7 +15,8 @@ export type PerformerFilter =
   | { type: 'all' }
   | { type: 'selected'; ids: string[] }
   | { type: 'section'; section: string }
-  | { type: 'instrument'; instrument: string };
+  | { type: 'instrument'; instrument: string }
+  | { type: 'conditional'; base: PerformerFilter; except: string[] };
 
 export interface DistributeParams {
   /** Start position (normalized 0-100) */
@@ -36,10 +37,18 @@ export interface TemplateParams {
   templateName: string;
 }
 
+export interface RelativeMoveParams {
+  dx: number;
+  dy: number;
+  /** Rotation in degrees */
+  rotation?: number;
+}
+
 export type ParsedCommand =
   | { type: 'distribute'; shape: 'line' | 'arc' | 'circle' | 'grid'; performerFilter: PerformerFilter; params: DistributeParams }
   | { type: 'template'; templateName: string; performerFilter: PerformerFilter; params: TemplateParams }
   | { type: 'morph'; targetShape: string; morphFactor: number; performerFilter: PerformerFilter }
+  | { type: 'relative-move'; performerFilter: PerformerFilter; params: RelativeMoveParams }
   | { type: 'basic_formation'; description: string; performerFilter: PerformerFilter };
 
 // ============================================================================
@@ -57,39 +66,179 @@ const KNOWN_INSTRUMENTS = [
   'guard', 'rifle', 'rifles', 'flag', 'flags', 'sabre', 'sabres',
 ];
 
+// ============================================================================
+// Field Notation Parsing (4F)
+// ============================================================================
+
+/**
+ * Resolve field notation to normalized x position (0-100).
+ * Supports "yard 40", "on the 35", "the 50", "between 40 and 45", "R30", "L45".
+ */
+export function resolveYardLineToX(text: string): number | null {
+  // "yard 40" or "the 40" or "on the 40"
+  const yardMatch = text.match(/(?:yard|the|on\s+the)\s+(\d+)/i);
+  if (yardMatch) {
+    const yardLine = parseInt(yardMatch[1], 10);
+    // NCAA field: 0-100 normalized. Yard line 0 = left end zone, 50 = midfield, 100 = right end zone
+    // Offset by 10 for end zones: yard 0 = x=10, yard 50 = x=60, yard 100 = x=110 (but clamped)
+    return Math.min(100, Math.max(0, 10 + yardLine * 0.8));
+  }
+
+  // "R30" or "L45" (Right/Left side of field)
+  const sideMatch = text.match(/\b([RL])(\d+)\b/i);
+  if (sideMatch) {
+    const side = sideMatch[1].toUpperCase();
+    const yardLine = parseInt(sideMatch[2], 10);
+    // R30 = right of center at 30 yard line
+    const centerX = 50;
+    const offset = yardLine * 0.8;
+    return side === 'R' ? centerX + offset / 2 : centerX - offset / 2;
+  }
+
+  return null;
+}
+
+/**
+ * Parse a range in field notation: "from 30 to 30", "between 40 and 45".
+ */
+export function parseFieldRange(text: string): { startX: number; endX: number } | null {
+  // "from 30 to 30" or "from yard 30 to yard 30"
+  const rangeMatch = text.match(/from\s+(?:yard\s+)?(\d+)\s+to\s+(?:yard\s+)?(\d+)/i);
+  if (rangeMatch) {
+    const start = parseInt(rangeMatch[1], 10);
+    const end = parseInt(rangeMatch[2], 10);
+    return {
+      startX: 10 + start * 0.8,
+      endX: 10 + end * 0.8,
+    };
+  }
+
+  // "between 40 and 45"
+  const betweenMatch = text.match(/between\s+(?:yard\s+)?(\d+)\s+and\s+(?:yard\s+)?(\d+)/i);
+  if (betweenMatch) {
+    const start = parseInt(betweenMatch[1], 10);
+    const end = parseInt(betweenMatch[2], 10);
+    return {
+      startX: 10 + start * 0.8,
+      endX: 10 + end * 0.8,
+    };
+  }
+
+  return null;
+}
+
+// ============================================================================
+// Relative Move Parsing (4F)
+// ============================================================================
+
+/**
+ * Parse relative movement commands.
+ * "shift 4 steps left", "move forward 2 steps", "rotate 45 degrees"
+ */
+function parseRelativeMove(text: string): RelativeMoveParams | null {
+  // Step size: 1 step ~= 1.25 normalized units (8-to-5 = 5 yards / 8 steps ≈ 0.625 yards per step)
+  const STEP_TO_NORMALIZED = 1.25;
+
+  let dx = 0;
+  let dy = 0;
+  let rotation: number | undefined;
+
+  // "shift N steps left/right"
+  const shiftMatch = text.match(/shift\s+(\d+)\s+steps?\s+(left|right)/i);
+  if (shiftMatch) {
+    const steps = parseInt(shiftMatch[1], 10);
+    const dir = shiftMatch[2].toLowerCase();
+    dx = dir === 'right' ? steps * STEP_TO_NORMALIZED : -steps * STEP_TO_NORMALIZED;
+    return { dx, dy };
+  }
+
+  // "move forward/backward N steps"
+  const moveMatch = text.match(/move\s+(forward|backward|back|up|down)\s+(\d+)\s+steps?/i);
+  if (moveMatch) {
+    const steps = parseInt(moveMatch[2], 10);
+    const dir = moveMatch[1].toLowerCase();
+    if (dir === 'forward' || dir === 'up') {
+      dy = -steps * STEP_TO_NORMALIZED; // forward = toward front sideline = lower y
+    } else {
+      dy = steps * STEP_TO_NORMALIZED;
+    }
+    return { dx, dy };
+  }
+
+  // "rotate N degrees"
+  const rotateMatch = text.match(/rotate\s+(\d+)\s+degrees?/i);
+  if (rotateMatch) {
+    rotation = parseInt(rotateMatch[1], 10);
+    return { dx: 0, dy: 0, rotation };
+  }
+
+  return null;
+}
+
+// ============================================================================
+// Conditional Filter Detection (4F)
+// ============================================================================
+
 function detectPerformerFilter(text: string, selectedIds: string[]): { filter: PerformerFilter; remaining: string } {
   const lower = text.toLowerCase();
 
+  // Check for "except" conditional patterns first: "all trumpets except T1"
+  const exceptMatch = lower.match(/\b(.*?)\s+except\s+(.+)/i);
+  let exceptIds: string[] = [];
+  let baseText = lower;
+  if (exceptMatch) {
+    baseText = exceptMatch[1].trim();
+    // Parse the except list: "T1, T2" or "T1 and T2" or just "T1"
+    exceptIds = exceptMatch[2]
+      .split(/[,\s]+(?:and\s+)?/)
+      .map(s => s.trim())
+      .filter(Boolean);
+  }
+
   // Check for "selected" keyword
-  if (lower.includes('selected') && selectedIds.length > 0) {
+  if (baseText.includes('selected') && selectedIds.length > 0) {
+    const filter: PerformerFilter = exceptIds.length > 0
+      ? { type: 'conditional', base: { type: 'selected', ids: selectedIds }, except: exceptIds }
+      : { type: 'selected', ids: selectedIds };
     return {
-      filter: { type: 'selected', ids: selectedIds },
-      remaining: lower.replace(/\bselected\b/, '').trim(),
+      filter,
+      remaining: baseText.replace(/\bselected\b/, '').trim(),
     };
   }
 
   // Check for section names
   for (const section of KNOWN_SECTIONS) {
-    if (lower.includes(section)) {
+    if (baseText.includes(section)) {
+      const baseFilter: PerformerFilter = { type: 'section', section };
+      const filter: PerformerFilter = exceptIds.length > 0
+        ? { type: 'conditional', base: baseFilter, except: exceptIds }
+        : baseFilter;
       return {
-        filter: { type: 'section', section },
-        remaining: lower.replace(new RegExp(`\\b${section}\\b`, 'i'), '').trim(),
+        filter,
+        remaining: baseText.replace(new RegExp(`\\b${section}\\b`, 'i'), '').trim(),
       };
     }
   }
 
   // Check for instrument names
   for (const instrument of KNOWN_INSTRUMENTS) {
-    if (lower.includes(instrument)) {
+    if (baseText.includes(instrument)) {
+      const baseFilter: PerformerFilter = { type: 'instrument', instrument };
+      const filter: PerformerFilter = exceptIds.length > 0
+        ? { type: 'conditional', base: baseFilter, except: exceptIds }
+        : baseFilter;
       return {
-        filter: { type: 'instrument', instrument },
-        remaining: lower.replace(new RegExp(`\\b${instrument}\\b`, 'i'), '').trim(),
+        filter,
+        remaining: baseText.replace(new RegExp(`\\b${instrument}\\b`, 'i'), '').trim(),
       };
     }
   }
 
   // Default to all
-  return { filter: { type: 'all' }, remaining: lower };
+  const filter: PerformerFilter = exceptIds.length > 0
+    ? { type: 'conditional', base: { type: 'all' }, except: exceptIds }
+    : { type: 'all' };
+  return { filter, remaining: baseText };
 }
 
 // ============================================================================
@@ -114,6 +263,12 @@ export function parsePrompt(
   selectedPerformerIds: string[],
 ): ParsedCommand {
   const { filter, remaining } = detectPerformerFilter(input, selectedPerformerIds);
+
+  // Pattern: relative move commands (4F)
+  const relativeMove = parseRelativeMove(remaining);
+  if (relativeMove) {
+    return { type: 'relative-move', performerFilter: filter, params: relativeMove };
+  }
 
   // Pattern: "spread ... in arc" / "arrange ... in circle" / "distribute ... in line/grid"
   const distributeMatch = remaining.match(
@@ -230,5 +385,17 @@ export function resolvePerformerFilter(
       return performers
         .filter(p => p.instrument?.toLowerCase().includes(filter.instrument))
         .map(p => p.id);
+    case 'conditional': {
+      const baseIds = resolvePerformerFilter(filter.base, performers);
+      const exceptSet = new Set(filter.except.map(e => e.toLowerCase()));
+      // Match except by ID, drillNumber, or name
+      return baseIds.filter(id => {
+        const p = performers.find(perf => perf.id === id);
+        if (!p) return true;
+        return !exceptSet.has(p.id.toLowerCase())
+          && !exceptSet.has(p.drillNumber?.toLowerCase() || '')
+          && !exceptSet.has(p.name.toLowerCase());
+      });
+    }
   }
 }

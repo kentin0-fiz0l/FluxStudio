@@ -19,6 +19,7 @@ const { zodValidate } = require('../middleware/zodValidate');
 const { ingestEventSchema } = require('../lib/schemas');
 const { createLogger } = require('../lib/logger');
 const log = createLogger('Analytics');
+const { asyncHandler } = require('../middleware/errorHandler');
 
 const router = express.Router();
 
@@ -60,106 +61,101 @@ async function verifyTeamAccess(teamId, userId) {
  * GET /api/analytics/project/:projectId/health
  * Composite health score with breakdown.
  */
-router.get('/project/:projectId/health', authenticateToken, async (req, res) => {
+router.get('/project/:projectId/health', authenticateToken, asyncHandler(async (req, res) => {
+  const { projectId } = req.params;
+  const project = await verifyProjectAccess(projectId, req.user.id);
+  if (!project) return res.status(404).json({ success: false, error: 'Project not found', code: 'ANALYTICS_PROJECT_NOT_FOUND' });
+
+  // 1. Task stats from view (may not exist if migration 006 failed)
+  let taskStats = {
+    total_tasks: 0, completed_tasks: 0, in_progress_tasks: 0,
+    todo_tasks: 0, blocked_tasks: 0, overdue_tasks: 0, completion_percentage: 0,
+  };
   try {
-    const { projectId } = req.params;
-    const project = await verifyProjectAccess(projectId, req.user.id);
-    if (!project) return res.status(404).json({ success: false, error: 'Project not found', code: 'ANALYTICS_PROJECT_NOT_FOUND' });
-
-    // 1. Task stats from view (may not exist if migration 006 failed)
-    let taskStats = {
-      total_tasks: 0, completed_tasks: 0, in_progress_tasks: 0,
-      todo_tasks: 0, blocked_tasks: 0, overdue_tasks: 0, completion_percentage: 0,
-    };
-    try {
-      const statsResult = await query(
-        'SELECT * FROM project_task_stats WHERE project_id = $1',
-        [projectId]
-      );
-      if (statsResult.rows[0]) taskStats = statsResult.rows[0];
-    } catch (e) {
-      log.warn('project_task_stats view unavailable, using fallback', e.message);
-      // Fallback: compute directly from tasks table
-      try {
-        const fallback = await query(
-          `SELECT COUNT(*) as total_tasks,
-            COUNT(CASE WHEN status = 'completed' THEN 1 END) as completed_tasks,
-            COUNT(CASE WHEN status = 'in-progress' THEN 1 END) as in_progress_tasks,
-            COUNT(CASE WHEN status = 'todo' THEN 1 END) as todo_tasks,
-            COUNT(CASE WHEN status = 'blocked' THEN 1 END) as blocked_tasks,
-            COUNT(CASE WHEN due_date < NOW() AND status != 'completed' THEN 1 END) as overdue_tasks
-           FROM tasks WHERE project_id = $1`,
-          [projectId]
-        );
-        if (fallback.rows[0]) {
-          taskStats = fallback.rows[0];
-          const total = parseInt(taskStats.total_tasks) || 0;
-          const completed = parseInt(taskStats.completed_tasks) || 0;
-          taskStats.completion_percentage = total > 0 ? Math.round((completed / total) * 100) : 0;
-        }
-      } catch { /* tasks table may not exist either */ }
-    }
-
-    // 2. Velocity data from completed tasks
-    const velocityResult = await query(
-      `SELECT AVG(estimated_hours) as avg_estimated, AVG(actual_hours) as avg_actual, COUNT(*) as count
-       FROM tasks WHERE project_id = $1 AND status = 'completed'
-       AND estimated_hours IS NOT NULL AND actual_hours IS NOT NULL`,
+    const statsResult = await query(
+      'SELECT * FROM project_task_stats WHERE project_id = $1',
       [projectId]
     );
-    const velocityData = {
-      avgEstimated: parseFloat(velocityResult.rows[0]?.avg_estimated) || 0,
-      avgActual: parseFloat(velocityResult.rows[0]?.avg_actual) || 0,
-      completedCount: parseInt(velocityResult.rows[0]?.count) || 0,
-    };
-
-    // 3. Momentum data (activity in last 7d vs previous 7d)
-    let momentumData = { recentActivityCount: 0, previousActivityCount: 0 };
+    if (statsResult.rows[0]) taskStats = statsResult.rows[0];
+  } catch (e) {
+    log.warn('project_task_stats view unavailable, using fallback', e.message);
+    // Fallback: compute directly from tasks table
     try {
-      const momentumResult = await query(
-        `SELECT
-          COUNT(CASE WHEN timestamp >= NOW() - INTERVAL '7 days' THEN 1 END) as recent,
-          COUNT(CASE WHEN timestamp >= NOW() - INTERVAL '14 days' AND timestamp < NOW() - INTERVAL '7 days' THEN 1 END) as previous
-         FROM activities WHERE project_id = $1`,
+      const fallback = await query(
+        `SELECT COUNT(*) as total_tasks,
+          COUNT(CASE WHEN status = 'completed' THEN 1 END) as completed_tasks,
+          COUNT(CASE WHEN status = 'in-progress' THEN 1 END) as in_progress_tasks,
+          COUNT(CASE WHEN status = 'todo' THEN 1 END) as todo_tasks,
+          COUNT(CASE WHEN status = 'blocked' THEN 1 END) as blocked_tasks,
+          COUNT(CASE WHEN due_date < NOW() AND status != 'completed' THEN 1 END) as overdue_tasks
+         FROM tasks WHERE project_id = $1`,
         [projectId]
       );
-      momentumData = {
-        recentActivityCount: parseInt(momentumResult.rows[0]?.recent) || 0,
-        previousActivityCount: parseInt(momentumResult.rows[0]?.previous) || 0,
-      };
-    } catch (e) {
-      log.warn('Activities table unavailable for momentum', e.message);
-    }
-
-    const health = calculateProjectHealth(taskStats, velocityData, momentumData);
-
-    // Cache the snapshot (non-critical — don't fail the request)
-    const crypto = require('crypto');
-    await query(
-      `INSERT INTO project_health_snapshots
-       (id, project_id, health_score, completion_score, velocity_score, momentum_score, overdue_score, breakdown)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
-      [crypto.randomUUID(), projectId, health.score, health.completionScore, health.velocityScore,
-       health.momentumScore, health.overdueScore, JSON.stringify(health.breakdown)]
-    ).catch(() => {});
-
-    res.json({
-      projectId,
-      ...health,
-      taskStats: {
-        total: parseInt(taskStats.total_tasks),
-        completed: parseInt(taskStats.completed_tasks),
-        inProgress: parseInt(taskStats.in_progress_tasks),
-        todo: parseInt(taskStats.todo_tasks),
-        blocked: parseInt(taskStats.blocked_tasks),
-        overdue: parseInt(taskStats.overdue_tasks),
-      },
-    });
-  } catch (error) {
-    log.error('Health error', error);
-    res.status(500).json({ success: false, error: 'Failed to calculate health score', code: 'ANALYTICS_HEALTH_ERROR' });
+      if (fallback.rows[0]) {
+        taskStats = fallback.rows[0];
+        const total = parseInt(taskStats.total_tasks) || 0;
+        const completed = parseInt(taskStats.completed_tasks) || 0;
+        taskStats.completion_percentage = total > 0 ? Math.round((completed / total) * 100) : 0;
+      }
+    } catch { /* tasks table may not exist either */ }
   }
-});
+
+  // 2. Velocity data from completed tasks
+  const velocityResult = await query(
+    `SELECT AVG(estimated_hours) as avg_estimated, AVG(actual_hours) as avg_actual, COUNT(*) as count
+     FROM tasks WHERE project_id = $1 AND status = 'completed'
+     AND estimated_hours IS NOT NULL AND actual_hours IS NOT NULL`,
+    [projectId]
+  );
+  const velocityData = {
+    avgEstimated: parseFloat(velocityResult.rows[0]?.avg_estimated) || 0,
+    avgActual: parseFloat(velocityResult.rows[0]?.avg_actual) || 0,
+    completedCount: parseInt(velocityResult.rows[0]?.count) || 0,
+  };
+
+  // 3. Momentum data (activity in last 7d vs previous 7d)
+  let momentumData = { recentActivityCount: 0, previousActivityCount: 0 };
+  try {
+    const momentumResult = await query(
+      `SELECT
+        COUNT(CASE WHEN timestamp >= NOW() - INTERVAL '7 days' THEN 1 END) as recent,
+        COUNT(CASE WHEN timestamp >= NOW() - INTERVAL '14 days' AND timestamp < NOW() - INTERVAL '7 days' THEN 1 END) as previous
+       FROM activities WHERE project_id = $1`,
+      [projectId]
+    );
+    momentumData = {
+      recentActivityCount: parseInt(momentumResult.rows[0]?.recent) || 0,
+      previousActivityCount: parseInt(momentumResult.rows[0]?.previous) || 0,
+    };
+  } catch (e) {
+    log.warn('Activities table unavailable for momentum', e.message);
+  }
+
+  const health = calculateProjectHealth(taskStats, velocityData, momentumData);
+
+  // Cache the snapshot (non-critical — don't fail the request)
+  const crypto = require('crypto');
+  await query(
+    `INSERT INTO project_health_snapshots
+     (id, project_id, health_score, completion_score, velocity_score, momentum_score, overdue_score, breakdown)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+    [crypto.randomUUID(), projectId, health.score, health.completionScore, health.velocityScore,
+     health.momentumScore, health.overdueScore, JSON.stringify(health.breakdown)]
+  ).catch(() => {});
+
+  res.json({
+    projectId,
+    ...health,
+    taskStats: {
+      total: parseInt(taskStats.total_tasks),
+      completed: parseInt(taskStats.completed_tasks),
+      inProgress: parseInt(taskStats.in_progress_tasks),
+      todo: parseInt(taskStats.todo_tasks),
+      blocked: parseInt(taskStats.blocked_tasks),
+      overdue: parseInt(taskStats.overdue_tasks),
+    },
+  });
+}));
 
 // ========================================
 // BURNDOWN
@@ -169,49 +165,44 @@ router.get('/project/:projectId/health', authenticateToken, async (req, res) => 
  * GET /api/analytics/project/:projectId/burndown
  * Daily task completion trend (last 30 days).
  */
-router.get('/project/:projectId/burndown', authenticateToken, async (req, res) => {
-  try {
-    const { projectId } = req.params;
-    const project = await verifyProjectAccess(projectId, req.user.id);
-    if (!project) return res.status(404).json({ success: false, error: 'Project not found', code: 'ANALYTICS_PROJECT_NOT_FOUND' });
+router.get('/project/:projectId/burndown', authenticateToken, asyncHandler(async (req, res) => {
+  const { projectId } = req.params;
+  const project = await verifyProjectAccess(projectId, req.user.id);
+  if (!project) return res.status(404).json({ success: false, error: 'Project not found', code: 'ANALYTICS_PROJECT_NOT_FOUND' });
 
-    // Total tasks in project
-    const totalResult = await query(
-      'SELECT COUNT(*) as total FROM tasks WHERE project_id = $1',
-      [projectId]
-    );
-    const totalTasks = parseInt(totalResult.rows[0]?.total) || 0;
+  // Total tasks in project
+  const totalResult = await query(
+    'SELECT COUNT(*) as total FROM tasks WHERE project_id = $1',
+    [projectId]
+  );
+  const totalTasks = parseInt(totalResult.rows[0]?.total) || 0;
 
-    // Daily completed task counts (cumulative) over last 30 days
-    const dailyResult = await query(
-      `SELECT
-        d.day::date as date,
-        COUNT(t.id) as completed_by_date
-       FROM generate_series(
-         CURRENT_DATE - INTERVAL '29 days',
-         CURRENT_DATE,
-         '1 day'::interval
-       ) AS d(day)
-       LEFT JOIN tasks t ON t.project_id = $1
-         AND t.status = 'completed'
-         AND t.completed_at::date <= d.day::date
-       GROUP BY d.day
-       ORDER BY d.day`,
-      [projectId]
-    );
+  // Daily completed task counts (cumulative) over last 30 days
+  const dailyResult = await query(
+    `SELECT
+      d.day::date as date,
+      COUNT(t.id) as completed_by_date
+     FROM generate_series(
+       CURRENT_DATE - INTERVAL '29 days',
+       CURRENT_DATE,
+       '1 day'::interval
+     ) AS d(day)
+     LEFT JOIN tasks t ON t.project_id = $1
+       AND t.status = 'completed'
+       AND t.completed_at::date <= d.day::date
+     GROUP BY d.day
+     ORDER BY d.day`,
+    [projectId]
+  );
 
-    const burndown = dailyResult.rows.map(row => ({
-      date: row.date,
-      remaining: Math.max(0, totalTasks - parseInt(row.completed_by_date)),
-      completed: parseInt(row.completed_by_date),
-    }));
+  const burndown = dailyResult.rows.map(row => ({
+    date: row.date,
+    remaining: Math.max(0, totalTasks - parseInt(row.completed_by_date)),
+    completed: parseInt(row.completed_by_date),
+  }));
 
-    res.json({ projectId, totalTasks, burndown });
-  } catch (error) {
-    log.error('Burndown error', error);
-    res.status(500).json({ success: false, error: 'Failed to calculate burndown', code: 'ANALYTICS_BURNDOWN_ERROR' });
-  }
-});
+  res.json({ projectId, totalTasks, burndown });
+}));
 
 // ========================================
 // VELOCITY
@@ -221,38 +212,33 @@ router.get('/project/:projectId/burndown', authenticateToken, async (req, res) =
  * GET /api/analytics/project/:projectId/velocity
  * Weekly velocity + estimation accuracy.
  */
-router.get('/project/:projectId/velocity', authenticateToken, async (req, res) => {
-  try {
-    const { projectId } = req.params;
-    const project = await verifyProjectAccess(projectId, req.user.id);
-    if (!project) return res.status(404).json({ success: false, error: 'Project not found', code: 'ANALYTICS_PROJECT_NOT_FOUND' });
+router.get('/project/:projectId/velocity', authenticateToken, asyncHandler(async (req, res) => {
+  const { projectId } = req.params;
+  const project = await verifyProjectAccess(projectId, req.user.id);
+  if (!project) return res.status(404).json({ success: false, error: 'Project not found', code: 'ANALYTICS_PROJECT_NOT_FOUND' });
 
-    // Completed tasks in last 8 weeks
-    const tasksResult = await query(
-      `SELECT started_at, completed_at, estimated_hours, actual_hours
-       FROM tasks
-       WHERE project_id = $1 AND status = 'completed'
-       AND completed_at >= NOW() - INTERVAL '8 weeks'
-       ORDER BY completed_at DESC`,
-      [projectId]
-    );
+  // Completed tasks in last 8 weeks
+  const tasksResult = await query(
+    `SELECT started_at, completed_at, estimated_hours, actual_hours
+     FROM tasks
+     WHERE project_id = $1 AND status = 'completed'
+     AND completed_at >= NOW() - INTERVAL '8 weeks'
+     ORDER BY completed_at DESC`,
+    [projectId]
+  );
 
-    const velocity = calculateVelocity(tasksResult.rows);
+  const velocity = calculateVelocity(tasksResult.rows);
 
-    // Forecast
-    const remainingResult = await query(
-      `SELECT COUNT(*) as remaining FROM tasks WHERE project_id = $1 AND status != 'completed'`,
-      [projectId]
-    );
-    const remainingTasks = parseInt(remainingResult.rows[0]?.remaining) || 0;
-    const forecast = forecastCompletion(remainingTasks, velocity.weeklyVelocity, project.due_date);
+  // Forecast
+  const remainingResult = await query(
+    `SELECT COUNT(*) as remaining FROM tasks WHERE project_id = $1 AND status != 'completed'`,
+    [projectId]
+  );
+  const remainingTasks = parseInt(remainingResult.rows[0]?.remaining) || 0;
+  const forecast = forecastCompletion(remainingTasks, velocity.weeklyVelocity, project.due_date);
 
-    res.json({ projectId, ...velocity, forecast, remainingTasks });
-  } catch (error) {
-    log.error('Velocity error', error);
-    res.status(500).json({ success: false, error: 'Failed to calculate velocity', code: 'ANALYTICS_VELOCITY_ERROR' });
-  }
-});
+  res.json({ projectId, ...velocity, forecast, remainingTasks });
+}));
 
 // ========================================
 // TEAM WORKLOAD
@@ -262,100 +248,95 @@ router.get('/project/:projectId/velocity', authenticateToken, async (req, res) =
  * GET /api/analytics/team/:teamId/workload
  * Per-member workload distribution.
  */
-router.get('/team/:teamId/workload', authenticateToken, async (req, res) => {
-  try {
-    const { teamId } = req.params;
-    const team = await verifyTeamAccess(teamId, req.user.id);
-    if (!team) return res.status(404).json({ success: false, error: 'Team not found', code: 'ANALYTICS_TEAM_NOT_FOUND' });
+router.get('/team/:teamId/workload', authenticateToken, asyncHandler(async (req, res) => {
+  const { teamId } = req.params;
+  const team = await verifyTeamAccess(teamId, req.user.id);
+  if (!team) return res.status(404).json({ success: false, error: 'Team not found', code: 'ANALYTICS_TEAM_NOT_FOUND' });
 
-    // Get team members with their task stats
-    const membersResult = await query(
-      `SELECT
-        u.id as user_id,
-        u.name as user_name,
-        u.email,
-        u.avatar_url,
-        tm.role,
-        COUNT(t.id) FILTER (WHERE t.status != 'completed') as active_tasks,
-        COUNT(t.id) FILTER (WHERE t.status = 'in-progress') as in_progress_tasks,
-        COUNT(t.id) FILTER (WHERE t.status = 'todo') as pending_tasks,
-        COUNT(t.id) FILTER (WHERE t.status = 'blocked') as blocked_tasks,
-        COUNT(t.id) FILTER (WHERE t.status = 'completed') as completed_tasks,
-        COUNT(t.id) FILTER (WHERE t.due_date < NOW() AND t.status != 'completed') as overdue_tasks,
-        COALESCE(SUM(t.estimated_hours) FILTER (WHERE t.status != 'completed'), 0) as remaining_estimated_hours,
-        COUNT(t.id) FILTER (WHERE t.priority = 'critical' AND t.status != 'completed') as critical_tasks,
-        COUNT(t.id) FILTER (WHERE t.priority = 'high' AND t.status != 'completed') as high_tasks,
-        COUNT(t.id) FILTER (WHERE t.priority = 'medium' AND t.status != 'completed') as medium_tasks,
-        COUNT(t.id) FILTER (WHERE t.priority = 'low' AND t.status != 'completed') as low_tasks
-       FROM team_members tm
-       JOIN users u ON u.id = tm.user_id
-       LEFT JOIN tasks t ON t.assigned_to = u.id
-         AND t.project_id IN (SELECT id FROM projects WHERE team_id = $1)
-       WHERE tm.team_id = $1 AND tm.is_active = true
-       GROUP BY u.id, u.name, u.email, u.avatar_url, tm.role
-       ORDER BY active_tasks DESC`,
-      [teamId]
-    );
+  // Get team members with their task stats
+  const membersResult = await query(
+    `SELECT
+      u.id as user_id,
+      u.name as user_name,
+      u.email,
+      u.avatar_url,
+      tm.role,
+      COUNT(t.id) FILTER (WHERE t.status != 'completed') as active_tasks,
+      COUNT(t.id) FILTER (WHERE t.status = 'in-progress') as in_progress_tasks,
+      COUNT(t.id) FILTER (WHERE t.status = 'todo') as pending_tasks,
+      COUNT(t.id) FILTER (WHERE t.status = 'blocked') as blocked_tasks,
+      COUNT(t.id) FILTER (WHERE t.status = 'completed') as completed_tasks,
+      COUNT(t.id) FILTER (WHERE t.due_date < NOW() AND t.status != 'completed') as overdue_tasks,
+      COALESCE(SUM(t.estimated_hours) FILTER (WHERE t.status != 'completed'), 0) as remaining_estimated_hours,
+      COUNT(t.id) FILTER (WHERE t.priority = 'critical' AND t.status != 'completed') as critical_tasks,
+      COUNT(t.id) FILTER (WHERE t.priority = 'high' AND t.status != 'completed') as high_tasks,
+      COUNT(t.id) FILTER (WHERE t.priority = 'medium' AND t.status != 'completed') as medium_tasks,
+      COUNT(t.id) FILTER (WHERE t.priority = 'low' AND t.status != 'completed') as low_tasks
+     FROM team_members tm
+     JOIN users u ON u.id = tm.user_id
+     LEFT JOIN tasks t ON t.assigned_to = u.id
+       AND t.project_id IN (SELECT id FROM projects WHERE team_id = $1)
+     WHERE tm.team_id = $1 AND tm.is_active = true
+     GROUP BY u.id, u.name, u.email, u.avatar_url, tm.role
+     ORDER BY active_tasks DESC`,
+    [teamId]
+  );
 
-    const members = membersResult.rows.map(m => {
-      const workload = calculateWorkload({
-        in_progress_tasks: parseInt(m.in_progress_tasks),
-        pending_tasks: parseInt(m.pending_tasks),
-        overdue_tasks: parseInt(m.overdue_tasks),
-        total_estimated_hours: parseFloat(m.remaining_estimated_hours),
-        total_actual_hours: 0,
-      });
-
-      return {
-        userId: m.user_id,
-        name: m.user_name,
-        email: m.email,
-        avatar: m.avatar_url,
-        role: m.role,
-        ...workload,
-        tasksByPriority: {
-          critical: parseInt(m.critical_tasks),
-          high: parseInt(m.high_tasks),
-          medium: parseInt(m.medium_tasks),
-          low: parseInt(m.low_tasks),
-        },
-        completedTasks: parseInt(m.completed_tasks),
-        blockedTasks: parseInt(m.blocked_tasks),
-      };
+  const members = membersResult.rows.map(m => {
+    const workload = calculateWorkload({
+      in_progress_tasks: parseInt(m.in_progress_tasks),
+      pending_tasks: parseInt(m.pending_tasks),
+      overdue_tasks: parseInt(m.overdue_tasks),
+      total_estimated_hours: parseFloat(m.remaining_estimated_hours),
+      total_actual_hours: 0,
     });
 
-    // Bottlenecks: blocked or overdue tasks across the team
-    const bottlenecksResult = await query(
-      `SELECT t.id, t.title, t.status, t.priority, t.due_date, t.assigned_to,
-        u.name as assigned_name,
-        EXTRACT(DAY FROM NOW() - t.due_date)::int as days_overdue
-       FROM tasks t
-       LEFT JOIN users u ON u.id = t.assigned_to
-       WHERE t.project_id IN (SELECT id FROM projects WHERE team_id = $1)
-         AND (t.status = 'blocked' OR (t.due_date < NOW() AND t.status != 'completed'))
-       ORDER BY
-         CASE t.status WHEN 'blocked' THEN 0 ELSE 1 END,
-         t.due_date ASC
-       LIMIT 20`,
-      [teamId]
-    );
+    return {
+      userId: m.user_id,
+      name: m.user_name,
+      email: m.email,
+      avatar: m.avatar_url,
+      role: m.role,
+      ...workload,
+      tasksByPriority: {
+        critical: parseInt(m.critical_tasks),
+        high: parseInt(m.high_tasks),
+        medium: parseInt(m.medium_tasks),
+        low: parseInt(m.low_tasks),
+      },
+      completedTasks: parseInt(m.completed_tasks),
+      blockedTasks: parseInt(m.blocked_tasks),
+    };
+  });
 
-    const bottlenecks = bottlenecksResult.rows.map(t => ({
-      id: t.id,
-      title: t.title,
-      status: t.status,
-      priority: t.priority,
-      dueDate: t.due_date,
-      assignedTo: t.assigned_name,
-      daysOverdue: Math.max(0, parseInt(t.days_overdue) || 0),
-    }));
+  // Bottlenecks: blocked or overdue tasks across the team
+  const bottlenecksResult = await query(
+    `SELECT t.id, t.title, t.status, t.priority, t.due_date, t.assigned_to,
+      u.name as assigned_name,
+      EXTRACT(DAY FROM NOW() - t.due_date)::int as days_overdue
+     FROM tasks t
+     LEFT JOIN users u ON u.id = t.assigned_to
+     WHERE t.project_id IN (SELECT id FROM projects WHERE team_id = $1)
+       AND (t.status = 'blocked' OR (t.due_date < NOW() AND t.status != 'completed'))
+     ORDER BY
+       CASE t.status WHEN 'blocked' THEN 0 ELSE 1 END,
+       t.due_date ASC
+     LIMIT 20`,
+    [teamId]
+  );
 
-    res.json({ teamId, members, bottlenecks });
-  } catch (error) {
-    log.error('Workload error', error);
-    res.status(500).json({ success: false, error: 'Failed to calculate workload', code: 'ANALYTICS_WORKLOAD_ERROR' });
-  }
-});
+  const bottlenecks = bottlenecksResult.rows.map(t => ({
+    id: t.id,
+    title: t.title,
+    status: t.status,
+    priority: t.priority,
+    dueDate: t.due_date,
+    assignedTo: t.assigned_name,
+    daysOverdue: Math.max(0, parseInt(t.days_overdue) || 0),
+  }));
+
+  res.json({ teamId, members, bottlenecks });
+}));
 
 // ========================================
 // RISK ASSESSMENT
@@ -365,92 +346,87 @@ router.get('/team/:teamId/workload', authenticateToken, async (req, res) => {
  * GET /api/analytics/project/:projectId/risks
  * Overdue + at-risk tasks with completion forecast.
  */
-router.get('/project/:projectId/risks', authenticateToken, async (req, res) => {
+router.get('/project/:projectId/risks', authenticateToken, asyncHandler(async (req, res) => {
+  const { projectId } = req.params;
+  const project = await verifyProjectAccess(projectId, req.user.id);
+  if (!project) return res.status(404).json({ success: false, error: 'Project not found', code: 'ANALYTICS_PROJECT_NOT_FOUND' });
+
+  // Velocity for forecast
+  const completedResult = await query(
+    `SELECT started_at, completed_at, estimated_hours, actual_hours
+     FROM tasks WHERE project_id = $1 AND status = 'completed'
+     AND completed_at >= NOW() - INTERVAL '8 weeks'`,
+    [projectId]
+  );
+  const velocity = calculateVelocity(completedResult.rows);
+
+  const remainingResult = await query(
+    `SELECT COUNT(*) as remaining FROM tasks WHERE project_id = $1 AND status != 'completed'`,
+    [projectId]
+  );
+  const remainingTasks = parseInt(remainingResult.rows[0]?.remaining) || 0;
+  const forecast = forecastCompletion(remainingTasks, velocity.weeklyVelocity, project.due_date);
+
+  // At-risk tasks: overdue or approaching due date (within 3 days)
+  const atRiskResult = await query(
+    `SELECT t.id, t.title, t.status, t.priority, t.due_date, t.estimated_hours,
+      t.assigned_to, u.name as assigned_name,
+      CASE
+        WHEN t.due_date < NOW() THEN 'overdue'
+        WHEN t.due_date < NOW() + INTERVAL '3 days' THEN 'due-soon'
+        ELSE 'normal'
+      END as risk_type,
+      EXTRACT(DAY FROM NOW() - t.due_date)::int as days_overdue
+     FROM tasks t
+     LEFT JOIN users u ON u.id = t.assigned_to
+     WHERE t.project_id = $1
+       AND t.status != 'completed'
+       AND t.due_date IS NOT NULL
+       AND t.due_date < NOW() + INTERVAL '3 days'
+     ORDER BY t.due_date ASC
+     LIMIT 20`,
+    [projectId]
+  );
+
+  const atRiskTasks = atRiskResult.rows.map(t => ({
+    id: t.id,
+    title: t.title,
+    status: t.status,
+    priority: t.priority,
+    dueDate: t.due_date,
+    estimatedHours: parseFloat(t.estimated_hours) || 0,
+    assignedTo: t.assigned_name,
+    riskType: t.risk_type,
+    daysOverdue: Math.max(0, parseInt(t.days_overdue) || 0),
+  }));
+
+  // Health history (last 30 days)
+  let healthHistory = [];
   try {
-    const { projectId } = req.params;
-    const project = await verifyProjectAccess(projectId, req.user.id);
-    if (!project) return res.status(404).json({ success: false, error: 'Project not found', code: 'ANALYTICS_PROJECT_NOT_FOUND' });
-
-    // Velocity for forecast
-    const completedResult = await query(
-      `SELECT started_at, completed_at, estimated_hours, actual_hours
-       FROM tasks WHERE project_id = $1 AND status = 'completed'
-       AND completed_at >= NOW() - INTERVAL '8 weeks'`,
+    const historyResult = await query(
+      `SELECT health_score, captured_at::date as date
+       FROM project_health_snapshots
+       WHERE project_id = $1 AND captured_at >= NOW() - INTERVAL '30 days'
+       ORDER BY captured_at ASC`,
       [projectId]
     );
-    const velocity = calculateVelocity(completedResult.rows);
-
-    const remainingResult = await query(
-      `SELECT COUNT(*) as remaining FROM tasks WHERE project_id = $1 AND status != 'completed'`,
-      [projectId]
-    );
-    const remainingTasks = parseInt(remainingResult.rows[0]?.remaining) || 0;
-    const forecast = forecastCompletion(remainingTasks, velocity.weeklyVelocity, project.due_date);
-
-    // At-risk tasks: overdue or approaching due date (within 3 days)
-    const atRiskResult = await query(
-      `SELECT t.id, t.title, t.status, t.priority, t.due_date, t.estimated_hours,
-        t.assigned_to, u.name as assigned_name,
-        CASE
-          WHEN t.due_date < NOW() THEN 'overdue'
-          WHEN t.due_date < NOW() + INTERVAL '3 days' THEN 'due-soon'
-          ELSE 'normal'
-        END as risk_type,
-        EXTRACT(DAY FROM NOW() - t.due_date)::int as days_overdue
-       FROM tasks t
-       LEFT JOIN users u ON u.id = t.assigned_to
-       WHERE t.project_id = $1
-         AND t.status != 'completed'
-         AND t.due_date IS NOT NULL
-         AND t.due_date < NOW() + INTERVAL '3 days'
-       ORDER BY t.due_date ASC
-       LIMIT 20`,
-      [projectId]
-    );
-
-    const atRiskTasks = atRiskResult.rows.map(t => ({
-      id: t.id,
-      title: t.title,
-      status: t.status,
-      priority: t.priority,
-      dueDate: t.due_date,
-      estimatedHours: parseFloat(t.estimated_hours) || 0,
-      assignedTo: t.assigned_name,
-      riskType: t.risk_type,
-      daysOverdue: Math.max(0, parseInt(t.days_overdue) || 0),
+    healthHistory = historyResult.rows.map(r => ({
+      date: r.date,
+      score: r.health_score,
     }));
-
-    // Health history (last 30 days)
-    let healthHistory = [];
-    try {
-      const historyResult = await query(
-        `SELECT health_score, captured_at::date as date
-         FROM project_health_snapshots
-         WHERE project_id = $1 AND captured_at >= NOW() - INTERVAL '30 days'
-         ORDER BY captured_at ASC`,
-        [projectId]
-      );
-      healthHistory = historyResult.rows.map(r => ({
-        date: r.date,
-        score: r.health_score,
-      }));
-    } catch (e) {
-      log.warn('project_health_snapshots unavailable', e.message);
-    }
-
-    res.json({
-      projectId,
-      forecast,
-      dueDate: project.due_date,
-      remainingTasks,
-      atRiskTasks,
-      healthHistory,
-    });
-  } catch (error) {
-    log.error('Risks error', error);
-    res.status(500).json({ success: false, error: 'Failed to calculate risks', code: 'ANALYTICS_RISKS_ERROR' });
+  } catch (e) {
+    log.warn('project_health_snapshots unavailable', e.message);
   }
-});
+
+  res.json({
+    projectId,
+    forecast,
+    dueDate: project.due_date,
+    remainingTasks,
+    atRiskTasks,
+    healthHistory,
+  });
+}));
 
 // =============================================================================
 // Sprint 44: Funnel Analytics — ingest + query endpoints
@@ -461,65 +437,55 @@ router.get('/project/:projectId/risks', authenticateToken, async (req, res) => {
  * Ingest a single funnel/growth event from the client.
  * Accepts both authenticated and anonymous requests.
  */
-router.post('/events', zodValidate(ingestEventSchema), async (req, res) => {
-  try {
-    const { eventName, properties = {}, sessionId } = req.body;
+router.post('/events', zodValidate(ingestEventSchema), asyncHandler(async (req, res) => {
+  const { eventName, properties = {}, sessionId } = req.body;
 
-    // Extract userId from JWT if present (but don't require auth)
-    let userId = null;
-    const authHeader = req.headers.authorization;
-    if (authHeader && authHeader.startsWith('Bearer ')) {
-      try {
-        const jwt = require('jsonwebtoken');
-        const decoded = jwt.verify(
-          authHeader.slice(7),
-          process.env.JWT_SECRET || process.env.SESSION_SECRET
-        );
-        userId = decoded.userId || decoded.id || null;
-      } catch (_) {
-        // Invalid token — treat as anonymous
-      }
+  // Extract userId from JWT if present (but don't require auth)
+  let userId = null;
+  const authHeader = req.headers.authorization;
+  if (authHeader && authHeader.startsWith('Bearer ')) {
+    try {
+      const jwt = require('jsonwebtoken');
+      const decoded = jwt.verify(
+        authHeader.slice(7),
+        process.env.JWT_SECRET || process.env.SESSION_SECRET
+      );
+      userId = decoded.userId || decoded.id || null;
+    } catch (_) {
+      // Invalid token — treat as anonymous
     }
-
-    const event = await ingestEvent(userId, eventName, properties, {
-      sessionId,
-      ipAddress: req.ip,
-      userAgent: req.get('user-agent'),
-    });
-
-    res.status(201).json({ success: true, eventId: event.id });
-  } catch (error) {
-    log.error('Ingest error', error);
-    res.status(500).json({ success: false, error: 'Failed to record event', code: 'ANALYTICS_INGEST_ERROR' });
   }
-});
+
+  const event = await ingestEvent(userId, eventName, properties, {
+    sessionId,
+    ipAddress: req.ip,
+    userAgent: req.get('user-agent'),
+  });
+
+  res.status(201).json({ success: true, eventId: event.id });
+}));
 
 /**
  * GET /api/analytics/funnel
  * Admin-only: query funnel conversion and retention data.
  */
-router.get('/funnel', authenticateToken, async (req, res) => {
-  try {
-    // Simple admin check — requires admin role
-    const userResult = await query('SELECT role FROM users WHERE id = $1', [req.user.id]);
-    if (!userResult.rows[0] || userResult.rows[0].role !== 'admin') {
-      return res.status(403).json({ success: false, error: 'Admin access required', code: 'ANALYTICS_ADMIN_REQUIRED' });
-    }
-
-    const startDate = req.query.start || new Date(Date.now() - 30 * 86400000).toISOString();
-    const endDate = req.query.end || new Date().toISOString();
-
-    const [funnel, retention] = await Promise.all([
-      queryFunnel(FUNNEL_STAGES, startDate, endDate),
-      queryRetention(startDate, endDate),
-    ]);
-
-    res.json({ success: true, funnel, retention, period: { startDate, endDate } });
-  } catch (error) {
-    log.error('Funnel query error', error);
-    res.status(500).json({ success: false, error: 'Failed to query funnel data', code: 'ANALYTICS_FUNNEL_ERROR' });
+router.get('/funnel', authenticateToken, asyncHandler(async (req, res) => {
+  // Simple admin check — requires admin role
+  const userResult = await query('SELECT role FROM users WHERE id = $1', [req.user.id]);
+  if (!userResult.rows[0] || userResult.rows[0].role !== 'admin') {
+    return res.status(403).json({ success: false, error: 'Admin access required', code: 'ANALYTICS_ADMIN_REQUIRED' });
   }
-});
+
+  const startDate = req.query.start || new Date(Date.now() - 30 * 86400000).toISOString();
+  const endDate = req.query.end || new Date().toISOString();
+
+  const [funnel, retention] = await Promise.all([
+    queryFunnel(FUNNEL_STAGES, startDate, endDate),
+    queryRetention(startDate, endDate),
+  ]);
+
+  res.json({ success: true, funnel, retention, period: { startDate, endDate } });
+}));
 
 // =============================================================================
 // Phase 5: Admin Growth Dashboard endpoint
@@ -529,78 +495,73 @@ router.get('/funnel', authenticateToken, async (req, res) => {
  * GET /api/analytics/admin/growth
  * Admin-only: growth metrics for the Q1 dashboard.
  */
-router.get('/admin/growth', authenticateToken, async (req, res) => {
-  try {
-    // Simple admin check
-    const userResult = await query('SELECT role FROM users WHERE id = $1', [req.user.id]);
-    if (!userResult.rows[0] || userResult.rows[0].role !== 'admin') {
-      return res.status(403).json({ success: false, error: 'Admin access required', code: 'ANALYTICS_ADMIN_REQUIRED' });
-    }
-
-    // Run all metrics queries in parallel
-    const [mauResult, activeTrialsResult, trialConversionResult, mrrResult, recentSignupsResult] = await Promise.all([
-      // MAU (30d) — distinct users with any event in last 30 days
-      query(`
-        SELECT COUNT(DISTINCT user_id) AS mau
-        FROM analytics_events
-        WHERE created_at > NOW() - INTERVAL '30 days'
-          AND user_id IS NOT NULL
-      `),
-
-      // Active trials
-      query(`
-        SELECT COUNT(*) AS active_trials
-        FROM users
-        WHERE trial_ends_at > NOW()
-          AND plan_id = 'pro'
-      `),
-
-      // Trial conversion rate
-      query(`
-        SELECT
-          COUNT(*) FILTER (WHERE trial_ends_at IS NOT NULL) AS total_trials,
-          COUNT(*) FILTER (WHERE plan_id != 'free' AND trial_ends_at IS NOT NULL) AS converted
-        FROM users
-        WHERE trial_ends_at IS NOT NULL
-      `),
-
-      // MRR from active subscriptions
-      query(`
-        SELECT COALESCE(SUM(sp.price_monthly), 0) AS mrr
-        FROM subscriptions s
-        JOIN subscription_plans sp ON s.plan_id = sp.id
-        WHERE s.status = 'active'
-      `).catch(() => ({ rows: [{ mrr: 0 }] })),
-
-      // Recent signups (7d)
-      query(`
-        SELECT COUNT(*) AS recent_signups
-        FROM users
-        WHERE created_at > NOW() - INTERVAL '7 days'
-      `),
-    ]);
-
-    const totalTrials = parseInt(trialConversionResult.rows[0]?.total_trials) || 0;
-    const converted = parseInt(trialConversionResult.rows[0]?.converted) || 0;
-
-    res.json({
-      success: true,
-      metrics: {
-        mau: parseInt(mauResult.rows[0]?.mau) || 0,
-        activeTrials: parseInt(activeTrialsResult.rows[0]?.active_trials) || 0,
-        trialConversion: {
-          total: totalTrials,
-          converted,
-          rate: totalTrials > 0 ? Math.round((converted / totalTrials) * 100) : 0,
-        },
-        mrr: parseInt(mrrResult.rows[0]?.mrr) || 0,
-        recentSignups: parseInt(recentSignupsResult.rows[0]?.recent_signups) || 0,
-      },
-    });
-  } catch (error) {
-    log.error('Growth metrics error', error);
-    res.status(500).json({ success: false, error: 'Failed to load growth metrics', code: 'ANALYTICS_GROWTH_ERROR' });
+router.get('/admin/growth', authenticateToken, asyncHandler(async (req, res) => {
+  // Simple admin check
+  const userResult = await query('SELECT role FROM users WHERE id = $1', [req.user.id]);
+  if (!userResult.rows[0] || userResult.rows[0].role !== 'admin') {
+    return res.status(403).json({ success: false, error: 'Admin access required', code: 'ANALYTICS_ADMIN_REQUIRED' });
   }
-});
+
+  // Run all metrics queries in parallel
+  const [mauResult, activeTrialsResult, trialConversionResult, mrrResult, recentSignupsResult] = await Promise.all([
+    // MAU (30d) — distinct users with any event in last 30 days
+    query(`
+      SELECT COUNT(DISTINCT user_id) AS mau
+      FROM analytics_events
+      WHERE created_at > NOW() - INTERVAL '30 days'
+        AND user_id IS NOT NULL
+    `),
+
+    // Active trials
+    query(`
+      SELECT COUNT(*) AS active_trials
+      FROM users
+      WHERE trial_ends_at > NOW()
+        AND plan_id = 'pro'
+    `),
+
+    // Trial conversion rate
+    query(`
+      SELECT
+        COUNT(*) FILTER (WHERE trial_ends_at IS NOT NULL) AS total_trials,
+        COUNT(*) FILTER (WHERE plan_id != 'free' AND trial_ends_at IS NOT NULL) AS converted
+      FROM users
+      WHERE trial_ends_at IS NOT NULL
+    `),
+
+    // MRR from active subscriptions
+    query(`
+      SELECT COALESCE(SUM(sp.price_monthly), 0) AS mrr
+      FROM subscriptions s
+      JOIN subscription_plans sp ON s.plan_id = sp.id
+      WHERE s.status = 'active'
+    `).catch(() => ({ rows: [{ mrr: 0 }] })),
+
+    // Recent signups (7d)
+    query(`
+      SELECT COUNT(*) AS recent_signups
+      FROM users
+      WHERE created_at > NOW() - INTERVAL '7 days'
+    `),
+  ]);
+
+  const totalTrials = parseInt(trialConversionResult.rows[0]?.total_trials) || 0;
+  const converted = parseInt(trialConversionResult.rows[0]?.converted) || 0;
+
+  res.json({
+    success: true,
+    metrics: {
+      mau: parseInt(mauResult.rows[0]?.mau) || 0,
+      activeTrials: parseInt(activeTrialsResult.rows[0]?.active_trials) || 0,
+      trialConversion: {
+        total: totalTrials,
+        converted,
+        rate: totalTrials > 0 ? Math.round((converted / totalTrials) * 100) : 0,
+      },
+      mrr: parseInt(mrrResult.rows[0]?.mrr) || 0,
+      recentSignups: parseInt(recentSignupsResult.rows[0]?.recent_signups) || 0,
+    },
+  });
+}));
 
 module.exports = router;

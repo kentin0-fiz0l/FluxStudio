@@ -8,7 +8,7 @@ import type { AlignmentType, DistributionType } from '../../../utils/drillGeomet
 import type { ApplyTemplateOptions } from '../../../services/formationTemplates/types';
 import type { UseFormationHistoryResult } from '../../../hooks/formation/useFormationHistory';
 
-export type Tool = 'select' | 'pan' | 'add' | 'line' | 'arc' | 'block' | 'comment';
+export type Tool = 'select' | 'pan' | 'add' | 'line' | 'arc' | 'block' | 'comment' | 'curve';
 
 export interface FormationCanvasProps {
   formationId?: string;

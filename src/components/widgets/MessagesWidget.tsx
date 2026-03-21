@@ -25,7 +25,7 @@ import { MessageBubble } from './MessageBubble';
 import { ConversationItem } from './ConversationItem';
 
 export function MessagesWidget(props: WidgetProps) {
-  useNavigate(); // Reserved for navigation features
+  const navigate = useNavigate();
   const { user } = useAuth();
   const {
     conversations,
@@ -101,7 +101,7 @@ export function MessagesWidget(props: WidgetProps) {
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => {}}
+            onClick={() => navigate('/messages')}
             className="h-7 px-2 text-xs text-white/70 hover:text-white hover:bg-white/10"
           >
             <ArrowRight className="h-3 w-3 mr-1" aria-hidden="true" />

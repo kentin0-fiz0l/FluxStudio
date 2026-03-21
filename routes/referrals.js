@@ -19,6 +19,7 @@ const log = createLogger('Referrals');
 const { zodValidateParams } = require('../middleware/zodValidateParams');
 const { validateReferralCodeParamsSchema } = require('../lib/schemas');
 const emailService = require('../lib/email/emailService');
+const { asyncHandler } = require('../middleware/errorHandler');
 
 const router = express.Router();
 
@@ -33,126 +34,111 @@ function generateCode() {
  * GET /api/referrals/code
  * Get the authenticated user's referral code, creating one if needed.
  */
-router.get('/code', authenticateToken, async (req, res) => {
-  try {
-    const userId = req.user.id;
+router.get('/code', authenticateToken, asyncHandler(async (req, res) => {
+  const userId = req.user.id;
 
-    // Check for existing active code
-    let result = await query(
-      `SELECT code, created_at FROM referral_codes
-       WHERE user_id = $1 AND is_active = TRUE
-       ORDER BY created_at DESC LIMIT 1`,
-      [userId]
-    );
+  // Check for existing active code
+  let result = await query(
+    `SELECT code, created_at FROM referral_codes
+     WHERE user_id = $1 AND is_active = TRUE
+     ORDER BY created_at DESC LIMIT 1`,
+    [userId]
+  );
 
-    if (result.rows.length > 0) {
-      return res.json({ success: true, code: result.rows[0].code });
-    }
-
-    // Generate a new code (retry on collision)
-    let code;
-    for (let i = 0; i < 5; i++) {
-      code = generateCode();
-      try {
-        await query(
-          `INSERT INTO referral_codes (user_id, code) VALUES ($1, $2)`,
-          [userId, code]
-        );
-        break;
-      } catch (err) {
-        if (err.code === '23505' && i < 4) continue; // unique violation — retry
-        throw err;
-      }
-    }
-
-    res.json({ success: true, code });
-  } catch (error) {
-    log.error('Code generation error', error);
-    res.status(500).json({ success: false, error: 'Failed to generate referral code', code: 'REFERRAL_CODE_ERROR' });
+  if (result.rows.length > 0) {
+    return res.json({ success: true, code: result.rows[0].code });
   }
-});
+
+  // Generate a new code (retry on collision)
+  let code;
+  for (let i = 0; i < 5; i++) {
+    code = generateCode();
+    try {
+      await query(
+        `INSERT INTO referral_codes (user_id, code) VALUES ($1, $2)`,
+        [userId, code]
+      );
+      break;
+    } catch (err) {
+      if (err.code === '23505' && i < 4) continue; // unique violation — retry
+      throw err;
+    }
+  }
+
+  res.json({ success: true, code });
+}));
 
 /**
  * GET /api/referrals/stats
  * Referral dashboard stats for the current user.
  */
-router.get('/stats', authenticateToken, async (req, res) => {
-  try {
-    const userId = req.user.id;
+router.get('/stats', authenticateToken, asyncHandler(async (req, res) => {
+  const userId = req.user.id;
 
-    const result = await query(
-      `SELECT
-         COUNT(*) AS total_referrals,
-         COUNT(*) FILTER (WHERE rs.converted = TRUE) AS converted,
-         MIN(rs.created_at) AS first_referral,
-         MAX(rs.created_at) AS latest_referral
-       FROM referral_signups rs
-       WHERE rs.referrer_user_id = $1`,
-      [userId]
-    );
+  const result = await query(
+    `SELECT
+       COUNT(*) AS total_referrals,
+       COUNT(*) FILTER (WHERE rs.converted = TRUE) AS converted,
+       MIN(rs.created_at) AS first_referral,
+       MAX(rs.created_at) AS latest_referral
+     FROM referral_signups rs
+     WHERE rs.referrer_user_id = $1`,
+    [userId]
+  );
 
-    const row = result.rows[0];
+  const row = result.rows[0];
 
-    // Recent referral list
-    const recent = await query(
-      `SELECT u.name, u.email, rs.created_at, rs.converted
-       FROM referral_signups rs
-       JOIN users u ON u.id = rs.referred_user_id
-       WHERE rs.referrer_user_id = $1
-       ORDER BY rs.created_at DESC
-       LIMIT 10`,
-      [userId]
-    );
+  // Recent referral list
+  const recent = await query(
+    `SELECT u.name, u.email, rs.created_at, rs.converted
+     FROM referral_signups rs
+     JOIN users u ON u.id = rs.referred_user_id
+     WHERE rs.referrer_user_id = $1
+     ORDER BY rs.created_at DESC
+     LIMIT 10`,
+    [userId]
+  );
 
-    res.json({
-      success: true,
-      stats: {
-        totalReferrals: parseInt(row.total_referrals, 10) || 0,
-        converted: parseInt(row.converted, 10) || 0,
-        firstReferral: row.first_referral,
-        latestReferral: row.latest_referral,
-      },
-      recentReferrals: recent.rows.map((r) => ({
-        name: r.name,
-        email: r.email ? r.email.replace(/(.{2}).*(@.*)/, '$1***$2') : null,
-        signedUpAt: r.created_at,
-        converted: r.converted,
-      })),
-    });
-  } catch (error) {
-    log.error('Stats error', error);
-    res.status(500).json({ success: false, error: 'Failed to fetch referral stats', code: 'REFERRAL_STATS_ERROR' });
-  }
-});
+  res.json({
+    success: true,
+    stats: {
+      totalReferrals: parseInt(row.total_referrals, 10) || 0,
+      converted: parseInt(row.converted, 10) || 0,
+      firstReferral: row.first_referral,
+      latestReferral: row.latest_referral,
+    },
+    recentReferrals: recent.rows.map((r) => ({
+      name: r.name,
+      email: r.email ? r.email.replace(/(.{2}).*(@.*)/, '$1***$2') : null,
+      signedUpAt: r.created_at,
+      converted: r.converted,
+    })),
+  });
+}));
 
 /**
  * GET /api/referrals/validate/:code
  * Public endpoint — validate a referral code before signup.
  */
-router.get('/validate/:code', zodValidateParams(validateReferralCodeParamsSchema), async (req, res) => {
-  try {
-    const result = await query(
-      `SELECT rc.code, u.name AS referrer_name
-       FROM referral_codes rc
-       JOIN users u ON u.id = rc.user_id
-       WHERE rc.code = $1 AND rc.is_active = TRUE`,
-      [req.params.code.toUpperCase()]
-    );
+router.get('/validate/:code', zodValidateParams(validateReferralCodeParamsSchema), asyncHandler(async (req, res) => {
+  const result = await query(
+    `SELECT rc.code, u.name AS referrer_name
+     FROM referral_codes rc
+     JOIN users u ON u.id = rc.user_id
+     WHERE rc.code = $1 AND rc.is_active = TRUE`,
+    [req.params.code.toUpperCase()]
+  );
 
-    if (result.rows.length === 0) {
-      return res.json({ success: true, valid: false });
-    }
-
-    res.json({
-      success: true,
-      valid: true,
-      referrerName: result.rows[0].referrer_name,
-    });
-  } catch (error) {
-    log.error('Validate error', error);
-    res.status(500).json({ success: false, error: 'Failed to validate code', code: 'REFERRAL_VALIDATE_ERROR' });
+  if (result.rows.length === 0) {
+    return res.json({ success: true, valid: false });
   }
-});
+
+  res.json({
+    success: true,
+    valid: true,
+    referrerName: result.rows[0].referrer_name,
+  });
+}));
 
 /**
  * Process referral rewards for both the referrer and the referred user.
@@ -252,60 +238,51 @@ async function processReferralReward(referrerUserId, referredUserId) {
  * Mark the current user as a converted referral and grant rewards to both parties.
  * Should be called when a referred user creates their first project.
  */
-router.post('/convert', authenticateToken, async (req, res) => {
-  try {
-    const referredUserId = req.user.id;
+router.post('/convert', authenticateToken, asyncHandler(async (req, res) => {
+  const referredUserId = req.user.id;
 
-    // Check if this user was referred and hasn't already been converted
-    const signup = await query(
-      `SELECT id, referrer_user_id, converted, rewarded_at
-       FROM referral_signups
-       WHERE referred_user_id = $1
-       LIMIT 1`,
-      [referredUserId]
-    );
+  // Check if this user was referred and hasn't already been converted
+  const signup = await query(
+    `SELECT id, referrer_user_id, converted, rewarded_at
+     FROM referral_signups
+     WHERE referred_user_id = $1
+     LIMIT 1`,
+    [referredUserId]
+  );
 
-    if (signup.rows.length === 0) {
-      return res.status(404).json({
-        success: false,
-        error: 'No referral found for this user',
-        code: 'REFERRAL_NOT_FOUND',
-      });
-    }
-
-    const referralRow = signup.rows[0];
-
-    if (referralRow.converted) {
-      return res.status(409).json({
-        success: false,
-        error: 'Referral has already been converted',
-        code: 'REFERRAL_ALREADY_CONVERTED',
-      });
-    }
-
-    // Mark as converted
-    await query(
-      `UPDATE referral_signups
-       SET converted = TRUE, converted_at = NOW()
-       WHERE id = $1`,
-      [referralRow.id]
-    );
-
-    // Process rewards for both users
-    await processReferralReward(referralRow.referrer_user_id, referredUserId);
-
-    res.json({
-      success: true,
-      message: 'Referral converted — both you and your referrer earned 1 free month of Pro!',
-    });
-  } catch (error) {
-    log.error('Convert error', error);
-    res.status(500).json({
+  if (signup.rows.length === 0) {
+    return res.status(404).json({
       success: false,
-      error: 'Failed to process referral conversion',
-      code: 'REFERRAL_CONVERT_ERROR',
+      error: 'No referral found for this user',
+      code: 'REFERRAL_NOT_FOUND',
     });
   }
-});
+
+  const referralRow = signup.rows[0];
+
+  if (referralRow.converted) {
+    return res.status(409).json({
+      success: false,
+      error: 'Referral has already been converted',
+      code: 'REFERRAL_ALREADY_CONVERTED',
+    });
+  }
+
+  // Mark as converted
+  await query(
+    `UPDATE referral_signups
+     SET converted = TRUE, converted_at = NOW()
+     WHERE id = $1`,
+    [referralRow.id]
+  );
+
+  // Process rewards for both users
+  await processReferralReward(referralRow.referrer_user_id, referredUserId);
+
+  res.json({
+    success: true,
+    message: 'Referral converted — both you and your referrer earned 1 free month of Pro!',
+  });
+}));
 
 module.exports = router;

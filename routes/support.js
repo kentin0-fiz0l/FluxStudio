@@ -15,6 +15,7 @@ const { zodValidate } = require('../middleware/zodValidate');
 const { submitTicketSchema } = require('../lib/schemas');
 const { createLogger } = require('../lib/logger');
 const log = createLogger('Support');
+const { asyncHandler } = require('../middleware/errorHandler');
 
 const router = express.Router();
 
@@ -33,9 +34,8 @@ const VALID_CATEGORIES = ['general', 'billing', 'technical', 'feature', 'account
  * POST /api/support/ticket
  * Submit a support request
  */
-router.post('/ticket', optionalAuth, validateInput.sanitizeInput, zodValidate(submitTicketSchema), async (req, res) => {
-  try {
-    const { name, email, category, subject, message } = req.body;
+router.post('/ticket', optionalAuth, validateInput.sanitizeInput, zodValidate(submitTicketSchema), asyncHandler(async (req, res) => {
+  const { name, email, category, subject, message } = req.body;
     const userId = req.user?.id || null;
 
     // Validate required fields
@@ -127,16 +127,12 @@ The FluxStudio Team
       timestamp: new Date().toISOString(),
     });
 
-    res.status(201).json({
-      success: true,
-      ticketId,
-      message: 'Support request submitted successfully',
-    });
-  } catch (error) {
-    log.error('Support ticket error', error);
-    res.status(500).json({ success: false, error: 'Failed to submit support request', code: 'TICKET_SUBMISSION_FAILED' });
-  }
-});
+  res.status(201).json({
+    success: true,
+    ticketId,
+    message: 'Support request submitted successfully',
+  });
+}));
 
 /**
  * GET /api/support/categories

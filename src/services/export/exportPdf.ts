@@ -287,23 +287,36 @@ export async function exportToCoordinateSheetPdf(
     ? ['Set', 'Cts', 'Side-to-Side', 'Front-to-Back', 'Step Size', 'Direction', 'Section', 'Tempo']
     : ['Set', 'Cts', 'Side-to-Side', 'Front-to-Back', 'Step Size', 'Direction'];
 
-  doc.setFillColor(240, 240, 245);
+  // Thicker header row border
+  doc.setFillColor(55, 65, 81);
   doc.rect(margin, y - 4, contentWidth, 7, 'F');
   doc.setFontSize(7);
   doc.setFont('helvetica', 'bold');
+  doc.setTextColor(255, 255, 255);
   let xOff = margin;
   for (let c = 0; c < headers.length; c++) {
     doc.text(headers[c], xOff + 1, y);
     xOff += colWidths[c];
   }
+  doc.setTextColor(0, 0, 0);
   y += 6;
+
+  // Draw thick top border for table
+  doc.setDrawColor(55, 65, 81);
+  doc.setLineWidth(0.6);
+  doc.line(margin, y - 6, margin + contentWidth, y - 6);
+
+  // Group entries by section for section headers
+  let currentSection = '';
 
   // Table rows
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(7);
 
-  // Track cumulative counts for tempo map lookups
+  // Track cumulative counts and totals for summary
   let cumulativeCount = 1;
+  let totalDistance = 0;
+  let hardestTransition: { setName: string; stepSize: number; label: string } | null = null;
 
   for (let idx = 0; idx < entries.length; idx++) {
     const entry = entries[idx];
@@ -312,6 +325,25 @@ export async function exportToCoordinateSheetPdf(
       doc.addPage();
       totalPages++;
       y = margin + 10;
+    }
+
+    // Section grouping header when performer has section info
+    if (tempoMap) {
+      const segment = getSegmentAtCount(cumulativeCount, tempoMap);
+      const sectionName = segment?.sectionName ?? '';
+      if (sectionName && sectionName !== currentSection) {
+        currentSection = sectionName;
+        doc.setFillColor(230, 235, 245);
+        doc.rect(margin, y - 3.5, contentWidth, 5.5, 'F');
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(7.5);
+        doc.setTextColor(60, 60, 120);
+        doc.text(sectionName, margin + 2, y);
+        doc.setTextColor(0, 0, 0);
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(7);
+        y += 5.5;
+      }
     }
 
     // Alternating row background
@@ -325,6 +357,14 @@ export async function exportToCoordinateSheetPdf(
     if (showDifficulty && difficulty && DIFFICULTY_COLORS[difficulty]) {
       const dc = DIFFICULTY_COLORS[difficulty];
       doc.setTextColor(dc.r, dc.g, dc.b);
+    }
+
+    // Track totals for summary row
+    if (entry.stepToNext) {
+      totalDistance += entry.stepToNext.distanceYards ?? 0;
+      if (!hardestTransition || (entry.stepToNext.stepSize > 0 && entry.stepToNext.stepSize < hardestTransition.stepSize)) {
+        hardestTransition = { setName: entry.set.name, stepSize: entry.stepToNext.stepSize, label: entry.stepToNext.stepSizeLabel };
+      }
     }
 
     // Build row data
@@ -354,8 +394,39 @@ export async function exportToCoordinateSheetPdf(
       doc.setTextColor(0, 0, 0);
     }
 
+    // Draw thin row border
+    doc.setDrawColor(220, 220, 225);
+    doc.setLineWidth(0.15);
+    doc.line(margin, y + 1.5, margin + contentWidth, y + 1.5);
+
     y += 5.5;
     cumulativeCount += entry.set.counts;
+  }
+
+  // Summary row at the bottom
+  if (entries.length > 0) {
+    if (y > pageHeight - margin - 20) {
+      doc.addPage();
+      totalPages++;
+      y = margin + 10;
+    }
+    y += 2;
+    doc.setDrawColor(55, 65, 81);
+    doc.setLineWidth(0.6);
+    doc.line(margin, y - 3, margin + contentWidth, y - 3);
+
+    doc.setFillColor(240, 242, 245);
+    doc.rect(margin, y - 2, contentWidth, 6, 'F');
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(7);
+    doc.text('TOTAL', margin + 1, y + 1.5);
+    doc.text(`${totalDistance.toFixed(1)} yds`, margin + colWidths[0] + colWidths[1] + 1, y + 1.5);
+    if (hardestTransition) {
+      doc.setTextColor(220, 38, 38);
+      doc.text(`Hardest: ${hardestTransition.setName} (${hardestTransition.label})`, margin + colWidths[0] + colWidths[1] + colWidths[2] + 1, y + 1.5);
+      doc.setTextColor(0, 0, 0);
+    }
+    y += 6;
   }
 
   // Footer pass — add page numbers and branding to every page
@@ -435,6 +506,66 @@ export async function exportToDrillBookPdf(
         break;
       }
 
+      case 'toc': {
+        const d = page.data as { entries: Array<{ name: string; rehearsalMark?: string; counts: number; pageNumber: number }>; coordinatesPage: number; summaryPage: number };
+        doc.setFontSize(18);
+        doc.setFont('helvetica', 'bold');
+        doc.text('Table of Contents', pageWidth / 2, margin + 10, { align: 'center' });
+
+        let tocY = margin + 26;
+        doc.setFontSize(10);
+
+        // Section header: Field Charts
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor(60, 60, 120);
+        doc.text('Field Charts', margin, tocY);
+        doc.setTextColor(0, 0, 0);
+        tocY += 6;
+
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(9);
+        for (const entry of d.entries) {
+          const label = entry.rehearsalMark ? `${entry.name} [${entry.rehearsalMark}]` : entry.name;
+          doc.text(label, margin + 4, tocY);
+          doc.text(`${entry.counts} cts`, margin + 90, tocY);
+          // Dotted leader line
+          const textW = doc.getTextWidth(label) + margin + 4;
+          const pageNumStr = String(entry.pageNumber);
+          const pageNumX = pageWidth - margin;
+          doc.setTextColor(150, 150, 150);
+          const leaderStart = textW + 2;
+          const leaderEnd = pageNumX - doc.getTextWidth(pageNumStr) - 4;
+          for (let lx = leaderStart; lx < leaderEnd; lx += 3) {
+            doc.text('.', lx, tocY);
+          }
+          doc.setTextColor(0, 0, 0);
+          doc.text(pageNumStr, pageNumX, tocY, { align: 'right' });
+          tocY += 5;
+          if (tocY > pageHeight - margin - 20) {
+            doc.addPage();
+            tocY = margin + 10;
+          }
+        }
+
+        tocY += 4;
+        // Section header: Reference
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(10);
+        doc.setTextColor(60, 60, 120);
+        doc.text('Reference', margin, tocY);
+        doc.setTextColor(0, 0, 0);
+        tocY += 6;
+
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(9);
+        doc.text('Coordinate Sheet', margin + 4, tocY);
+        doc.text(String(d.coordinatesPage), pageWidth - margin, tocY, { align: 'right' });
+        tocY += 5;
+        doc.text('Step Size Summary', margin + 4, tocY);
+        doc.text(String(d.summaryPage), pageWidth - margin, tocY, { align: 'right' });
+        break;
+      }
+
       case 'chart': {
         const d = page.data as { positions: Record<string, Position>; highlightPerformerId: string; set: DrillSet; fieldConfig: FieldConfig };
         // Header
@@ -454,6 +585,32 @@ export async function exportToDrillBookPdf(
         doc.setFillColor(248, 250, 252);
         doc.setDrawColor(200, 200, 200);
         doc.rect(margin, chartY, chartW, chartH, 'FD');
+
+        // Draw yard lines, hash marks, and field numbers (reused from exportToPdf)
+        doc.setDrawColor(180, 200, 180);
+        doc.setLineWidth(0.3);
+        for (let yard = 0; yard <= 10; yard++) {
+          const yardX = margin + (yard / 10) * chartW;
+          doc.line(yardX, chartY, yardX, chartY + chartH);
+          const yardNum = yard <= 5 ? yard * 10 : (10 - yard) * 10;
+          if (yardNum > 0) {
+            doc.setFontSize(7);
+            doc.setTextColor(150, 180, 150);
+            doc.text(String(yardNum), yardX + 1, chartY + chartH - 2);
+            // Mirror numbers at top
+            doc.text(String(yardNum), yardX + 1, chartY + 5);
+            doc.setTextColor(0, 0, 0);
+          }
+        }
+        // Hash marks
+        doc.setLineWidth(0.15);
+        const hY1 = chartY + chartH * 0.35;
+        const hY2 = chartY + chartH * 0.65;
+        for (let yard = 0; yard <= 100; yard += 5) {
+          const hx = margin + (yard / 100) * chartW;
+          doc.line(hx - 1, hY1, hx + 1, hY1);
+          doc.line(hx - 1, hY2, hx + 1, hY2);
+        }
 
         // Draw performers
         const positions = d.positions;

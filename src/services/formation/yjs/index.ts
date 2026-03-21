@@ -62,3 +62,6 @@ export {
   createDebouncedUpdater,
   createThrottledUpdater,
 } from './formationAwareness';
+
+// Batching manager for position updates
+export { BatchingManager, createBatchingManager } from './batchingManager';

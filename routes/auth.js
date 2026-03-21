@@ -31,6 +31,7 @@ const { authRateLimit, validateInput } = require('../middleware/security');
 const { getCsrfToken } = require('../middleware/csrf');
 const { ipRateLimiters } = require('../lib/security/ipRateLimit');
 const { zodValidate } = require('../middleware/zodValidate');
+const { asyncHandler } = require('../middleware/errorHandler');
 const { signupSchema, loginSchema } = require('../lib/schemas/auth');
 
 // Import helpers
@@ -118,9 +119,8 @@ router.post('/signup',
   validateInput.password,
   validateInput.sanitizeInput,
   zodValidate(signupSchema),
-  async (req, res) => {
-    try {
-      const { email, password, name, userType = 'client' } = req.body;
+  asyncHandler(async (req, res) => {
+    const { email, password, name, userType = 'client' } = req.body;
 
       // Phase 5: Track signup_started at the top before validation
       ingestEvent(null, 'signup_started', {
@@ -332,25 +332,7 @@ router.post('/signup',
         emailVerified: false,
         message: 'Account created! Please check your email to verify your account.'
       });
-    } catch (error) {
-      log.error('Signup error', error);
-
-      // Capture error in Sentry with auth context (Sprint 13 Day 2)
-      captureAuthError(error, {
-        endpoint: '/api/auth/signup',
-        email: req.body.email,
-        ipAddress: req.ip,
-        userAgent: req.get('user-agent')
-      });
-
-      // Log failed signup attempt
-      await securityLogger.logSignupFailure(req.body.email, error.message, req, {
-        error: error.message
-      });
-
-      res.status(500).json({ success: false, error: 'Server error during signup', code: 'AUTH_SIGNUP_ERROR' });
-    }
-  });
+  }));
 
 // Login endpoint
 router.post('/login',
@@ -359,9 +341,8 @@ router.post('/login',
   validateInput.email,
   validateInput.sanitizeInput,
   zodValidate(loginSchema),
-  async (req, res) => {
-    try {
-      const { email, password } = req.body;
+  asyncHandler(async (req, res) => {
+    const { email, password } = req.body;
 
       // Check if IP is blocked (Sprint 13 Day 2 - Anomaly Detection)
       const isBlocked = await anomalyDetector.isIpBlocked(req.ip);
@@ -462,41 +443,20 @@ router.post('/login',
 
       // Return auth response with access + refresh tokens
       res.json(authResponse);
-    } catch (error) {
-      log.error('Login error', error);
-
-      // Capture error in Sentry with auth context (Sprint 13 Day 2)
-      captureAuthError(error, {
-        endpoint: '/api/auth/login',
-        email: req.body.email,
-        ipAddress: req.ip,
-        userAgent: req.get('user-agent')
-      });
-
-      // Log failed login - server error
-      await securityLogger.logLoginFailure(req.body.email, `Server error: ${error.message}`, req);
-
-      res.status(500).json({ success: false, error: 'Server error during login', code: 'AUTH_LOGIN_ERROR' });
-    }
-  });
+  }));
 
 // Get current user endpoint
-router.get('/me', requireAuth, async (req, res) => {
-  try {
-    const users = await authHelper.getUsers();
-    const user = users.find(u => u.id === req.user.id);
+router.get('/me', requireAuth, asyncHandler(async (req, res) => {
+  const users = await authHelper.getUsers();
+  const user = users.find(u => u.id === req.user.id);
 
-    if (!user) {
-      return res.status(404).json({ success: false, error: 'User not found', code: 'AUTH_USER_NOT_FOUND' });
-    }
-
-    const { password: _, ...userWithoutPassword } = user;
-    res.json(userWithoutPassword);
-  } catch (error) {
-    log.error('Error fetching current user', error);
-    res.status(500).json({ success: false, error: 'Failed to fetch user data', code: 'AUTH_FETCH_USER_ERROR' });
+  if (!user) {
+    return res.status(404).json({ success: false, error: 'User not found', code: 'AUTH_USER_NOT_FOUND' });
   }
-});
+
+  const { password: _, ...userWithoutPassword } = user;
+  res.json(userWithoutPassword);
+}));
 
 // Logout endpoint
 router.post('/logout', requireAuth, (req, res) => {
@@ -505,9 +465,8 @@ router.post('/logout', requireAuth, (req, res) => {
 });
 
 // Google OAuth endpoint
-router.post('/google', async (req, res) => {
-  try {
-    log.info('Google OAuth request received', {
+router.post('/google', asyncHandler(async (req, res) => {
+  log.info('Google OAuth request received', {
       hasCredential: !!req.body.credential,
       credentialLength: req.body.credential ? req.body.credential.length : 0,
       clientId: GOOGLE_CLIENT_ID
@@ -580,44 +539,11 @@ router.post('/google', async (req, res) => {
 
     // Return auth response with access + refresh tokens
     res.json(authResponse);
-
-  } catch (error) {
-    // Classify the Google OAuth error for better diagnostics
-    let errorType = 'unknown';
-    let userMessage = 'Google authentication failed';
-
-    if (error.message?.includes('Token used too late') || error.message?.includes('expired')) {
-      errorType = 'token_expired';
-      userMessage = 'Google sign-in expired. Please try again.';
-    } else if (error.message?.includes('Invalid token') || error.message?.includes('Wrong number of segments')) {
-      errorType = 'invalid_token';
-      userMessage = 'Invalid Google credential. Please try again.';
-    } else if (error.message?.includes('audience') || error.message?.includes('client_id')) {
-      errorType = 'audience_mismatch';
-      userMessage = 'Google authentication configuration error.';
-    } else if (error.code === 'ENOTFOUND' || error.code === 'ETIMEDOUT') {
-      errorType = 'network_error';
-      userMessage = 'Unable to verify Google sign-in. Please check your connection.';
-    }
-
-    // Log error without sensitive data
-    log.error(`Google OAuth auth failed (${errorType})`, error);
-
-    // Log failed OAuth attempt
-    await securityLogger.logOAuthFailure('google', error.message, req, {
-      errorType,
-      errorMessage: error.message,
-      hasCredential: !!req.body.credential
-    });
-
-    res.status(401).json({ success: false, error: userMessage, code: 'AUTH_GOOGLE_OAUTH_FAILED', errorType });
-  }
-});
+}));
 
 // Google OAuth redirect callback endpoint (for redirect flow to bypass COOP)
-router.post('/google/callback', async (req, res) => {
-  try {
-    log.info('Google OAuth received redirect callback', {
+router.post('/google/callback', asyncHandler(async (req, res) => {
+  log.info('Google OAuth received redirect callback', {
       hasCredential: !!req.body?.credential,
       hasCsrfToken: !!req.body?.g_csrf_token,
       hasCsrfCookie: !!req.cookies?.g_csrf_token,
@@ -747,27 +673,7 @@ router.post('/google/callback', async (req, res) => {
     // Pass both access and refresh tokens to frontend
     const redirectUrl = `${frontendUrl}/auth/callback/google?token=${encodeURIComponent(token)}${refreshToken ? `&refreshToken=${encodeURIComponent(refreshToken)}` : ''}`;
     res.redirect(redirectUrl);
-
-  } catch (error) {
-    // Log detailed error for debugging
-    log.error('Google OAuth redirect callback failed', error, {
-      clientIdSet: !!GOOGLE_CLIENT_ID,
-      clientIdLength: GOOGLE_CLIENT_ID?.length,
-      hasCredential: !!req.body?.credential,
-      credentialLength: req.body?.credential?.length
-    });
-
-    await securityLogger.logOAuthFailure('google', error.message, req, {
-      flow: 'redirect',
-      errorMessage: error.message,
-      errorName: error.name,
-      errorCode: error.code
-    });
-
-    const frontendUrl = config.FRONTEND_URL || 'https://fluxstudio.art';
-    res.redirect(`${frontendUrl}/login?error=google_auth_failed`);
-  }
-});
+}));
 
 // ========================================
 // EMAIL VERIFICATION & PASSWORD RESET
@@ -781,13 +687,12 @@ router.post('/google/callback', async (req, res) => {
 router.post('/verify-email',
   authRateLimit,
   validateInput.sanitizeInput,
-  async (req, res) => {
-    try {
-      const { token } = req.body;
+  asyncHandler(async (req, res) => {
+    const { token } = req.body;
 
-      if (!token) {
-        return res.status(400).json({ success: false, error: 'Verification token is required', code: 'AUTH_MISSING_TOKEN' });
-      }
+    if (!token) {
+      return res.status(400).json({ success: false, error: 'Verification token is required', code: 'AUTH_MISSING_TOKEN' });
+    }
 
       // For database mode, query directly
       if (USE_DATABASE && dbQuery) {
@@ -872,15 +777,7 @@ router.post('/verify-email',
       await emailService.sendWelcomeEmail(user.email, user.name || 'there');
 
       res.json({ success: true, message: 'Email verified successfully', verified: true });
-    } catch (error) {
-      log.error('Email verification error', error);
-      captureAuthError(error, {
-        endpoint: '/api/auth/verify-email',
-        ipAddress: req.ip
-      });
-      res.status(500).json({ success: false, error: 'Server error during email verification', code: 'AUTH_VERIFICATION_ERROR' });
-    }
-  }
+  })
 );
 
 /**
@@ -891,15 +788,14 @@ router.post('/resend-verification',
   authRateLimit,
   validateInput.email,
   validateInput.sanitizeInput,
-  async (req, res) => {
-    try {
-      const { email } = req.body;
+  asyncHandler(async (req, res) => {
+    const { email } = req.body;
 
-      if (!email) {
-        return res.status(400).json({ success: false, error: 'Email is required', code: 'AUTH_MISSING_EMAIL' });
-      }
+    if (!email) {
+      return res.status(400).json({ success: false, error: 'Email is required', code: 'AUTH_MISSING_EMAIL' });
+    }
 
-      // Check rate limiting for resend
+    // Check rate limiting for resend
       const isBlocked = await anomalyDetector.isIpBlocked(req.ip);
       if (isBlocked) {
         return res.status(429).json({ success: false, error: 'Too many requests. Please try again later.', code: 'RATE_LIMIT_EXCEEDED' });
@@ -987,16 +883,7 @@ router.post('/resend-verification',
       await emailService.sendVerificationEmail(email, verificationToken, user.name || 'there');
 
       res.json({ success: true, message: 'Verification email sent. Please check your inbox.' });
-    } catch (error) {
-      log.error('Resend verification error', error);
-      captureAuthError(error, {
-        endpoint: '/api/auth/resend-verification',
-        email: req.body.email,
-        ipAddress: req.ip
-      });
-      res.status(500).json({ success: false, error: 'Server error while sending verification email', code: 'AUTH_RESEND_ERROR' });
-    }
-  }
+  })
 );
 
 /**
@@ -1008,16 +895,15 @@ router.post('/forgot-password',
   authRateLimit,
   validateInput.email,
   validateInput.sanitizeInput,
-  async (req, res) => {
-    try {
-      const { email } = req.body;
+  asyncHandler(async (req, res) => {
+    const { email } = req.body;
 
-      if (!email) {
-        return res.status(400).json({ success: false, error: 'Email is required', code: 'AUTH_MISSING_EMAIL' });
-      }
+    if (!email) {
+      return res.status(400).json({ success: false, error: 'Email is required', code: 'AUTH_MISSING_EMAIL' });
+    }
 
-      // Check rate limiting
-      const isBlocked = await anomalyDetector.isIpBlocked(req.ip);
+    // Check rate limiting
+    const isBlocked = await anomalyDetector.isIpBlocked(req.ip);
       if (isBlocked) {
         return res.status(429).json({ success: false, error: 'Too many requests. Please try again later.', code: 'RATE_LIMIT_EXCEEDED' });
       }
@@ -1093,16 +979,7 @@ router.post('/forgot-password',
       await emailService.sendPasswordResetEmail(email, resetToken, user.name || 'there');
 
       res.json({ success: true, message: 'If an account exists with this email, a password reset link has been sent.' });
-    } catch (error) {
-      log.error('Forgot password error', error);
-      captureAuthError(error, {
-        endpoint: '/api/auth/forgot-password',
-        email: req.body.email,
-        ipAddress: req.ip
-      });
-      res.status(500).json({ success: false, error: 'Server error while processing password reset request', code: 'AUTH_FORGOT_PASSWORD_ERROR' });
-    }
-  }
+  })
 );
 
 /**
@@ -1114,12 +991,11 @@ router.post('/reset-password',
   authRateLimit,
   validateInput.password,
   validateInput.sanitizeInput,
-  async (req, res) => {
-    try {
-      const { token, password } = req.body;
+  asyncHandler(async (req, res) => {
+    const { token, password } = req.body;
 
-      if (!token) {
-        return res.status(400).json({ success: false, error: 'Reset token is required', code: 'AUTH_MISSING_TOKEN' });
+    if (!token) {
+      return res.status(400).json({ success: false, error: 'Reset token is required', code: 'AUTH_MISSING_TOKEN' });
       }
 
       if (!password) {
@@ -1188,36 +1064,23 @@ router.post('/reset-password',
       await authHelper.saveUsers(users);
 
       res.json({ success: true, message: 'Password reset successfully. You can now log in with your new password.' });
-    } catch (error) {
-      log.error('Reset password error', error);
-      captureAuthError(error, {
-        endpoint: '/api/auth/reset-password',
-        ipAddress: req.ip
-      });
-      res.status(500).json({ success: false, error: 'Server error while resetting password', code: 'AUTH_RESET_PASSWORD_ERROR' });
-    }
-  }
+  })
 );
 
 // Apple OAuth endpoint (placeholder)
-router.post('/apple', async (req, res) => {
-  try {
-    // In production, this would:
-    // 1. Verify the Apple Sign In token
-    // 2. Get user info from Apple API
-    // 3. Create or find user in database
-    // 4. Return JWT token
+router.post('/apple', asyncHandler(async (req, res) => {
+  // In production, this would:
+  // 1. Verify the Apple Sign In token
+  // 2. Get user info from Apple API
+  // 3. Create or find user in database
+  // 4. Return JWT token
 
-    res.status(400).json({
-      success: false,
-      error: 'Apple Sign-In coming soon',
-      code: 'APPLE_AUTH_NOT_AVAILABLE'
-    });
-  } catch (error) {
-    log.error('Apple OAuth error', error);
-    res.status(500).json({ success: false, error: 'Apple authentication error', code: 'AUTH_APPLE_ERROR' });
-  }
-});
+  res.status(400).json({
+    success: false,
+    error: 'Apple Sign-In coming soon',
+    code: 'APPLE_AUTH_NOT_AVAILABLE'
+  });
+}));
 
 // =============================================================================
 // USER SETTINGS & PREFERENCES
@@ -1227,12 +1090,11 @@ router.post('/apple', async (req, res) => {
  * GET /api/auth/settings
  * Get current user's settings and preferences
  */
-router.get('/settings', requireAuth, async (req, res) => {
-  try {
-    const userId = req.user.id;
+router.get('/settings', requireAuth, asyncHandler(async (req, res) => {
+  const userId = req.user.id;
 
-    // Try to get from database first
-    if (USE_DATABASE && authAdapter) {
+  // Try to get from database first
+  if (USE_DATABASE && authAdapter) {
       try {
         const user = await authAdapter.findUserById(userId);
         if (user) {
@@ -1303,24 +1165,15 @@ router.get('/settings', requireAuth, async (req, res) => {
       success: true,
       settings
     });
-  } catch (error) {
-    log.error('Error fetching user settings', error);
-    res.status(500).json({
-      success: false,
-      error: 'Failed to fetch settings',
-      code: 'AUTH_FETCH_SETTINGS_ERROR'
-    });
-  }
-});
+}));
 
 /**
  * PUT /api/auth/settings
  * Update current user's settings and preferences
  */
-router.put('/settings', requireAuth, async (req, res) => {
-  try {
-    const userId = req.user.id;
-    const { settings } = req.body;
+router.put('/settings', requireAuth, asyncHandler(async (req, res) => {
+  const userId = req.user.id;
+  const { settings } = req.body;
 
     if (!settings || typeof settings !== 'object') {
       return res.status(400).json({
@@ -1399,14 +1252,6 @@ router.put('/settings', requireAuth, async (req, res) => {
       settings: users[userIndex].preferences,
       message: 'Settings saved successfully'
     });
-  } catch (error) {
-    log.error('Error updating user settings', error);
-    res.status(500).json({
-      success: false,
-      error: 'Failed to save settings',
-      code: 'AUTH_SAVE_SETTINGS_ERROR'
-    });
-  }
-});
+}));
 
 module.exports = router;

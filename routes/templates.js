@@ -17,6 +17,7 @@ const { zodValidate } = require('../middleware/zodValidate');
 const { createCustomTemplateSchema } = require('../lib/schemas');
 const { createLogger } = require('../lib/logger');
 const log = createLogger('Templates');
+const { asyncHandler } = require('../middleware/errorHandler');
 
 const router = express.Router();
 
@@ -285,211 +286,191 @@ const BUILT_IN_TEMPLATES = [
  * GET /api/templates
  * List all templates (built-in + user custom)
  */
-router.get('/', authenticateToken, async (req, res) => {
+router.get('/', authenticateToken, asyncHandler(async (req, res) => {
+  const { category, complexity, featured, search, sortBy } = req.query;
+  const userId = req.user.id;
+
+  let results = BUILT_IN_TEMPLATES.map(t => ({
+    ...t,
+    author: { id: 'fluxstudio', name: t.author_name || 'FluxStudio Team' },
+    version: '1.0.0',
+    createdAt: '2025-01-01T00:00:00Z',
+    updatedAt: '2025-01-01T00:00:00Z',
+    featured: t.is_featured,
+    official: t.is_official,
+    premium: t.is_premium || false,
+  }));
+
+  // Fetch user custom templates from DB
   try {
-    const { category, complexity, featured, search, sortBy } = req.query;
-    const userId = req.user.id;
-
-    let results = BUILT_IN_TEMPLATES.map(t => ({
-      ...t,
-      author: { id: 'fluxstudio', name: t.author_name || 'FluxStudio Team' },
+    const dbResult = await query(
+      'SELECT * FROM user_custom_templates WHERE user_id = $1 ORDER BY created_at DESC',
+      [userId]
+    );
+    const customTemplates = dbResult.rows.map(row => ({
+      id: row.id,
+      name: row.name,
+      description: row.description,
+      category: row.category,
+      complexity: row.complexity || 'basic',
+      tags: ['custom'],
+      author: { id: userId, name: 'You' },
       version: '1.0.0',
-      createdAt: '2025-01-01T00:00:00Z',
-      updatedAt: '2025-01-01T00:00:00Z',
-      featured: t.is_featured,
-      official: t.is_official,
-      premium: t.is_premium || false,
+      createdAt: row.created_at,
+      updatedAt: row.updated_at,
+      featured: false,
+      official: false,
+      premium: false,
+      is_custom: true,
+      structure: row.structure || {},
+      variables: row.variables || [],
+      presets: [],
+      downloads: 0,
+      rating: 0,
     }));
-
-    // Fetch user custom templates from DB
-    try {
-      const dbResult = await query(
-        'SELECT * FROM user_custom_templates WHERE user_id = $1 ORDER BY created_at DESC',
-        [userId]
-      );
-      const customTemplates = dbResult.rows.map(row => ({
-        id: row.id,
-        name: row.name,
-        description: row.description,
-        category: row.category,
-        complexity: row.complexity || 'basic',
-        tags: ['custom'],
-        author: { id: userId, name: 'You' },
-        version: '1.0.0',
-        createdAt: row.created_at,
-        updatedAt: row.updated_at,
-        featured: false,
-        official: false,
-        premium: false,
-        is_custom: true,
-        structure: row.structure || {},
-        variables: row.variables || [],
-        presets: [],
-        downloads: 0,
-        rating: 0,
-      }));
-      results = [...results, ...customTemplates];
-    } catch {
-      // DB not available, continue with built-in only
-    }
-
-    // Apply filters
-    if (category) {
-      results = results.filter(t => t.category === category);
-    }
-    if (complexity) {
-      results = results.filter(t => t.complexity === complexity);
-    }
-    if (featured === 'true') {
-      results = results.filter(t => t.featured);
-    }
-    if (search) {
-      const q = search.toLowerCase();
-      results = results.filter(t =>
-        t.name.toLowerCase().includes(q) ||
-        t.description.toLowerCase().includes(q) ||
-        (t.tags && t.tags.some(tag => tag.toLowerCase().includes(q)))
-      );
-    }
-
-    // Sort
-    switch (sortBy) {
-      case 'downloads':
-        results.sort((a, b) => (b.downloads || 0) - (a.downloads || 0));
-        break;
-      case 'rating':
-        results.sort((a, b) => (b.rating || 0) - (a.rating || 0));
-        break;
-      case 'newest':
-        results.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-        break;
-      case 'name':
-        results.sort((a, b) => a.name.localeCompare(b.name));
-        break;
-      default:
-        results.sort((a, b) => {
-          if (a.featured !== b.featured) return b.featured ? 1 : -1;
-          return (b.downloads || 0) - (a.downloads || 0);
-        });
-    }
-
-    res.json({ success: true, templates: results, total: results.length });
-  } catch (error) {
-    log.error('List templates error', error);
-    res.status(500).json({ success: false, error: 'Failed to list templates', code: 'TEMPLATE_LIST_FAILED' });
+    results = [...results, ...customTemplates];
+  } catch {
+    // DB not available, continue with built-in only
   }
-});
+
+  // Apply filters
+  if (category) {
+    results = results.filter(t => t.category === category);
+  }
+  if (complexity) {
+    results = results.filter(t => t.complexity === complexity);
+  }
+  if (featured === 'true') {
+    results = results.filter(t => t.featured);
+  }
+  if (search) {
+    const q = search.toLowerCase();
+    results = results.filter(t =>
+      t.name.toLowerCase().includes(q) ||
+      t.description.toLowerCase().includes(q) ||
+      (t.tags && t.tags.some(tag => tag.toLowerCase().includes(q)))
+    );
+  }
+
+  // Sort
+  switch (sortBy) {
+    case 'downloads':
+      results.sort((a, b) => (b.downloads || 0) - (a.downloads || 0));
+      break;
+    case 'rating':
+      results.sort((a, b) => (b.rating || 0) - (a.rating || 0));
+      break;
+    case 'newest':
+      results.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+      break;
+    case 'name':
+      results.sort((a, b) => a.name.localeCompare(b.name));
+      break;
+    default:
+      results.sort((a, b) => {
+        if (a.featured !== b.featured) return b.featured ? 1 : -1;
+        return (b.downloads || 0) - (a.downloads || 0);
+      });
+  }
+
+  res.json({ success: true, templates: results, total: results.length });
+}));
 
 /**
  * GET /api/templates/:id
  * Get a single template by ID
  */
-router.get('/:id', authenticateToken, async (req, res) => {
-  try {
-    const { id } = req.params;
+router.get('/:id', authenticateToken, asyncHandler(async (req, res) => {
+  const { id } = req.params;
 
-    // Check built-in first
-    const builtIn = BUILT_IN_TEMPLATES.find(t => t.id === id);
-    if (builtIn) {
-      return res.json({
-        success: true,
-        template: {
-          ...builtIn,
-          author: { id: 'fluxstudio', name: 'FluxStudio Team' },
-          version: '1.0.0',
-          featured: builtIn.is_featured,
-          official: builtIn.is_official,
-        },
-      });
-    }
-
-    // Check custom templates
-    const result = await query(
-      'SELECT * FROM user_custom_templates WHERE id = $1 AND user_id = $2',
-      [id, req.user.id]
-    );
-
-    if (result.rows.length === 0) {
-      return res.status(404).json({ success: false, error: 'Template not found', code: 'TEMPLATE_NOT_FOUND' });
-    }
-
-    const row = result.rows[0];
-    res.json({
+  // Check built-in first
+  const builtIn = BUILT_IN_TEMPLATES.find(t => t.id === id);
+  if (builtIn) {
+    return res.json({
       success: true,
       template: {
-        id: row.id,
-        name: row.name,
-        description: row.description,
-        category: row.category,
-        complexity: row.complexity,
-        structure: row.structure,
-        variables: row.variables,
-        is_custom: true,
+        ...builtIn,
+        author: { id: 'fluxstudio', name: 'FluxStudio Team' },
+        version: '1.0.0',
+        featured: builtIn.is_featured,
+        official: builtIn.is_official,
       },
     });
-  } catch (error) {
-    log.error('Get template error', error);
-    res.status(500).json({ success: false, error: 'Failed to get template', code: 'TEMPLATE_FETCH_FAILED' });
   }
-});
+
+  // Check custom templates
+  const result = await query(
+    'SELECT * FROM user_custom_templates WHERE id = $1 AND user_id = $2',
+    [id, req.user.id]
+  );
+
+  if (result.rows.length === 0) {
+    return res.status(404).json({ success: false, error: 'Template not found', code: 'TEMPLATE_NOT_FOUND' });
+  }
+
+  const row = result.rows[0];
+  res.json({
+    success: true,
+    template: {
+      id: row.id,
+      name: row.name,
+      description: row.description,
+      category: row.category,
+      complexity: row.complexity,
+      structure: row.structure,
+      variables: row.variables,
+      is_custom: true,
+    },
+  });
+}));
 
 /**
  * POST /api/templates/custom
  * Save a custom template
  */
-router.post('/custom', authenticateToken, zodValidate(createCustomTemplateSchema), async (req, res) => {
-  try {
-    const userId = req.user.id;
-    const { name, description, category, structure, variables, sourceProjectId } = req.body;
+router.post('/custom', authenticateToken, zodValidate(createCustomTemplateSchema), asyncHandler(async (req, res) => {
+  const userId = req.user.id;
+  const { name, description, category, structure, variables, sourceProjectId } = req.body;
 
-    if (!name || name.trim().length < 2) {
-      return res.status(400).json({ success: false, error: 'Template name must be at least 2 characters', code: 'INVALID_TEMPLATE_NAME' });
-    }
-
-    const id = uuidv4();
-    const result = await query(
-      `INSERT INTO user_custom_templates
-       (id, user_id, name, description, category, structure, variables, source_project_id)
-       VALUES ($1, $2, $3, $4, $5, $6::jsonb, $7::jsonb, $8)
-       RETURNING *`,
-      [
-        id, userId,
-        name.trim(),
-        description || '',
-        category || 'custom',
-        JSON.stringify(structure || {}),
-        JSON.stringify(variables || []),
-        sourceProjectId || null,
-      ]
-    );
-
-    res.status(201).json({ success: true, template: result.rows[0] });
-  } catch (error) {
-    log.error('Create custom template error', error);
-    res.status(500).json({ success: false, error: 'Failed to create custom template', code: 'TEMPLATE_CREATE_FAILED' });
+  if (!name || name.trim().length < 2) {
+    return res.status(400).json({ success: false, error: 'Template name must be at least 2 characters', code: 'INVALID_TEMPLATE_NAME' });
   }
-});
+
+  const id = uuidv4();
+  const result = await query(
+    `INSERT INTO user_custom_templates
+     (id, user_id, name, description, category, structure, variables, source_project_id)
+     VALUES ($1, $2, $3, $4, $5, $6::jsonb, $7::jsonb, $8)
+     RETURNING *`,
+    [
+      id, userId,
+      name.trim(),
+      description || '',
+      category || 'custom',
+      JSON.stringify(structure || {}),
+      JSON.stringify(variables || []),
+      sourceProjectId || null,
+    ]
+  );
+
+  res.status(201).json({ success: true, template: result.rows[0] });
+}));
 
 /**
  * DELETE /api/templates/custom/:id
  * Delete a custom template
  */
-router.delete('/custom/:id', authenticateToken, async (req, res) => {
-  try {
-    const result = await query(
-      'DELETE FROM user_custom_templates WHERE id = $1 AND user_id = $2 RETURNING id',
-      [req.params.id, req.user.id]
-    );
+router.delete('/custom/:id', authenticateToken, asyncHandler(async (req, res) => {
+  const result = await query(
+    'DELETE FROM user_custom_templates WHERE id = $1 AND user_id = $2 RETURNING id',
+    [req.params.id, req.user.id]
+  );
 
-    if (result.rows.length === 0) {
-      return res.status(404).json({ success: false, error: 'Custom template not found', code: 'TEMPLATE_NOT_FOUND' });
-    }
-
-    res.json({ success: true });
-  } catch (error) {
-    log.error('Delete custom template error', error);
-    res.status(500).json({ success: false, error: 'Failed to delete custom template', code: 'TEMPLATE_DELETE_FAILED' });
+  if (result.rows.length === 0) {
+    return res.status(404).json({ success: false, error: 'Custom template not found', code: 'TEMPLATE_NOT_FOUND' });
   }
-});
+
+  res.json({ success: true });
+}));
 
 module.exports = router;

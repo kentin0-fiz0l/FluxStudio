@@ -35,6 +35,7 @@ const {
   getDeletionStatus,
 } = require('../lib/compliance/accountDeletor');
 const { logAction } = require('../lib/auditLog');
+const { asyncHandler } = require('../middleware/errorHandler');
 
 // All routes require authentication
 router.use(authenticateToken);
@@ -43,164 +44,139 @@ router.use(authenticateToken);
 // POST /data-export — Request data export
 // ========================================
 
-router.post('/data-export', async (req, res) => {
-  try {
-    const userId = req.user.id;
+router.post('/data-export', asyncHandler(async (req, res) => {
+  const userId = req.user.id;
 
-    // Rate limit: 1 export request per 24 hours
-    const recent = await hasRecentExport(userId);
-    if (recent) {
-      return res.status(429).json({
-        success: false,
-        error: 'You can only request one data export every 24 hours',
-        code: 'EXPORT_RATE_LIMITED',
-      });
-    }
-
-    // Create the export request record
-    const exportReq = await createExportRequest(userId);
-
-    // Generate the export data (synchronous for now — ZIP deferred)
-    try {
-      const data = await exportUserData(userId);
-      const dataStr = JSON.stringify(data);
-      const dataSize = Buffer.byteLength(dataStr, 'utf8');
-
-      await completeExportRequest(exportReq.id, dataSize);
-
-      await logAction(userId, 'data_export_requested', 'user', userId, { exportId: exportReq.id }, req);
-
-      res.status(201).json({
-        success: true,
-        exportId: exportReq.id,
-        status: 'completed',
-        message: 'Your data export is ready for download.',
-      });
-    } catch (exportError) {
-      await failExportRequest(exportReq.id);
-      throw exportError;
-    }
-  } catch (error) {
-    log.error('Data export request failed', error);
-    res.status(500).json({ success: false, error: 'Failed to create data export', code: 'EXPORT_CREATE_FAILED' });
+  // Rate limit: 1 export request per 24 hours
+  const recent = await hasRecentExport(userId);
+  if (recent) {
+    return res.status(429).json({
+      success: false,
+      error: 'You can only request one data export every 24 hours',
+      code: 'EXPORT_RATE_LIMITED',
+    });
   }
-});
+
+  // Create the export request record
+  const exportReq = await createExportRequest(userId);
+
+  // Generate the export data (synchronous for now — ZIP deferred)
+  try {
+    const data = await exportUserData(userId);
+    const dataStr = JSON.stringify(data);
+    const dataSize = Buffer.byteLength(dataStr, 'utf8');
+
+    await completeExportRequest(exportReq.id, dataSize);
+
+    await logAction(userId, 'data_export_requested', 'user', userId, { exportId: exportReq.id }, req);
+
+    res.status(201).json({
+      success: true,
+      exportId: exportReq.id,
+      status: 'completed',
+      message: 'Your data export is ready for download.',
+    });
+  } catch (exportError) {
+    await failExportRequest(exportReq.id);
+    throw exportError;
+  }
+}));
 
 // ========================================
 // GET /data-export/:id — Check export status
 // ========================================
 
-router.get('/data-export/:id', async (req, res) => {
-  try {
-    const exportReq = await getExportRequest(req.params.id, req.user.id);
-    if (!exportReq) {
-      return res.status(404).json({ success: false, error: 'Export request not found', code: 'EXPORT_NOT_FOUND' });
-    }
-
-    res.json({
-      id: exportReq.id,
-      status: exportReq.status,
-      fileSize: exportReq.file_size,
-      requestedAt: exportReq.requested_at,
-      completedAt: exportReq.completed_at,
-      expiresAt: exportReq.expires_at,
-      downloadedAt: exportReq.downloaded_at,
-    });
-  } catch (error) {
-    log.error('Export status check failed', error);
-    res.status(500).json({ success: false, error: 'Failed to check export status', code: 'EXPORT_STATUS_FAILED' });
+router.get('/data-export/:id', asyncHandler(async (req, res) => {
+  const exportReq = await getExportRequest(req.params.id, req.user.id);
+  if (!exportReq) {
+    return res.status(404).json({ success: false, error: 'Export request not found', code: 'EXPORT_NOT_FOUND' });
   }
-});
+
+  res.json({
+    id: exportReq.id,
+    status: exportReq.status,
+    fileSize: exportReq.file_size,
+    requestedAt: exportReq.requested_at,
+    completedAt: exportReq.completed_at,
+    expiresAt: exportReq.expires_at,
+    downloadedAt: exportReq.downloaded_at,
+  });
+}));
 
 // ========================================
 // GET /data-export/:id/download — Download export
 // ========================================
 
-router.get('/data-export/:id/download', async (req, res) => {
-  try {
-    const exportReq = await getExportRequest(req.params.id, req.user.id);
-    if (!exportReq) {
-      return res.status(404).json({ success: false, error: 'Export request not found', code: 'EXPORT_NOT_FOUND' });
-    }
-
-    if (exportReq.status !== 'completed') {
-      return res.status(400).json({ success: false, error: 'Export is not ready for download', code: 'EXPORT_NOT_READY', status: exportReq.status });
-    }
-
-    if (exportReq.expires_at && new Date(exportReq.expires_at) < new Date()) {
-      return res.status(410).json({ success: false, error: 'Export has expired. Please request a new one.', code: 'EXPORT_EXPIRED' });
-    }
-
-    // Generate the data fresh for download
-    const data = await exportUserData(req.user.id);
-
-    // Mark as downloaded
-    await query(
-      `UPDATE data_export_requests SET downloaded_at = NOW() WHERE id = $1`,
-      [exportReq.id]
-    );
-
-    await logAction(req.user.id, 'data_export_downloaded', 'user', req.user.id, { exportId: exportReq.id }, req);
-
-    res.setHeader('Content-Type', 'application/json');
-    res.setHeader('Content-Disposition', 'attachment; filename=fluxstudio-data-export.json');
-    res.json(data);
-  } catch (error) {
-    log.error('Export download failed', error);
-    res.status(500).json({ success: false, error: 'Failed to download export', code: 'EXPORT_DOWNLOAD_FAILED' });
+router.get('/data-export/:id/download', asyncHandler(async (req, res) => {
+  const exportReq = await getExportRequest(req.params.id, req.user.id);
+  if (!exportReq) {
+    return res.status(404).json({ success: false, error: 'Export request not found', code: 'EXPORT_NOT_FOUND' });
   }
-});
+
+  if (exportReq.status !== 'completed') {
+    return res.status(400).json({ success: false, error: 'Export is not ready for download', code: 'EXPORT_NOT_READY', status: exportReq.status });
+  }
+
+  if (exportReq.expires_at && new Date(exportReq.expires_at) < new Date()) {
+    return res.status(410).json({ success: false, error: 'Export has expired. Please request a new one.', code: 'EXPORT_EXPIRED' });
+  }
+
+  // Generate the data fresh for download
+  const data = await exportUserData(req.user.id);
+
+  // Mark as downloaded
+  await query(
+    `UPDATE data_export_requests SET downloaded_at = NOW() WHERE id = $1`,
+    [exportReq.id]
+  );
+
+  await logAction(req.user.id, 'data_export_downloaded', 'user', req.user.id, { exportId: exportReq.id }, req);
+
+  res.setHeader('Content-Type', 'application/json');
+  res.setHeader('Content-Disposition', 'attachment; filename=fluxstudio-data-export.json');
+  res.json(data);
+}));
 
 // ========================================
 // POST /delete-account — Request account deletion
 // ========================================
 
-router.post('/delete-account', zodValidate(deleteAccountComplianceSchema), async (req, res) => {
-  try {
-    const userId = req.user.id;
-    const { reason } = req.body;
+router.post('/delete-account', zodValidate(deleteAccountComplianceSchema), asyncHandler(async (req, res) => {
+  const userId = req.user.id;
+  const { reason } = req.body;
 
-    const deletionReq = await requestDeletion(userId, reason || null);
+  const deletionReq = await requestDeletion(userId, reason || null);
 
-    await logAction(userId, 'deletion_request', 'user', userId, {
-      reason,
-      gracePeriodEnds: deletionReq.grace_period_ends,
-    }, req);
+  await logAction(userId, 'deletion_request', 'user', userId, {
+    reason,
+    gracePeriodEnds: deletionReq.grace_period_ends,
+  }, req);
 
-    res.status(201).json({
-      success: true,
-      message: 'Account deletion scheduled. You have 30 days to cancel.',
-      gracePeriodEnds: deletionReq.grace_period_ends,
-      requestedAt: deletionReq.created_at,
-    });
-  } catch (error) {
-    log.error('Delete account request failed', error);
-    res.status(500).json({ success: false, error: 'Failed to schedule account deletion', code: 'DELETION_SCHEDULE_FAILED' });
-  }
-});
+  res.status(201).json({
+    success: true,
+    message: 'Account deletion scheduled. You have 30 days to cancel.',
+    gracePeriodEnds: deletionReq.grace_period_ends,
+    requestedAt: deletionReq.created_at,
+  });
+}));
 
 // ========================================
 // POST /cancel-deletion — Cancel pending deletion
 // ========================================
 
-router.post('/cancel-deletion', async (req, res) => {
-  try {
-    const cancelled = await cancelDeletion(req.user.id);
-    if (!cancelled) {
-      return res.status(404).json({ success: false, error: 'No pending deletion request found', code: 'DELETION_NOT_FOUND' });
-    }
-
-    await logAction(req.user.id, 'deletion_cancelled', 'user', req.user.id, {}, req);
-
-    res.json({
-      success: true,
-      message: 'Account deletion has been cancelled.',
-    });
-  } catch (error) {
-    log.error('Cancel deletion failed', error);
-    res.status(500).json({ success: false, error: 'Failed to cancel deletion', code: 'DELETION_CANCEL_FAILED' });
+router.post('/cancel-deletion', asyncHandler(async (req, res) => {
+  const cancelled = await cancelDeletion(req.user.id);
+  if (!cancelled) {
+    return res.status(404).json({ success: false, error: 'No pending deletion request found', code: 'DELETION_NOT_FOUND' });
   }
-});
+
+  await logAction(req.user.id, 'deletion_cancelled', 'user', req.user.id, {}, req);
+
+  res.json({
+    success: true,
+    message: 'Account deletion has been cancelled.',
+  });
+}));
 
 // ========================================
 // GET /consents — Get current consent settings
@@ -208,85 +184,75 @@ router.post('/cancel-deletion', async (req, res) => {
 
 const CONSENT_TYPES = ['marketing_emails', 'analytics_tracking', 'third_party_sharing'];
 
-router.get('/consents', async (req, res) => {
-  try {
-    // Get the latest consent record for each type
-    const result = await query(
-      `SELECT DISTINCT ON (consent_type)
-              consent_type, granted, created_at
-       FROM consent_records
-       WHERE user_id = $1 AND consent_type = ANY($2)
-       ORDER BY consent_type, created_at DESC`,
-      [req.user.id, CONSENT_TYPES]
-    );
+router.get('/consents', asyncHandler(async (req, res) => {
+  // Get the latest consent record for each type
+  const result = await query(
+    `SELECT DISTINCT ON (consent_type)
+            consent_type, granted, created_at
+     FROM consent_records
+     WHERE user_id = $1 AND consent_type = ANY($2)
+     ORDER BY consent_type, created_at DESC`,
+    [req.user.id, CONSENT_TYPES]
+  );
 
-    // Build consents map, defaulting to false for types without records
-    const consents = {};
-    for (const type of CONSENT_TYPES) {
-      const record = result.rows.find(r => r.consent_type === type);
-      consents[type] = {
-        granted: record ? record.granted : false,
-        updatedAt: record ? record.created_at : null,
-      };
-    }
-
-    // Also fetch deletion status
-    const deletionStatus = await getDeletionStatus(req.user.id);
-
-    res.json({
-      consents,
-      deletionStatus: deletionStatus ? {
-        status: deletionStatus.status,
-        gracePeriodEnds: deletionStatus.grace_period_ends,
-        requestedAt: deletionStatus.created_at,
-      } : null,
-    });
-  } catch (error) {
-    log.error('Get consents failed', error);
-    res.status(500).json({ success: false, error: 'Failed to retrieve consent settings', code: 'CONSENT_GET_FAILED' });
+  // Build consents map, defaulting to false for types without records
+  const consents = {};
+  for (const type of CONSENT_TYPES) {
+    const record = result.rows.find(r => r.consent_type === type);
+    consents[type] = {
+      granted: record ? record.granted : false,
+      updatedAt: record ? record.created_at : null,
+    };
   }
-});
+
+  // Also fetch deletion status
+  const deletionStatus = await getDeletionStatus(req.user.id);
+
+  res.json({
+    consents,
+    deletionStatus: deletionStatus ? {
+      status: deletionStatus.status,
+      gracePeriodEnds: deletionStatus.grace_period_ends,
+      requestedAt: deletionStatus.created_at,
+    } : null,
+  });
+}));
 
 // ========================================
 // PUT /consents — Update consent preferences
 // ========================================
 
-router.put('/consents', zodValidate(updateConsentsSchema), async (req, res) => {
-  try {
-    const { consents } = req.body;
-    if (!consents || typeof consents !== 'object') {
-      return res.status(400).json({ success: false, error: 'consents object is required', code: 'CONSENT_OBJECT_REQUIRED' });
-    }
-
-    const userId = req.user.id;
-    const ip = req.ip || req.connection?.remoteAddress || null;
-    const updates = [];
-
-    for (const [type, granted] of Object.entries(consents)) {
-      if (!CONSENT_TYPES.includes(type)) continue;
-      if (typeof granted !== 'boolean') continue;
-
-      await query(
-        `INSERT INTO consent_records (user_id, consent_type, granted, ip_address)
-         VALUES ($1, $2, $3, $4)`,
-        [userId, type, granted, ip]
-      );
-      updates.push({ type, granted });
-    }
-
-    if (updates.length > 0) {
-      await logAction(userId, 'consent_updated', 'user', userId, { updates }, req);
-    }
-
-    res.json({
-      success: true,
-      message: 'Consent preferences updated.',
-      updated: updates,
-    });
-  } catch (error) {
-    log.error('Update consents failed', error);
-    res.status(500).json({ success: false, error: 'Failed to update consent preferences', code: 'CONSENT_UPDATE_FAILED' });
+router.put('/consents', zodValidate(updateConsentsSchema), asyncHandler(async (req, res) => {
+  const { consents } = req.body;
+  if (!consents || typeof consents !== 'object') {
+    return res.status(400).json({ success: false, error: 'consents object is required', code: 'CONSENT_OBJECT_REQUIRED' });
   }
-});
+
+  const userId = req.user.id;
+  const ip = req.ip || req.connection?.remoteAddress || null;
+  const updates = [];
+
+  for (const [type, granted] of Object.entries(consents)) {
+    if (!CONSENT_TYPES.includes(type)) continue;
+    if (typeof granted !== 'boolean') continue;
+
+    await query(
+      `INSERT INTO consent_records (user_id, consent_type, granted, ip_address)
+       VALUES ($1, $2, $3, $4)`,
+      [userId, type, granted, ip]
+    );
+    updates.push({ type, granted });
+  }
+
+  if (updates.length > 0) {
+    await logAction(userId, 'consent_updated', 'user', userId, { updates }, req);
+  }
+
+  res.json({
+    success: true,
+    message: 'Consent preferences updated.',
+    updated: updates,
+  });
+}));
 
 module.exports = router;
