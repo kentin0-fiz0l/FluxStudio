@@ -57,9 +57,17 @@ export type AnalysisType = 'general' | 'spacing' | 'alignment' | 'collisions';
 
 /**
  * Capture the formation canvas as a base64 PNG string.
+ * Accepts HTMLCanvasElement directly, or any HTMLElement (looks for a child canvas).
  */
-export function captureFormationScreenshot(canvasElement: HTMLCanvasElement): string {
-  return canvasElement.toDataURL('image/png');
+export function captureFormationScreenshot(element: HTMLElement): string {
+  if (element instanceof HTMLCanvasElement) {
+    return element.toDataURL('image/png');
+  }
+  const canvas = element.querySelector('canvas');
+  if (canvas) {
+    return canvas.toDataURL('image/png');
+  }
+  throw new Error('No canvas element found for screenshot capture');
 }
 
 // ============================================================================

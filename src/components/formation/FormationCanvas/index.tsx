@@ -31,6 +31,7 @@ import { GhostPreviewOverlay } from '../GhostPreviewOverlay';
 import { GhostPreviewControls } from '../GhostPreviewControls';
 import { FormationPromptBar } from '../FormationPromptBar';
 import { TransitionSuggester } from '../TransitionSuggester';
+import { WaypointEditor } from '../WaypointEditor';
 import { CanvasEffectsLayer, CanvasEffectsPanel } from '../effects';
 
 // Lazy-loaded heavy dialogs/panels
@@ -41,11 +42,14 @@ const { Component: MorphSliderDialog } = lazyLoadWithRetry<any>(() => import('..
 const { Component: FormationVersionHistoryPanel } = lazyLoadWithRetry<any>(() => import('../FormationVersionHistory').then(m => ({ default: m.FormationVersionHistoryPanel })));
 const { Component: ShowPacingGraph } = lazyLoadWithRetry<any>(() => import('../ShowPacingGraph').then(m => ({ default: m.ShowPacingGraph })));
 const { Component: RehearsalModePanel } = lazyLoadWithRetry<any>(() => import('../RehearsalModePanel').then(m => ({ default: m.RehearsalModePanel })));
+const { Component: AIFormationFeedback } = lazyLoadWithRetry<any>(() => import('../AIFormationFeedback').then(m => ({ default: m.AIFormationFeedback })));
+const { Component: GenerateFromMusicPanel } = lazyLoadWithRetry<any>(() => import('../GenerateFromMusicPanel').then(m => ({ default: m.GenerateFromMusicPanel })));
 /* eslint-enable @typescript-eslint/no-explicit-any */
 import { CanvasToolbar } from './CanvasToolbar';
 import { MobileCanvasToolbar } from './MobileCanvasToolbar';
 import { MobileSetNavigator } from './MobileSetNavigator';
 import { PerformerPanel } from './PerformerPanel';
+import { PathEditor } from '../PathEditor/PathEditor';
 import { AlignmentToolbar } from './AlignmentToolbar';
 import { OnboardingHints } from './OnboardingHints';
 import { CanvasRenderer } from './CanvasRenderer';
@@ -122,6 +126,12 @@ export function FormationCanvas(props: FormationCanvasProps) {
     measurementStepSize, setMeasurementStepSize: _setMeasurementStepSize,
     showGroupPanel, setShowGroupPanel,
     showCollabActivity, setShowCollabActivity,
+    showAIFeedback, setShowAIFeedback,
+    showGenerateFromMusic, setShowGenerateFromMusic,
+    detectedBeatMap,
+    customWaypoints, setCustomWaypoints,
+    flyThroughPreset, setFlyThroughPreset,
+    showWaypointEditor, setShowWaypointEditor,
     playbackState,
     ghostTrail,
     hasUnsavedChanges, setHasUnsavedChanges,
@@ -533,6 +543,29 @@ export function FormationCanvas(props: FormationCanvasProps) {
     setShowVersionHistory(false);
   }, [setFormation, setCurrentPositions, setHasUnsavedChanges]);
 
+  // Handler: apply formations generated from music AI
+  const handleGenerateFormationsFromMusic = useCallback((generatedSets: Array<{ name: string; counts: number; sectionName?: string; positions: Map<string, import('../../../services/formationTypes').Position> }>) => {
+    if (!formation || generatedSets.length === 0) return;
+    setFormation(prev => {
+      if (!prev) return prev;
+      const newKeyframes = generatedSets.map((set, i) => ({
+        id: `kf-music-${Date.now()}-${i}`,
+        timestamp: prev.keyframes.length > 0
+          ? (prev.keyframes[prev.keyframes.length - 1].timestamp + (set.counts * 500))
+          : (i * set.counts * 500),
+        positions: new Map(set.positions),
+        duration: set.counts * 500,
+      }));
+      return { ...prev, keyframes: [...prev.keyframes, ...newKeyframes] };
+    });
+    // Select the first generated keyframe and update positions
+    if (generatedSets[0].positions.size > 0) {
+      setCurrentPositions(new Map(generatedSets[0].positions));
+    }
+    setHasUnsavedChanges(true);
+    setShowGenerateFromMusic(false);
+  }, [formation, setFormation, setCurrentPositions, setHasUnsavedChanges, setShowGenerateFromMusic]);
+
   // Loading/error states
   if (apiLoading || (formationId && !formation)) {
     return <FormationEditorSkeleton />;
@@ -681,6 +714,11 @@ export function FormationCanvas(props: FormationCanvasProps) {
           setShowRehearsalMode={setShowRehearsalMode}
           showCollabActivity={showCollabActivity}
           setShowCollabActivity={setShowCollabActivity}
+          showAIFeedback={showAIFeedback}
+          onToggleAIFeedback={() => setShowAIFeedback(prev => !prev)}
+          onGenerateFromMusic={() => setShowGenerateFromMusic(true)}
+          showWaypointEditor={showWaypointEditor}
+          setShowWaypointEditor={setShowWaypointEditor}
         />
         </div>
       ) : (
@@ -862,6 +900,51 @@ export function FormationCanvas(props: FormationCanvasProps) {
             </Suspense>
           </div>
         )}
+        {showAIFeedback && (
+          <div className={sidePanelClass}>
+            <Suspense fallback={null}>
+              <AIFormationFeedback
+                canvasRef={canvasRef}
+                formationId={formationId}
+              />
+            </Suspense>
+          </div>
+        )}
+        {activeTool === 'curve' && selectedPerformerIds.size > 0 && (
+          <div className={sidePanelClass}>
+            <PathEditor
+              performers={Array.from(selectedPerformerIds).map(id => {
+                const performer = formation.performers.find(p => p.id === id);
+                const currentCurve = selectedKeyframeId
+                  ? formation.keyframes.find(kf => kf.id === selectedKeyframeId)?.pathCurves?.get(id) ?? null
+                  : null;
+                return {
+                  id,
+                  name: performer?.name ?? id,
+                  label: performer?.label ?? id,
+                  currentCurve,
+                };
+              })}
+              onApplyCurves={(updates) => {
+                if (!formation || !selectedKeyframeId) return;
+                setFormation(prev => {
+                  if (!prev) return prev;
+                  const keyframes = prev.keyframes.map(kf => {
+                    if (kf.id !== selectedKeyframeId) return kf;
+                    const pathCurves = new Map(kf.pathCurves ?? []);
+                    for (const [performerId, curve] of updates) {
+                      pathCurves.set(performerId, curve);
+                    }
+                    return { ...kf, pathCurves };
+                  });
+                  return { ...prev, keyframes };
+                });
+                setHasUnsavedChanges(true);
+              }}
+              onClose={() => setActiveTool('select')}
+            />
+          </div>
+        )}
       </div>
 
       {/* Measurement overlay (rendered over canvas) */}
@@ -919,6 +1002,19 @@ export function FormationCanvas(props: FormationCanvasProps) {
           ghostPreviewSource={ghostPreview.activePreview?.source ?? undefined}
         />
       </div>
+
+      {/* Waypoint Editor (floating panel) */}
+      {showWaypointEditor && (
+        <div className="absolute top-20 left-4 z-50">
+          <WaypointEditor
+            preset={flyThroughPreset}
+            onPresetChange={setFlyThroughPreset}
+            waypoints={customWaypoints}
+            onWaypointsChange={setCustomWaypoints}
+            onClose={() => setShowWaypointEditor(false)}
+          />
+        </div>
+      )}
 
       {/* Transition Suggester (floating popover) */}
       {showTransitionSuggester && nextSetPositions && (
@@ -999,7 +1095,7 @@ export function FormationCanvas(props: FormationCanvasProps) {
             sections={metmapSections}
             chords={metmapChords}
             tempoMap={metmapTempoMap ?? undefined}
-            beatMap={metmapBeatMap ?? undefined}
+            beatMap={metmapBeatMap ?? detectedBeatMap ?? undefined}
           />
 
           {showPacingGraph && drillSets.length > 0 && (
@@ -1116,6 +1212,21 @@ export function FormationCanvas(props: FormationCanvasProps) {
             canvasHeight={canvasRef.current?.clientHeight ?? 500}
           />
         </div>
+      )}
+
+      {/* Generate from Music Panel (modal overlay) */}
+      {showGenerateFromMusic && (
+        <Suspense fallback={null}>
+          <GenerateFromMusicPanel
+            isOpen={showGenerateFromMusic}
+            onClose={() => setShowGenerateFromMusic(false)}
+            sections={metmapSections}
+            tempoMap={metmapTempoMap!}
+            songId={linkedSong?.id}
+            performers={formation.performers}
+            onGenerateFormations={handleGenerateFormationsFromMusic}
+          />
+        </Suspense>
       )}
 
       {/* Formation feasibility warnings */}

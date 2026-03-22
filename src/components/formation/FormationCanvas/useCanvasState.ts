@@ -17,6 +17,9 @@ import { useAuth } from '@/store/slices/authSlice';
 import { getUserColor } from '../../../services/formation/yjs/formationYjsTypes';
 import { DEFAULT_DRILL_SETTINGS } from '../../../utils/drillGeometry';
 import type { DrillSettings } from '../../../services/formationTypes';
+import type { BeatMap } from '../../../contexts/metmap/types';
+import type { FlyThroughPreset } from '../FlyThroughController';
+import type { WaypointWithMeta } from '../WaypointEditor';
 import type { Tool, FormationCanvasProps, Marquee } from './types';
 
 function getInitialFormationData(
@@ -160,9 +163,25 @@ export function useCanvasState(props: FormationCanvasProps) {
   const [showGroupPanel, setShowGroupPanel] = useState(false);
   // Collaborator activity panel visibility
   const [showCollabActivity, setShowCollabActivity] = useState(false);
+  // AI Formation Feedback panel visibility
+  const [showAIFeedback, setShowAIFeedback] = useState(false);
+  // Generate from Music panel visibility
+  const [showGenerateFromMusic, setShowGenerateFromMusic] = useState(false);
   const [playbackState, setPlaybackState] = useState<PlaybackState>({ isPlaying: false, currentTime: 0, duration: 5000, loop: false, speed: 1 });
   const [ghostTrail, setGhostTrail] = useState<Array<{ time: number; positions: Map<string, Position> }>>([]);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+
+  // Waypoint editor state (fly-through camera paths)
+  const [customWaypoints, setCustomWaypoints] = useState<WaypointWithMeta[]>([
+    { position: [0, 2, 20], lookAt: [0, 0, 0], time: 0, duration: 2, easing: 'easeInOut' },
+    { position: [15, 5, 15], lookAt: [0, 0, 0], time: 0.5, duration: 2, easing: 'easeInOut' },
+    { position: [0, 2, 20], lookAt: [0, 0, 0], time: 1, duration: 2, easing: 'easeInOut' },
+  ]);
+  const [flyThroughPreset, setFlyThroughPreset] = useState<FlyThroughPreset>('audience_sweep');
+  const [showWaypointEditor, setShowWaypointEditor] = useState(false);
+
+  // Auto-detected beat map from audio upload (fallback when MetMap is not linked)
+  const [detectedBeatMap, setDetectedBeatMap] = useState<BeatMap | null>(null);
 
   const history = useFormationHistory({ maxHistory: 100 });
 
@@ -209,9 +228,15 @@ export function useCanvasState(props: FormationCanvasProps) {
     measurementStepSize, setMeasurementStepSize,
     showGroupPanel, setShowGroupPanel,
     showCollabActivity, setShowCollabActivity,
+    showAIFeedback, setShowAIFeedback,
+    showGenerateFromMusic, setShowGenerateFromMusic,
     playbackState, setPlaybackState,
     ghostTrail, setGhostTrail,
     hasUnsavedChanges, setHasUnsavedChanges,
+    detectedBeatMap, setDetectedBeatMap,
+    customWaypoints, setCustomWaypoints,
+    flyThroughPreset, setFlyThroughPreset,
+    showWaypointEditor, setShowWaypointEditor,
     // Refs
     canvasRef,
     setDraggingPerformerId,

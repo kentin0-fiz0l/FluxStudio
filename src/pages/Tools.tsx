@@ -71,34 +71,27 @@ const tools: Tool[] = [
     category: 'Asset Management',
     internalPath: '/tools/assets',
   },
-];
-
-const comingSoonTools: Tool[] = [
   {
     id: 'ai-design',
     name: 'AI Design Assistant',
-    description: 'Intelligent design suggestions and automation',
+    description: 'Intelligent design suggestions, review feedback, and component code generation',
     icon: <Sparkles className="w-8 h-8" aria-hidden="true" />,
-    status: 'coming_soon',
+    status: 'active',
     category: 'Design',
-  },
-  {
-    id: 'asset-library',
-    name: 'Asset Library',
-    description: 'Centralized asset management and organization',
-    icon: <FolderOpen className="w-8 h-8" aria-hidden="true" />,
-    status: 'coming_soon',
-    category: 'Resources',
+    internalPath: '/tools/ai-design',
   },
   {
     id: 'analytics',
     name: 'Analytics Dashboard',
-    description: 'Project insights and performance metrics',
+    description: 'Project insights, content trends, and quality metrics for your files',
     icon: <BarChart3 className="w-8 h-8" aria-hidden="true" />,
-    status: 'coming_soon',
+    status: 'active',
     category: 'Analytics',
+    internalPath: '/projects',
   },
 ];
+
+// All tools are now active — no coming soon items remaining
 
 function Tools() {
   const { user, logout } = useAuth();
@@ -306,52 +299,6 @@ function Tools() {
                   </Button>
                 </div>
               </Card>
-            ))}
-          </div>
-        </div>
-
-        {/* Coming Soon Section */}
-        <div className="space-y-4">
-          <div className="flex items-center gap-2">
-            <Sparkles className="w-5 h-5 text-primary-500" aria-hidden="true" />
-            <h2 className="text-lg font-semibold text-neutral-900 dark:text-neutral-100">
-              Coming Soon
-            </h2>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {comingSoonTools.map((tool) => (
-              <div
-                key={tool.id}
-                className="relative bg-neutral-50 dark:bg-neutral-800/50 rounded-2xl border border-neutral-200 dark:border-neutral-700 p-6 opacity-60 cursor-not-allowed"
-              >
-                {/* Coming Soon Badge */}
-                <div className="absolute -top-2 -right-2 bg-neutral-400 dark:bg-neutral-600 text-white text-xs font-medium px-2.5 py-1 rounded-full">
-                  Soon
-                </div>
-
-                {/* Icon */}
-                <div className="flex items-center justify-center w-16 h-16 bg-neutral-100 dark:bg-neutral-700 rounded-xl mb-4">
-                  <div className="text-neutral-400 dark:text-neutral-500">
-                    {tool.icon}
-                  </div>
-                </div>
-
-                {/* Content */}
-                <h3 className="text-lg font-semibold text-neutral-700 dark:text-neutral-300 mb-1">
-                  {tool.name}
-                </h3>
-                <p className="text-sm text-neutral-500 dark:text-neutral-500 mb-4">
-                  {tool.description}
-                </p>
-
-                {/* Category */}
-                <div className="flex items-center justify-between">
-                  <span className="text-xs text-neutral-400 dark:text-neutral-600 font-medium">
-                    {tool.category}
-                  </span>
-                </div>
-              </div>
             ))}
           </div>
         </div>

@@ -31,6 +31,9 @@ import {
   Loader2,
   AlertCircle,
   Info,
+  UserPlus,
+  FolderPlus,
+  Activity,
 } from 'lucide-react';
 
 // Unified member type derived from team data
@@ -458,18 +461,93 @@ export function OrganizationNew() {
         </Card>
 
         <div className="grid lg:grid-cols-2 gap-6">
-          {/* Recent Activity — Coming Soon */}
+          {/* Recent Activity */}
           <Card className="p-6">
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-lg font-semibold text-neutral-900 dark:text-neutral-100 flex items-center">
-                <Info className="w-5 h-5 mr-2 text-primary-600" aria-hidden="true" />
+                <Activity className="w-5 h-5 mr-2 text-primary-600" aria-hidden="true" />
                 Recent Activity
               </h2>
             </div>
-            <div className="flex flex-col items-center justify-center py-8 text-neutral-500 dark:text-neutral-400">
-              <MessageSquare className="w-10 h-10 mb-3 text-neutral-300 dark:text-neutral-600" aria-hidden="true" />
-              <p className="text-sm font-medium">Coming soon</p>
-              <p className="text-xs mt-1">Activity feed will be available in a future update.</p>
+            <div className="space-y-3">
+              {(() => {
+                // Build activity events from real org data
+                const events: Array<{
+                  id: string;
+                  icon: React.ReactNode;
+                  text: string;
+                  time: string;
+                }> = [];
+
+                // Member join events
+                members
+                  .filter(m => m.status === 'active')
+                  .sort((a, b) => new Date(b.joinedAt).getTime() - new Date(a.joinedAt).getTime())
+                  .slice(0, 3)
+                  .forEach(m => {
+                    events.push({
+                      id: `member-${m.id}`,
+                      icon: <UserPlus className="w-4 h-4 text-green-500" aria-hidden="true" />,
+                      text: `${m.name} joined the organization`,
+                      time: m.joinedAt,
+                    });
+                  });
+
+                // Team creation events
+                teams.slice(0, 2).forEach(t => {
+                  events.push({
+                    id: `team-${t.id}`,
+                    icon: <Users className="w-4 h-4 text-blue-500" aria-hidden="true" />,
+                    text: `Team "${t.name}" was created`,
+                    time: t.createdAt || currentOrganization.createdAt,
+                  });
+                });
+
+                // Project events
+                (projects || []).slice(0, 2).forEach((p: { id: string; name: string; createdAt?: string }) => {
+                  events.push({
+                    id: `project-${p.id}`,
+                    icon: <FolderPlus className="w-4 h-4 text-purple-500" aria-hidden="true" />,
+                    text: `Project "${p.name}" was created`,
+                    time: p.createdAt || currentOrganization.createdAt,
+                  });
+                });
+
+                // Sort by time and take latest 5
+                const sorted = events
+                  .sort((a, b) => new Date(b.time).getTime() - new Date(a.time).getTime())
+                  .slice(0, 5);
+
+                if (sorted.length === 0) {
+                  return (
+                    <div className="flex flex-col items-center justify-center py-6 text-neutral-500 dark:text-neutral-400">
+                      <Info className="w-8 h-8 mb-2 text-neutral-300 dark:text-neutral-600" aria-hidden="true" />
+                      <p className="text-sm">No recent activity yet</p>
+                    </div>
+                  );
+                }
+
+                const timeAgo = (dateStr: string) => {
+                  const diff = Date.now() - new Date(dateStr).getTime();
+                  const mins = Math.floor(diff / 60000);
+                  if (mins < 60) return `${mins}m ago`;
+                  const hours = Math.floor(mins / 60);
+                  if (hours < 24) return `${hours}h ago`;
+                  const days = Math.floor(hours / 24);
+                  if (days < 30) return `${days}d ago`;
+                  return formatDate(dateStr);
+                };
+
+                return sorted.map(event => (
+                  <div key={event.id} className="flex items-start gap-3 p-2 rounded-lg hover:bg-neutral-50 dark:hover:bg-neutral-800/50 transition-colors">
+                    <div className="mt-0.5 flex-shrink-0">{event.icon}</div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm text-neutral-900 dark:text-neutral-100">{event.text}</p>
+                      <p className="text-xs text-neutral-500 dark:text-neutral-400">{timeAgo(event.time)}</p>
+                    </div>
+                  </div>
+                ));
+              })()}
             </div>
           </Card>
 

@@ -19,6 +19,7 @@ import {
   Target,
   Play,
   BarChart3,
+  Eye,
 } from 'lucide-react';
 import { DashboardLayout } from '@/components/templates/DashboardLayout';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -63,6 +64,12 @@ const DeadlineRiskPanel = React.lazy(() =>
 );
 const TeamWorkloadPanel = React.lazy(() =>
   import('@/components/analytics/TeamWorkloadPanel').then(m => ({ default: m.TeamWorkloadPanel }))
+);
+const DesignReviewWorkflow = React.lazy(() =>
+  import('@/components/review/DesignReviewWorkflow')
+);
+const ContentInsights = React.lazy(() =>
+  import('@/components/ai/ContentInsights').then(m => ({ default: m.ContentInsights }))
 );
 import { ProjectDetailSkeleton, WidgetSkeleton } from '@/components/loading/LoadingStates';
 
@@ -109,7 +116,7 @@ export const ProjectDetail = () => {
 
   const tabLabels: Record<string, string> = {
     overview: 'Overview', tasks: 'Tasks', documents: 'Documents',
-    files: 'Files', assets: 'Assets', boards: 'Boards', analytics: 'Analytics', messages: 'Messages',
+    files: 'Files', assets: 'Assets', boards: 'Boards', review: 'Review', insights: 'Insights', analytics: 'Analytics', messages: 'Messages',
   };
 
   // Boards state
@@ -178,7 +185,7 @@ export const ProjectDetail = () => {
 
   // Derive per-tab presence from online users
   // In production this would come from the collaboration service's currentPage field
-  const TAB_NAMES = React.useMemo(() => ['overview', 'tasks', 'documents', 'files', 'assets', 'boards', 'formations', 'analytics', 'messages'], []);
+  const TAB_NAMES = React.useMemo(() => ['overview', 'tasks', 'documents', 'files', 'assets', 'boards', 'review', 'insights', 'formations', 'analytics', 'messages'], []);
   const tabUsers: TabUser[] = React.useMemo(
     () =>
       onlineUsers.map((u) => ({
@@ -195,7 +202,7 @@ export const ProjectDetail = () => {
 
   // Keyboard shortcuts: Ctrl+1..9 to switch tabs
   React.useEffect(() => {
-    const tabShortcuts = ['overview', 'tasks', 'documents', 'files', 'assets', 'boards', 'formations', 'analytics', 'messages'];
+    const tabShortcuts = ['overview', 'tasks', 'documents', 'files', 'assets', 'boards', 'review', 'insights', 'formations', 'analytics', 'messages'];
     const handler = (e: KeyboardEvent) => {
       if (!e.ctrlKey || e.metaKey || e.altKey || e.shiftKey) return;
       const num = parseInt(e.key, 10);
@@ -370,6 +377,12 @@ export const ProjectDetail = () => {
               <TabsTrigger value="boards" className={cn('data-[state=active]:border-b-2 data-[state=active]:border-primary-600', 'rounded-none border-b-2 border-transparent h-full px-4')} role="tab" aria-selected={activeTab === 'boards'} aria-controls="boards-panel" id="boards-tab" aria-label={`Boards, ${boards.length} items`}>
                 <PenTool className="h-4 w-4 mr-2" aria-hidden="true" />Boards<Badge variant="outline" size="sm" className="ml-2" aria-hidden="true">{boards.length}</Badge><TabPresenceIndicator users={tabUsers} tabName="boards" />
               </TabsTrigger>
+              <TabsTrigger value="review" className={cn('data-[state=active]:border-b-2 data-[state=active]:border-primary-600', 'rounded-none border-b-2 border-transparent h-full px-4')} role="tab" aria-selected={activeTab === 'review'} aria-controls="review-panel" id="review-tab" aria-label="Review — design review workflow">
+                <Eye className="h-4 w-4 mr-2" aria-hidden="true" />Review<TabPresenceIndicator users={tabUsers} tabName="review" />
+              </TabsTrigger>
+              <TabsTrigger value="insights" className={cn('data-[state=active]:border-b-2 data-[state=active]:border-primary-600', 'rounded-none border-b-2 border-transparent h-full px-4')} role="tab" aria-selected={activeTab === 'insights'} aria-controls="insights-panel" id="insights-tab" aria-label="Insights — content analytics dashboard">
+                <BarChart3 className="h-4 w-4 mr-2" aria-hidden="true" />Insights<TabPresenceIndicator users={tabUsers} tabName="insights" />
+              </TabsTrigger>
               <TabsTrigger value="formations" className={cn('data-[state=active]:border-b-2 data-[state=active]:border-primary-600', 'rounded-none border-b-2 border-transparent h-full px-4')} role="tab" aria-selected={activeTab === 'formations'} aria-controls="formations-panel" id="formations-tab" aria-label={`Formations, ${formations.length} items`}>
                 <Play className="h-4 w-4 mr-2" aria-hidden="true" />Formations<Badge variant="outline" size="sm" className="ml-2" aria-hidden="true">{formations.length}</Badge><TabPresenceIndicator users={tabUsers} tabName="formations" />
               </TabsTrigger>
@@ -454,6 +467,49 @@ export const ProjectDetail = () => {
                 setShowNewBoardInput={setShowNewBoardInput}
                 onCreateBoard={handleCreateBoard}
               />
+            </div>
+          )}
+
+          {activeTab === 'review' && (
+            <div className="h-full" role="tabpanel" id="review-panel" aria-labelledby="review-tab" tabIndex={0}>
+              <div role="status" aria-live="polite" className="sr-only">Showing {tabLabels.review} tab</div>
+              <React.Suspense fallback={<TabLoadingFallback />}>
+                <DesignReviewWorkflow
+                  files={(project.files || []).map((f: { id?: string; name?: string; url?: string; size?: number; type?: string; uploadedAt?: string }) => ({
+                    id: f.id || crypto.randomUUID(),
+                    name: f.name || 'Untitled',
+                    url: f.url || '',
+                    version: 1,
+                    file_size: f.size || 0,
+                    mime_type: f.type || 'application/octet-stream',
+                    uploaded_by: user?.id || '',
+                    uploaded_at: f.uploadedAt || new Date().toISOString(),
+                    status: 'review' as const,
+                    annotations: [],
+                  }))}
+                  onAnnotationAdd={(annotation) => {
+                    console.log('Annotation added:', annotation);
+                    toast.success('Annotation added');
+                  }}
+                  onStatusChange={(fileId, status) => {
+                    console.log('Status changed:', fileId, status);
+                    toast.success(`File status changed to ${status}`);
+                  }}
+                  onFileUpload={(file) => {
+                    console.log('File uploaded:', file.name);
+                    toast.success(`File "${file.name}" uploaded`);
+                  }}
+                />
+              </React.Suspense>
+            </div>
+          )}
+
+          {activeTab === 'insights' && (
+            <div className="h-full overflow-y-auto p-6" role="tabpanel" id="insights-panel" aria-labelledby="insights-tab" tabIndex={0}>
+              <div role="status" aria-live="polite" className="sr-only">Showing {tabLabels.insights} tab</div>
+              <React.Suspense fallback={<TabLoadingFallback />}>
+                <ContentInsights projectId={id || ''} />
+              </React.Suspense>
             </div>
           )}
 

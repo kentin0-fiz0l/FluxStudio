@@ -179,6 +179,7 @@ export function FormationCollaborationProvider({
     isPerformerBeingDragged: yjsResult.isPerformerBeingDragged,
 
     // Y.UndoManager
+    undoManager: yjsResult.undoManager,
     yUndo: yjsResult.yUndo,
     yRedo: yjsResult.yRedo,
     canYUndo: yjsResult.canYUndo,

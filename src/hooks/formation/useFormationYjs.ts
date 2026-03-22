@@ -147,6 +147,8 @@ export interface UseFormationYjsResult {
   isPerformerBeingDragged: (performerId: string) => { dragging: boolean; by?: FormationAwarenessState };
 
   // Y.UndoManager (per-user undo/redo in collaborative mode)
+  /** Raw Y.UndoManager instance (for unified undo integration) */
+  undoManager: Y.UndoManager | null;
   /** Undo last local change */
   yUndo: () => void;
   /** Redo last undone local change */
@@ -1359,6 +1361,7 @@ export function useFormationYjs({
     isPerformerBeingDragged,
 
     // Y.UndoManager
+    undoManager: undoManagerRef.current,
     yUndo,
     yRedo,
     canYUndo,

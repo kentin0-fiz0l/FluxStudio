@@ -56,7 +56,7 @@ export interface AuthActions {
   loginWithToken: (authData: Record<string, unknown>) => Promise<User>;
   signup: (email: string, password: string, name: string, userType: UserType, referralCode?: string, inviteCode?: string) => Promise<User>;
   loginWithGoogle: (credential: string) => Promise<User>;
-  loginWithApple: () => Promise<User>;
+  loginWithApple: (identityToken?: string, appleUser?: { name?: { firstName?: string; lastName?: string } }) => Promise<User>;
   logout: () => Promise<void>;
   setAuthToken: (token: string, refreshToken?: string) => Promise<void>;
   setUser: (user: User | null) => void;
@@ -415,8 +415,11 @@ export const createAuthSlice: StateCreator<
       return authData.user;
     },
 
-    loginWithApple: async (): Promise<User> => {
-      const result = await apiService.post<{ user: User; accessToken?: string; token?: string; refreshToken?: string }>('/auth/apple');
+    loginWithApple: async (identityToken?: string, appleUser?: { name?: { firstName?: string; lastName?: string } }): Promise<User> => {
+      const result = await apiService.post<{ user: User; accessToken?: string; token?: string; refreshToken?: string }>('/auth/apple', {
+        identityToken,
+        user: appleUser,
+      });
       const authData = result.data!;
       storeTokens(authData);
       set((state) => {

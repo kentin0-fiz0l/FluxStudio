@@ -37,6 +37,7 @@ import { useTranslation } from 'react-i18next';
 import { toast } from '../lib/toast';
 import { apiService, type UserSettings } from '../services/apiService';
 const TwoFactorSetup = React.lazy(() => import('@/components/settings/TwoFactorSetup').then(m => ({ default: m.TwoFactorSetup })));
+const ChangePasswordDialog = React.lazy(() => import('@/components/settings/ChangePasswordDialog').then(m => ({ default: m.ChangePasswordDialog })));
 import {
   isPushSupported,
   getPermissionState,
@@ -76,6 +77,7 @@ function Settings() {
   const [pushPermission, setPushPermission] = React.useState<PushPermissionState | null>(null);
   const [pushToggleLoading, setPushToggleLoading] = React.useState(false);
 
+  const [showChangePassword, setShowChangePassword] = React.useState(false);
   const [isSaving, setIsSaving] = React.useState(false);
   const [isLoading, setIsLoading] = React.useState(true);
   const [hasChanges, setHasChanges] = React.useState(false);
@@ -641,6 +643,7 @@ function Settings() {
               <button
                 className="w-full p-4 bg-neutral-50 dark:bg-neutral-800 rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-700 transition-colors text-left min-h-[56px]"
                 aria-label="Change Password - Update your password"
+                onClick={() => setShowChangePassword(true)}
               >
                 <div className="flex items-center justify-between">
                   <div>
@@ -661,6 +664,11 @@ function Settings() {
                 </React.Suspense>
               </div>
             </div>
+
+            {/* Change Password Dialog */}
+            <React.Suspense fallback={null}>
+              <ChangePasswordDialog open={showChangePassword} onOpenChange={setShowChangePassword} />
+            </React.Suspense>
           </Card>
 
           {/* Performance */}

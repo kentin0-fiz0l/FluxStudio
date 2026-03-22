@@ -26,7 +26,7 @@ import {
 // ============================================================================
 
 interface AIFormationFeedbackProps {
-  canvasRef: React.RefObject<HTMLCanvasElement>;
+  canvasRef: React.RefObject<HTMLElement>;
   formationId?: string;
   className?: string;
 }

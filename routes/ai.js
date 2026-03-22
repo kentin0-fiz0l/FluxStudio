@@ -1322,4 +1322,74 @@ Keep positions well-spaced (minimum 3 units apart). Be creative with the formati
   });
 }));
 
+// ============================================================================
+// DRILL AUTOCOMPLETE ENDPOINT
+// ============================================================================
+
+/**
+ * POST /api/ai/drill/autocomplete
+ * Lightweight AI autocomplete for the formation prompt bar.
+ * Returns 3-5 command suggestions based on partial input.
+ */
+router.post('/drill/autocomplete', authenticateToken, requireAnthropicClient, rateLimitByUser(60, 60000), asyncHandler(async (req, res) => {
+  const { partial, context } = req.body;
+
+  if (!partial || typeof partial !== 'string' || partial.length < 2 || partial.length > 200) {
+    return res.status(400).json({
+      success: false,
+      error: 'Invalid input',
+      message: 'Partial text is required (2-200 characters).',
+      code: 'INVALID_INPUT',
+    });
+  }
+
+  const contextLines = [];
+  if (context?.performerCount) contextLines.push(`Performers: ${context.performerCount}`);
+  if (context?.currentTool) contextLines.push(`Active tool: ${context.currentTool}`);
+  if (context?.recentCommands?.length) contextLines.push(`Recent commands: ${context.recentCommands.slice(0, 3).join(', ')}`);
+  const contextBlock = contextLines.length > 0 ? `\n\nContext:\n${contextLines.join('\n')}` : '';
+
+  const acModel = getModelForTask('chat-sync');
+  const response = await getClient().messages.create({
+    model: acModel,
+    max_tokens: 256,
+    system: `You are a marching band drill command autocomplete engine. Given a partial command, suggest 3-5 completions. Return ONLY a JSON array of strings. Each suggestion should be a complete, natural-language drill/formation command. Be concise.`,
+    messages: [{
+      role: 'user',
+      content: `Complete this drill command: "${partial}"${contextBlock}\n\nReturn ONLY a JSON array of 3-5 completion strings.`,
+    }],
+  });
+
+  logAiUsage({
+    userId: req.user.id,
+    model: acModel,
+    inputTokens: response.usage?.input_tokens || 0,
+    outputTokens: response.usage?.output_tokens || 0,
+    endpoint: 'drill-autocomplete',
+  });
+
+  const textContent = extractTextContent(response);
+  if (!textContent) {
+    return res.status(500).json({ success: false, error: 'No response from AI', code: 'AI_NO_RESPONSE' });
+  }
+
+  // Parse JSON array from response
+  const arrayMatch = textContent.match(/\[[\s\S]*\]/);
+  if (!arrayMatch) {
+    return res.json({ success: true, data: { suggestions: [] } });
+  }
+
+  try {
+    const suggestions = JSON.parse(arrayMatch[0]);
+    if (!Array.isArray(suggestions)) {
+      return res.json({ success: true, data: { suggestions: [] } });
+    }
+    // Filter to strings only and limit to 5
+    const cleaned = suggestions.filter(s => typeof s === 'string').slice(0, 5);
+    return res.json({ success: true, data: { suggestions: cleaned } });
+  } catch {
+    return res.json({ success: true, data: { suggestions: [] } });
+  }
+}));
+
 module.exports = router;

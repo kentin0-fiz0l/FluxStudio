@@ -48,9 +48,12 @@ export type { Task };
 
 import type { ValidationErrors } from './task-detail/types';
 
+import { useAuth } from '@/store/slices/authSlice';
 import { TaskFormFields } from './task-detail/TaskFormFields';
 import { TaskMetadata } from './task-detail/TaskMetadata';
 import { DeleteConfirmDialog } from './task-detail/DeleteConfirmDialog';
+
+const TaskComments = React.lazy(() => import('./TaskComments'));
 
 export interface TeamMember {
   id: string;
@@ -111,12 +114,14 @@ function validateTask(
 export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({
   isOpen,
   onClose,
-  projectId: _projectId, // Used by parent component for API calls, not used internally
+  projectId,
   task,
   onSave,
   onDelete,
   teamMembers,
 }) => {
+  const { user } = useAuth();
+
   // ============================================================================
   // State Management
   // ============================================================================
@@ -347,6 +352,24 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({
 
             {/* Metadata (Read-only) */}
             {task && <TaskMetadata task={task} />}
+
+            {/* Comments */}
+            {task && user && (
+              <React.Suspense
+                fallback={
+                  <div className="flex items-center justify-center py-8">
+                    <span className="text-sm text-neutral-500">Loading comments...</span>
+                  </div>
+                }
+              >
+                <TaskComments
+                  projectId={projectId}
+                  taskId={task.id}
+                  teamMembers={teamMembers}
+                  currentUser={{ id: user?.id ?? '', name: user?.name ?? '', email: user?.email ?? '' }}
+                />
+              </React.Suspense>
+            )}
 
             {/* Footer Actions */}
             <DialogFooter className="flex-col sm:flex-row gap-2">

@@ -522,20 +522,96 @@ class WorkflowAutomationService {
   }
 
   private evaluateUserActionCondition(
-    _condition: TriggerCondition,
-    _message: Message,
+    condition: TriggerCondition,
+    message: Message,
     _context: WorkflowContext
   ): boolean {
-    // Implement user action evaluation logic
-    return false; // Placeholder
+    const target = String(condition.value);
+
+    switch (condition.field) {
+      case 'content':
+        return this.compareString(message.content, condition.operator, target);
+      case 'author_role':
+        return this.compareString(
+          (message as unknown as Record<string, unknown>).authorRole as string ?? '',
+          condition.operator,
+          target
+        );
+      case 'author_id':
+        return this.compareString(message.author.id, condition.operator, target);
+      case 'type':
+        return this.compareString(
+          (message as unknown as Record<string, unknown>).type as string ?? 'text',
+          condition.operator,
+          target
+        );
+      default:
+        return false;
+    }
   }
 
   private evaluateConversationStateCondition(
-    _condition: TriggerCondition,
-    _context: WorkflowContext
+    condition: TriggerCondition,
+    context: WorkflowContext
   ): boolean {
-    // Implement conversation state evaluation logic
-    return false; // Placeholder
+    switch (condition.field) {
+      case 'participant_count':
+        return this.compareNumeric(
+          context.conversation.participants?.length ?? 0,
+          condition.operator,
+          Number(condition.value)
+        );
+      case 'unread_count':
+        return this.compareNumeric(
+          (context.conversation as unknown as Record<string, unknown>).unreadCount as number ?? 0,
+          condition.operator,
+          Number(condition.value)
+        );
+      case 'message_count':
+        return this.compareNumeric(
+          context.recentMessages.length,
+          condition.operator,
+          Number(condition.value)
+        );
+      case 'status':
+        return this.compareString(
+          (context.conversation as unknown as Record<string, unknown>).status as string ?? 'active',
+          condition.operator,
+          String(condition.value)
+        );
+      default:
+        return false;
+    }
+  }
+
+  private compareNumeric(actual: number, operator: string, target: number): boolean {
+    switch (operator) {
+      case 'equals':
+        return actual === target;
+      case 'greater_than':
+        return actual > target;
+      case 'less_than':
+        return actual < target;
+      default:
+        return false;
+    }
+  }
+
+  private compareString(actual: string, operator: string, target: string): boolean {
+    switch (operator) {
+      case 'equals':
+        return actual === target;
+      case 'contains':
+        return actual.toLowerCase().includes(target.toLowerCase());
+      case 'matches_regex':
+        try {
+          return new RegExp(target, 'i').test(actual);
+        } catch {
+          return false;
+        }
+      default:
+        return false;
+    }
   }
 
   private async executeTriggerActions(

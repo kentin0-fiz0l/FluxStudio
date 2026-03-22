@@ -27,6 +27,8 @@ import {
   generateSpiral,
   generateStagger,
   generateFaceToPoint,
+  generateSequentialPush,
+  generateFollow,
   type MorphMethod,
 } from '../../services/movementTools';
 
@@ -60,6 +62,8 @@ const TOOLS: ToolDefinition[] = [
   { id: 'face-to-point', name: 'Face to Point', icon: <Target className="w-4 h-4" />, category: 'rotations', description: 'All face a target point' },
   { id: 'spiral', name: 'Spiral', icon: <Waves className="w-4 h-4" />, category: 'special', description: 'Arrange in spiral pattern' },
   { id: 'stagger', name: 'Stagger', icon: <Grid3x3 className="w-4 h-4" />, category: 'special', description: 'Alternating row/column offset' },
+  { id: 'sequential-push', name: 'Sequential Push', icon: <ListOrdered className="w-4 h-4" />, category: 'sequential', description: 'Performers move one by one in order' },
+  { id: 'follow-the-leader', name: 'Follow the Leader', icon: <Repeat className="w-4 h-4" />, category: 'sequential', description: 'Followers trace the leader\'s path' },
 ];
 
 const CATEGORIES: { id: ToolCategory; label: string; icon: React.ReactNode }[] = [
@@ -97,6 +101,11 @@ export const MovementToolsPanel: React.FC<MovementToolsPanelProps> = ({
   const [staggerOffsetX, setStaggerOffsetX] = useState(3);
   const [staggerOffsetY, setStaggerOffsetY] = useState(0);
   const [morphMethod, setMorphMethod] = useState<MorphMethod>('proximity');
+  const [pushDirection, setPushDirection] = useState(0);
+  const [pushDelay, setPushDelay] = useState(2);
+  const [pushDistance, setPushDistance] = useState(20);
+  const [totalCounts, setTotalCounts] = useState(32);
+  const [followerDelay, setFollowerDelay] = useState(4);
 
   const positions = selectedPositions.length > 0 ? selectedPositions : allPositions;
   const performerIds = selectedPerformerIds;
@@ -126,6 +135,29 @@ export const MovementToolsPanel: React.FC<MovementToolsPanelProps> = ({
       case 'stagger':
         result = generateStagger(positions, staggerOffsetX, staggerOffsetY);
         break;
+      case 'sequential-push': {
+        const frames = generateSequentialPush(
+          positions,
+          { direction: pushDirection, delayPerPerformer: pushDelay, distance: pushDistance },
+          totalCounts,
+        );
+        // Preview the final frame
+        result = frames.get(totalCounts) ?? positions;
+        break;
+      }
+      case 'follow-the-leader': {
+        // Use first performer's position as a simple straight-line leader path
+        const leaderStart = positions[0] ?? { x: 50, y: 50 };
+        const leaderEnd = { x: leaderStart.x + pushDistance, y: leaderStart.y };
+        const pathSteps = totalCounts + 1;
+        const leaderPath = Array.from({ length: pathSteps }, (_, i) => {
+          const t = i / Math.max(1, pathSteps - 1);
+          return { x: leaderStart.x + (leaderEnd.x - leaderStart.x) * t, y: leaderStart.y + (leaderEnd.y - leaderStart.y) * t };
+        });
+        const ftlFrames = generateFollow(leaderPath, positions.length - 1, followerDelay, totalCounts);
+        result = ftlFrames.get(totalCounts) ?? positions;
+        break;
+      }
       case 'morph':
         // Morph requires a target set — for now preview just shows current
         result = positions;
@@ -133,7 +165,7 @@ export const MovementToolsPanel: React.FC<MovementToolsPanelProps> = ({
     }
 
     setPreviewPositions(result);
-  }, [selectedTool, positions, pivotY, gateAngle, gatePivotX, gatePivotY, targetX, targetY, spiralTurns, spiralRadius, staggerOffsetX, staggerOffsetY]);
+  }, [selectedTool, positions, pivotY, gateAngle, gatePivotX, gatePivotY, targetX, targetY, spiralTurns, spiralRadius, staggerOffsetX, staggerOffsetY, pushDirection, pushDelay, pushDistance, totalCounts, followerDelay]);
 
   const handleApply = useCallback(() => {
     if (previewPositions && performerIds.length > 0) {
@@ -236,6 +268,23 @@ export const MovementToolsPanel: React.FC<MovementToolsPanelProps> = ({
             <>
               <ParamSlider label="Offset X" value={staggerOffsetX} min={-10} max={10} onChange={setStaggerOffsetX} />
               <ParamSlider label="Offset Y" value={staggerOffsetY} min={-10} max={10} onChange={setStaggerOffsetY} />
+            </>
+          )}
+
+          {selectedTool === 'sequential-push' && (
+            <>
+              <ParamSlider label="Direction" value={pushDirection} min={0} max={360} unit="°" onChange={setPushDirection} />
+              <ParamSlider label="Delay per Performer" value={pushDelay} min={1} max={8} onChange={setPushDelay} />
+              <ParamSlider label="Distance" value={pushDistance} min={5} max={50} onChange={setPushDistance} />
+              <ParamSlider label="Total Counts" value={totalCounts} min={8} max={64} onChange={setTotalCounts} />
+            </>
+          )}
+
+          {selectedTool === 'follow-the-leader' && (
+            <>
+              <ParamSlider label="Follower Delay" value={followerDelay} min={1} max={8} onChange={setFollowerDelay} />
+              <ParamSlider label="Distance" value={pushDistance} min={5} max={50} onChange={setPushDistance} />
+              <ParamSlider label="Total Counts" value={totalCounts} min={8} max={64} onChange={setTotalCounts} />
             </>
           )}
 

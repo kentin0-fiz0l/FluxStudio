@@ -35,6 +35,8 @@ interface UseCanvasKeyboardHandlersProps {
   // Handlers from useCanvasHandlers
   handleUndo: () => void;
   handleRedo: () => void;
+  /** When true, Ctrl+Z/Ctrl+Shift+Z are handled by the unified undo system and should be skipped here */
+  unifiedUndoActive?: boolean;
   handleDeleteSelected: () => void;
   handleCopy: () => void;
   handlePaste: () => void;
@@ -61,6 +63,7 @@ export function useCanvasKeyboardHandlers({
   setShowShortcutsDialog,
   handleUndo,
   handleRedo,
+  unifiedUndoActive,
   handleDeleteSelected,
   handleCopy,
   handlePaste,
@@ -190,12 +193,12 @@ export function useCanvasKeyboardHandlers({
         setZoom(z => Math.max(0.5, z - 0.25));
       }
 
-      // Undo / Redo
-      if (bindingMatchesEvent(getBinding('undo'), e)) {
+      // Undo / Redo (skip when unified undo handles its own keyboard events)
+      if (!unifiedUndoActive && bindingMatchesEvent(getBinding('undo'), e)) {
         e.preventDefault();
         handleUndo();
       }
-      if (bindingMatchesEvent(getBinding('redo'), e)) {
+      if (!unifiedUndoActive && bindingMatchesEvent(getBinding('redo'), e)) {
         e.preventDefault();
         handleRedo();
       }
@@ -403,7 +406,7 @@ export function useCanvasKeyboardHandlers({
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, [getBinding, handleSave, playbackState.isPlaying, handlePause, handlePlay, handleUndo, handleRedo, handleCopy, handlePaste, handleDuplicateSelected, handleSelectAll, handleNudge, selectedPerformerIds, formation, currentPositions, setSelectedPerformerIds, handleDeleteSelected, handleDeselectAll, setShowShortcutsDialog, setZoom, setShowAnalysisPanel, setShowMovementTools, setShowCoordinatePanel, setTransformMode, handleKeyframeSelect]);
+  }, [getBinding, handleSave, playbackState.isPlaying, handlePause, handlePlay, handleUndo, handleRedo, unifiedUndoActive, handleCopy, handlePaste, handleDuplicateSelected, handleSelectAll, handleNudge, selectedPerformerIds, formation, currentPositions, setSelectedPerformerIds, handleDeleteSelected, handleDeselectAll, setShowShortcutsDialog, setZoom, setShowAnalysisPanel, setShowMovementTools, setShowCoordinatePanel, setTransformMode, handleKeyframeSelect]);
 
   return {
     contextMenu: { ...contextMenuState, close: closeContextMenu },

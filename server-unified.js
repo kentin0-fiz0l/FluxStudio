@@ -272,6 +272,7 @@ const printingNamespace = io.of('/printing'); // Phase 3A: Real-time printing up
 const designBoardsNamespace = io.of('/design-boards'); // Design boards real-time collaboration
 const metmapCollabNamespace = io.of('/metmap-collab'); // Phase 2.2: MetMap real-time collaboration (Yjs)
 const notificationsNamespace = io.of('/notifications'); // Sprint 44: Real-time notifications
+const webrtcNamespace = io.of('/webrtc'); // WebRTC call signaling
 
 // Store namespaces in app for access in routes
 app.set('io', io);
@@ -279,6 +280,7 @@ app.set('printingNamespace', printingNamespace);
 app.set('designBoardsNamespace', designBoardsNamespace);
 app.set('metmapCollabNamespace', metmapCollabNamespace);
 app.set('notificationsNamespace', notificationsNamespace);
+app.set('webrtcNamespace', webrtcNamespace);
 
 // Google OAuth configuration
 const GOOGLE_CLIENT_ID = config.GOOGLE_CLIENT_ID;
@@ -788,6 +790,7 @@ require('./sockets/printing-socket')(printingNamespace, JWT_SECRET); // Phase 3A
 require('./sockets/design-boards-socket')(designBoardsNamespace, designBoardsAdapter, JWT_SECRET); // Design boards real-time collaboration
 require('./sockets/metmap-collab-socket')(metmapCollabNamespace, metmapAdapter, JWT_SECRET); // Phase 2.2: MetMap real-time collaboration (Yjs)
 require('./sockets/notifications-socket')(notificationsNamespace, JWT_SECRET); // Sprint 44: Real-time notifications
+require('./sockets/webrtc-socket')(webrtcNamespace, JWT_SECRET); // WebRTC call signaling
 
 
 

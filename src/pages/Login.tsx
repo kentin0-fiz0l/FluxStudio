@@ -1,7 +1,7 @@
 import { useState, useRef } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { GoogleOAuthProvider, GoogleLogin } from '@react-oauth/google';
-import { Eye, EyeOff, ShieldCheck } from 'lucide-react';
+import { Eye, EyeOff, ShieldCheck, Apple } from 'lucide-react';
 import { useAuth } from '@/store/slices/authSlice';
 import { apiService } from '@/services/apiService';
 import { SEOHead } from '../components/SEOHead';
@@ -36,7 +36,7 @@ export function Login() {
   const [tempToken, setTempToken] = useState('');
   const [totpCode, setTotpCode] = useState('');
   const totpInputRef = useRef<HTMLInputElement>(null);
-  const { login, loginWithGoogle, loginWithToken } = useAuth();
+  const { login, loginWithGoogle, loginWithApple, loginWithToken } = useAuth();
   const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -102,6 +102,58 @@ export function Login() {
 
   const handleGoogleError = () => {
     setError('Google sign-in failed. Please try again.');
+  };
+
+  const handleAppleSignIn = async () => {
+    setError('');
+    setIsLoading(true);
+    try {
+      // Apple Sign In JS SDK sends identity token via the authorization response
+      // The SDK must be loaded from https://appleid.cdn-apple.com/appleauth/static/jsapi/appleid/1/en_US/appleid.auth.js
+      const AppleID = (window as unknown as Record<string, unknown>).AppleID as {
+        auth: {
+          init: (config: Record<string, string>) => void;
+          signIn: () => Promise<{
+            authorization: { id_token: string; code: string };
+            user?: { name?: { firstName?: string; lastName?: string }; email?: string };
+          }>;
+        };
+      } | undefined;
+
+      if (!AppleID) {
+        setError('Apple Sign-In is not available. Please try another method.');
+        setIsLoading(false);
+        return;
+      }
+
+      AppleID.auth.init({
+        clientId: import.meta.env.VITE_APPLE_CLIENT_ID || '',
+        scope: 'name email',
+        redirectURI: window.location.origin + '/login',
+        usePopup: 'true',
+      });
+
+      const response = await AppleID.auth.signIn();
+      const identityToken = response.authorization.id_token;
+      const appleUser = response.user;
+
+      await loginWithApple(identityToken, appleUser);
+      observability.analytics.track('login_completed', { method: 'apple' });
+      navigate(getPostLoginUrl(callbackUrl));
+    } catch (err) {
+      // User cancelled or Apple auth failed
+      if (err && typeof err === 'object' && 'error' in err) {
+        const appleErr = err as { error: string };
+        if (appleErr.error === 'popup_closed_by_user') {
+          // User cancelled - do nothing
+          setIsLoading(false);
+          return;
+        }
+      }
+      setError(err instanceof Error ? err.message : 'Apple sign-in failed. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -197,6 +249,19 @@ export function Login() {
                   ux_mode="redirect"
                   login_uri={GOOGLE_LOGIN_URI}
                 />
+              </div>
+
+              {/* Apple Sign-In Button */}
+              <div className="mb-4 flex justify-center">
+                <button
+                  type="button"
+                  onClick={handleAppleSignIn}
+                  disabled={isLoading}
+                  className="w-[350px] flex items-center justify-center gap-2 py-2.5 px-4 bg-white hover:bg-gray-100 text-black font-medium rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+                >
+                  <Apple className="w-5 h-5" aria-hidden="true" />
+                  Sign in with Apple
+                </button>
               </div>
 
               {/* Divider */}

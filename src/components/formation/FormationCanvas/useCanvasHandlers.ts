@@ -24,6 +24,7 @@ import {
 } from '../../../utils/drillGeometry';
 import type { AlignmentType, DistributionType } from '../../../utils/drillGeometry';
 import type { ApplyTemplateOptions } from '../../../services/formationTemplates/types';
+import { detectBeatsWithCache } from '../../../services/beatDetection';
 import { defaultColors } from './types';
 import type { useCanvasState } from './useCanvasState';
 
@@ -35,9 +36,13 @@ interface UseCanvasHandlersProps {
   projectId: string;
   onSave?: (formation: Formation) => void;
   sandboxMode: boolean;
+  /** Unified undo callback (from useUnifiedUndoRedo) — used when both formation + MetMap undo managers are active */
+  unifiedUndo?: () => void;
+  /** Unified redo callback (from useUnifiedUndoRedo) — used when both formation + MetMap undo managers are active */
+  unifiedRedo?: () => void;
 }
 
-export function useCanvasHandlers({ state, formationId, projectId, onSave, sandboxMode }: UseCanvasHandlersProps) {
+export function useCanvasHandlers({ state, formationId, projectId, onSave, sandboxMode, unifiedUndo, unifiedRedo }: UseCanvasHandlersProps) {
   const {
     formation, setFormation,
     selectedPerformerIds, setSelectedPerformerIds,
@@ -46,7 +51,7 @@ export function useCanvasHandlers({ state, formationId, projectId, onSave, sandb
     setSaveStatus, setHasUnsavedChanges,
     activeTool,
     snapEnabled,
-    timeDisplayMode, drillSettings,
+    timeDisplayMode, drillSettings, setDrillSettings,
     playbackState, setPlaybackState,
     setGhostTrail,
     isCollaborativeEnabled, collab,
@@ -63,6 +68,7 @@ export function useCanvasHandlers({ state, formationId, projectId, onSave, sandb
     hasUnsavedChanges,
     setShowAudioPanel, setShowTemplatePicker,
     setSnapGuides,
+    setDetectedBeatMap,
   } = state;
 
   // ---- History ----
@@ -90,6 +96,8 @@ export function useCanvasHandlers({ state, formationId, projectId, onSave, sandb
   }, [formation, currentPositions, history, setHasUnsavedChanges]);
 
   const handleUndo = useCallback(() => {
+    // Unified undo takes priority (cross-tool: formation + MetMap)
+    if (unifiedUndo) { unifiedUndo(); return; }
     if (isCollaborativeEnabled && collab.isConnected) { collab.yUndo(); return; }
     const snapshot = history.undo();
     if (snapshot && formation) {
@@ -99,9 +107,11 @@ export function useCanvasHandlers({ state, formationId, projectId, onSave, sandb
       });
       setHasUnsavedChanges(true);
     }
-  }, [history, formation, selectedKeyframeId, isCollaborativeEnabled, collab, setCurrentPositions, setHasUnsavedChanges]);
+  }, [history, formation, selectedKeyframeId, isCollaborativeEnabled, collab, unifiedUndo, setCurrentPositions, setHasUnsavedChanges]);
 
   const handleRedo = useCallback(() => {
+    // Unified redo takes priority (cross-tool: formation + MetMap)
+    if (unifiedRedo) { unifiedRedo(); return; }
     if (isCollaborativeEnabled && collab.isConnected) { collab.yRedo(); return; }
     const snapshot = history.redo();
     if (snapshot && formation) {
@@ -111,7 +121,7 @@ export function useCanvasHandlers({ state, formationId, projectId, onSave, sandb
       });
       setHasUnsavedChanges(true);
     }
-  }, [history, formation, selectedKeyframeId, isCollaborativeEnabled, collab, setCurrentPositions, setHasUnsavedChanges]);
+  }, [history, formation, selectedKeyframeId, isCollaborativeEnabled, collab, unifiedRedo, setCurrentPositions, setHasUnsavedChanges]);
 
   // ---- Auto-save (debounced 3s) ----
 
@@ -483,7 +493,26 @@ export function useCanvasHandlers({ state, formationId, projectId, onSave, sandb
     if (isCollaborativeEnabled && collab.isConnected) collab.setAudioTrack(audioTrack); else setFormation({ ...formation, audioTrack });
     if (audioTrack.duration > playbackState.duration) setPlaybackState(prev => ({ ...prev, duration: audioTrack.duration }));
     setShowAudioPanel(false);
-  }, [formation, playbackState.duration, isCollaborativeEnabled, collab, setFormation, setPlaybackState, setShowAudioPanel]);
+
+    // Auto-detect beats from the uploaded audio
+    try {
+      const response = await fetch(audioTrack.url);
+      const arrayBuffer = await response.arrayBuffer();
+      const audioContext = new AudioContext();
+      const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+      await audioContext.close();
+
+      const beatMap = await detectBeatsWithCache(audioBuffer);
+      setDetectedBeatMap(beatMap);
+
+      // Update drill BPM if none is set yet
+      if (!drillSettings.bpm || drillSettings.bpm === 120) {
+        setDrillSettings(prev => ({ ...prev, bpm: beatMap.bpm }));
+      }
+    } catch (err) {
+      console.warn('Beat detection failed for uploaded audio:', err);
+    }
+  }, [formation, playbackState.duration, isCollaborativeEnabled, collab, setFormation, setPlaybackState, setShowAudioPanel, drillSettings.bpm, setDrillSettings, setDetectedBeatMap]);
 
   const handleAudioRemove = useCallback(async () => {
     if (!formation) return;

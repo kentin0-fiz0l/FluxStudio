@@ -60,14 +60,12 @@ export const SLASH_COMMANDS: SlashCommand[] = [
     label: '/giphy',
     description: 'Search for a GIF',
     icon: Image,
-    isPlaceholder: true,
   },
   {
     id: 'poll',
     label: '/poll',
     description: 'Create a quick poll',
     icon: BarChart3,
-    isPlaceholder: true,
   },
 ];
 

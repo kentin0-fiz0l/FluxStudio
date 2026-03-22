@@ -71,6 +71,85 @@ const SUGGESTIONS = [
 ] as const;
 
 // ============================================================================
+// Autocomplete Hook
+// ============================================================================
+
+function useAutocomplete(performerCount: number) {
+  const [suggestions, setSuggestions] = useState<string[]>([]);
+  const [activeIndex, setActiveIndex] = useState(-1);
+  const [isVisible, setIsVisible] = useState(false);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const abortRef = useRef<AbortController | null>(null);
+
+  const fetchSuggestions = useCallback((partial: string) => {
+    // Clear previous debounce
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    if (abortRef.current) abortRef.current.abort();
+
+    if (partial.trim().length < 2) {
+      setSuggestions([]);
+      setIsVisible(false);
+      setActiveIndex(-1);
+      return;
+    }
+
+    debounceRef.current = setTimeout(async () => {
+      const controller = new AbortController();
+      abortRef.current = controller;
+
+      try {
+        const token = localStorage.getItem('token');
+        if (!token) return;
+
+        const resp = await fetch(buildApiUrl('/ai/drill/autocomplete'), {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            partial: partial.trim(),
+            context: { performerCount },
+          }),
+          signal: controller.signal,
+        });
+
+        if (!resp.ok || controller.signal.aborted) return;
+
+        const data = await resp.json();
+        if (data.success && Array.isArray(data.data?.suggestions) && data.data.suggestions.length > 0) {
+          setSuggestions(data.data.suggestions);
+          setIsVisible(true);
+          setActiveIndex(-1);
+        } else {
+          setSuggestions([]);
+          setIsVisible(false);
+        }
+      } catch {
+        // Ignore abort errors and network failures
+      }
+    }, 300);
+  }, [performerCount]);
+
+  const dismiss = useCallback(() => {
+    setIsVisible(false);
+    setActiveIndex(-1);
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    if (abortRef.current) abortRef.current.abort();
+  }, []);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+      if (abortRef.current) abortRef.current.abort();
+    };
+  }, []);
+
+  return { suggestions, activeIndex, setActiveIndex, isVisible, fetchSuggestions, dismiss };
+}
+
+// ============================================================================
 // Main Component
 // ============================================================================
 
@@ -99,6 +178,7 @@ export function FormationPromptBar({
   const inputRef = useRef<HTMLInputElement>(null);
   const autoTriggeredRef = useRef(false);
   const ghostPreview = useGhostPreview();
+  const autocomplete = useAutocomplete(performers.length);
 
   const hasActivePreview = ghostPreview.activePreview !== null;
   const canGenerate = prompt.trim().length > 0 && performers.length > 0;
@@ -252,8 +332,39 @@ export function FormationPromptBar({
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
+      // Autocomplete navigation
+      if (autocomplete.isVisible && autocomplete.suggestions.length > 0) {
+        if (e.key === 'ArrowDown') {
+          e.preventDefault();
+          autocomplete.setActiveIndex(prev =>
+            prev < autocomplete.suggestions.length - 1 ? prev + 1 : 0
+          );
+          return;
+        }
+        if (e.key === 'ArrowUp') {
+          e.preventDefault();
+          autocomplete.setActiveIndex(prev =>
+            prev > 0 ? prev - 1 : autocomplete.suggestions.length - 1
+          );
+          return;
+        }
+        if ((e.key === 'Tab' || e.key === 'Enter') && autocomplete.activeIndex >= 0) {
+          e.preventDefault();
+          const selected = autocomplete.suggestions[autocomplete.activeIndex];
+          setPrompt(selected);
+          autocomplete.dismiss();
+          return;
+        }
+        if (e.key === 'Escape') {
+          e.preventDefault();
+          autocomplete.dismiss();
+          return;
+        }
+      }
+
       if (e.key === 'Enter' && !e.shiftKey) {
         e.preventDefault();
+        autocomplete.dismiss();
         if (prompt.trim()) saveToHistory(prompt.trim());
         handleGenerate();
       }
@@ -267,7 +378,7 @@ export function FormationPromptBar({
           inputRef.current?.blur();
         }
       }
-      // Command history navigation
+      // Command history navigation (only when autocomplete is not visible)
       if (e.key === 'ArrowUp' && commandHistory.length > 0) {
         e.preventDefault();
         const newIndex = Math.min(historyIndex + 1, commandHistory.length - 1);
@@ -286,7 +397,7 @@ export function FormationPromptBar({
         }
       }
     },
-    [handleGenerate, hasActivePreview, ghostPreview, pendingToolCall, handleToolCallDecision, commandHistory, historyIndex, prompt, saveToHistory],
+    [handleGenerate, hasActivePreview, ghostPreview, pendingToolCall, handleToolCallDecision, commandHistory, historyIndex, prompt, saveToHistory, autocomplete],
   );
 
   const handleSuggestionClick = useCallback(
@@ -419,8 +530,16 @@ export function FormationPromptBar({
             ref={inputRef}
             type="text"
             value={prompt}
-            onChange={(e) => setPrompt(e.target.value)}
+            onChange={(e) => {
+              const val = e.target.value;
+              setPrompt(val);
+              autocomplete.fetchSuggestions(val);
+            }}
             onFocus={() => !hasActivePreview && setShowSuggestions(true)}
+            onBlur={() => {
+              // Delay dismiss so click on autocomplete item can register
+              setTimeout(() => autocomplete.dismiss(), 150);
+            }}
             onKeyDown={handleKeyDown}
             placeholder={
               performers.length === 0
@@ -430,6 +549,10 @@ export function FormationPromptBar({
             disabled={performers.length === 0 || isGenerating}
             className="flex-1 text-sm bg-transparent border-none outline-none text-gray-800 dark:text-gray-200 placeholder-gray-400 disabled:opacity-50"
             aria-label="Formation description"
+            autoComplete="off"
+            role="combobox"
+            aria-expanded={autocomplete.isVisible}
+            aria-activedescendant={autocomplete.activeIndex >= 0 ? `ac-option-${autocomplete.activeIndex}` : undefined}
           />
 
           {error && (
@@ -462,6 +585,42 @@ export function FormationPromptBar({
             </button>
           </div>
         </div>
+
+        {/* AI Autocomplete dropdown */}
+        {autocomplete.isVisible && autocomplete.suggestions.length > 0 && (
+          <div
+            className="absolute left-4 right-4 bottom-full mb-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg z-50 overflow-hidden"
+            role="listbox"
+            aria-label="Autocomplete suggestions"
+          >
+            {autocomplete.suggestions.map((suggestion, i) => (
+              <button
+                key={i}
+                id={`ac-option-${i}`}
+                role="option"
+                aria-selected={i === autocomplete.activeIndex}
+                className={`w-full text-left px-3 py-2 text-sm transition-colors ${
+                  i === autocomplete.activeIndex
+                    ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300'
+                    : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50'
+                }`}
+                onMouseDown={(e) => {
+                  e.preventDefault(); // Prevent blur from firing before click
+                  setPrompt(suggestion);
+                  autocomplete.dismiss();
+                  inputRef.current?.focus();
+                }}
+                onMouseEnter={() => autocomplete.setActiveIndex(i)}
+              >
+                <Sparkles className="w-3 h-3 inline-block mr-2 text-blue-400 opacity-60" aria-hidden="true" />
+                {suggestion}
+              </button>
+            ))}
+            <div className="px-3 py-1 text-[10px] text-gray-400 dark:text-gray-500 border-t border-gray-100 dark:border-gray-700">
+              <kbd className="px-1 py-0.5 bg-gray-100 dark:bg-gray-700 rounded text-[9px] font-mono">Tab</kbd> to accept
+            </div>
+          </div>
+        )}
 
         {/* Pending tool call preview */}
         {pendingToolCall && (

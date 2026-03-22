@@ -505,6 +505,13 @@ export class WorkflowEngine {
   }
 
   /**
+   * Get all registered templates
+   */
+  getTemplates(): WorkflowTemplate[] {
+    return Array.from(this.templates.values());
+  }
+
+  /**
    * Get workflow suggestions based on context
    */
   getWorkflowSuggestions(context: WorkflowContext): WorkflowTemplate[] {

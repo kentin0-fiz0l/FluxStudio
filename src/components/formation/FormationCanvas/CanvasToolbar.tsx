@@ -24,6 +24,8 @@ import {
   GraduationCap,
   BookOpen,
   PieChart,
+  Sparkles,
+  Navigation,
 } from 'lucide-react';
 import { FormationPresencePanel } from '../FormationPresencePanel';
 import { useSyncStatus } from '@/store/slices/offlineSlice';
@@ -141,6 +143,12 @@ interface CanvasToolbarProps {
   // Collaborator activity panel toggle
   showCollabActivity?: boolean;
   setShowCollabActivity?: (show: boolean) => void;
+  // AI Formation Feedback panel toggle
+  showAIFeedback?: boolean;
+  onToggleAIFeedback?: () => void;
+  // Waypoint Editor toggle (visible when 3D fly-through is active)
+  showWaypointEditor?: boolean;
+  setShowWaypointEditor?: (show: boolean) => void;
 }
 
 export const CanvasToolbar: React.FC<CanvasToolbarProps> = React.memo(({
@@ -182,6 +190,8 @@ export const CanvasToolbar: React.FC<CanvasToolbarProps> = React.memo(({
   onShowImportPanel,
   showSectionDashboard, setShowSectionDashboard,
   showCollabActivity, setShowCollabActivity,
+  showAIFeedback, onToggleAIFeedback,
+  showWaypointEditor, setShowWaypointEditor,
 }) => {
   const { t } = useTranslation('common');
   const navigate = useNavigate();
@@ -572,6 +582,18 @@ export const CanvasToolbar: React.FC<CanvasToolbarProps> = React.memo(({
             <Video className="w-4 h-4" aria-hidden="true" />
           </button>
         )}
+        {/* Waypoint Editor toggle (only in 3D mode when fly-through is active) */}
+        {is3DMode && showFlyThrough && setShowWaypointEditor && (
+          <button
+            onClick={() => setShowWaypointEditor(!showWaypointEditor)}
+            className={`p-1.5 min-w-[44px] min-h-[44px] lg:min-w-0 lg:min-h-0 rounded focus-visible:ring-2 focus-visible:ring-blue-500 outline-none ${showWaypointEditor ? 'text-blue-500' : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'}`}
+            title="Waypoint Editor"
+            aria-label="Toggle waypoint editor"
+            aria-pressed={showWaypointEditor}
+          >
+            <Navigation className="w-4 h-4" aria-hidden="true" />
+          </button>
+        )}
         {/* Rehearsal Mode toggle */}
         {setShowRehearsalMode && (
           <button
@@ -582,6 +604,19 @@ export const CanvasToolbar: React.FC<CanvasToolbarProps> = React.memo(({
             aria-pressed={showRehearsalMode}
           >
             <GraduationCap className="w-4 h-4" aria-hidden="true" />
+          </button>
+        )}
+
+        {/* AI Formation Feedback toggle (ai_collaborative feature flag) */}
+        {aiCollaborativeEnabled && onToggleAIFeedback && (
+          <button
+            onClick={onToggleAIFeedback}
+            className={`p-1.5 min-w-[44px] min-h-[44px] lg:min-w-0 lg:min-h-0 rounded focus-visible:ring-2 focus-visible:ring-blue-500 outline-none ${showAIFeedback ? 'text-blue-500' : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'}`}
+            title="AI Formation Feedback"
+            aria-label="Toggle AI formation feedback panel"
+            aria-pressed={!!showAIFeedback}
+          >
+            <Sparkles className="w-4 h-4" aria-hidden="true" />
           </button>
         )}
 

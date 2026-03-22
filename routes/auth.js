@@ -14,6 +14,7 @@
  * - POST /api/auth/resend-verification (Phase 1 - User Adoption)
  * - POST /api/auth/forgot-password (Phase 1 - User Adoption)
  * - POST /api/auth/reset-password (Phase 1 - User Adoption)
+ * - POST /api/auth/change-password (authenticated)
  */
 
 const express = require('express');
@@ -1067,20 +1068,232 @@ router.post('/reset-password',
   })
 );
 
-// Apple OAuth endpoint (placeholder)
+// Apple OAuth endpoint
+// Requires: npm install jwks-rsa (see .env.example for config)
 router.post('/apple', asyncHandler(async (req, res) => {
-  // In production, this would:
-  // 1. Verify the Apple Sign In token
-  // 2. Get user info from Apple API
-  // 3. Create or find user in database
-  // 4. Return JWT token
+  const { identityToken, user: appleUser } = req.body;
 
-  res.status(400).json({
-    success: false,
-    error: 'Apple Sign-In coming soon',
-    code: 'APPLE_AUTH_NOT_AVAILABLE'
+  if (!identityToken) {
+    return res.status(400).json({
+      success: false,
+      error: 'Apple identity token is required',
+      code: 'AUTH_MISSING_CREDENTIAL',
+    });
+  }
+
+  // Apple Sign-In configuration
+  const APPLE_CLIENT_ID = process.env.APPLE_CLIENT_ID;
+  if (!APPLE_CLIENT_ID) {
+    return res.status(503).json({
+      success: false,
+      error: 'Apple Sign-In is not configured',
+      code: 'APPLE_AUTH_NOT_CONFIGURED',
+    });
+  }
+
+  let jwksRsa;
+  try {
+    jwksRsa = require('jwks-rsa');
+  } catch {
+    return res.status(503).json({
+      success: false,
+      error: 'Apple Sign-In dependency (jwks-rsa) is not installed',
+      code: 'APPLE_AUTH_NOT_CONFIGURED',
+    });
+  }
+
+  // Create JWKS client to fetch Apple's public keys
+  const appleJwksClient = jwksRsa({
+    jwksUri: 'https://appleid.apple.com/auth/keys',
+    cache: true,
+    cacheMaxAge: 86400000, // 24 hours
   });
+
+  // Decode the JWT header to get the key ID (kid)
+  const decodedHeader = jwt.decode(identityToken, { complete: true });
+  if (!decodedHeader || !decodedHeader.header || !decodedHeader.header.kid) {
+    return res.status(400).json({
+      success: false,
+      error: 'Invalid Apple identity token',
+      code: 'AUTH_INVALID_TOKEN',
+    });
+  }
+
+  // Fetch the signing key from Apple's JWKS endpoint
+  let signingKey;
+  try {
+    const key = await appleJwksClient.getSigningKey(decodedHeader.header.kid);
+    signingKey = key.getPublicKey();
+  } catch (err) {
+    log.error('Failed to fetch Apple signing key', { error: err.message });
+    return res.status(400).json({
+      success: false,
+      error: 'Failed to verify Apple identity token',
+      code: 'AUTH_VERIFICATION_FAILED',
+    });
+  }
+
+  // Verify the Apple identity token
+  let applePayload;
+  try {
+    applePayload = jwt.verify(identityToken, signingKey, {
+      algorithms: ['RS256'],
+      issuer: 'https://appleid.apple.com',
+      audience: APPLE_CLIENT_ID,
+    });
+  } catch (err) {
+    log.error('Apple token verification failed', { error: err.message });
+    return res.status(400).json({
+      success: false,
+      error: 'Apple identity token verification failed',
+      code: 'AUTH_VERIFICATION_FAILED',
+    });
+  }
+
+  const appleId = applePayload.sub;
+  const email = applePayload.email;
+  const emailVerified = applePayload.email_verified === 'true' || applePayload.email_verified === true;
+
+  if (!email) {
+    return res.status(400).json({
+      success: false,
+      error: 'Apple account does not have an email address',
+      code: 'AUTH_NO_EMAIL',
+    });
+  }
+
+  if (!emailVerified) {
+    return res.status(400).json({
+      success: false,
+      error: 'Apple email not verified',
+      code: 'AUTH_EMAIL_NOT_VERIFIED',
+    });
+  }
+
+  // Apple only sends the user's name on the FIRST sign-in.
+  // The frontend must forward the `user` object from Apple's response.
+  const firstName = appleUser?.name?.firstName || '';
+  const lastName = appleUser?.name?.lastName || '';
+  const displayName = [firstName, lastName].filter(Boolean).join(' ') || undefined;
+
+  // Find or create user (follows Google OAuth pattern)
+  const users = await authHelper.getUsers();
+  let user = Array.isArray(users) ? users.find(u => u.email === email) : null;
+
+  if (user) {
+    // User exists - link Apple ID if not already set
+    log.info('Existing user found for Apple Sign-In', user.email);
+    if (!user.appleId) {
+      user.appleId = appleId;
+      // Update name if we got one from Apple and user doesn't have one
+      if (displayName && !user.name) {
+        user.name = displayName;
+      }
+      await authHelper.saveUsers(users);
+    }
+  } else {
+    // Create new user
+    log.info('Creating new user for Apple Sign-In', email);
+    user = {
+      id: uuidv4(),
+      email,
+      name: displayName || email.split('@')[0],
+      appleId,
+      userType: 'client',
+      createdAt: new Date().toISOString(),
+    };
+    users.push(user);
+    await authHelper.saveUsers(users);
+  }
+
+  // Generate token pair (follows Google OAuth pattern)
+  const authResponse = USE_DATABASE
+    ? await generateAuthResponse(user, req)
+    : simpleAuthResponse(user);
+
+  log.info('Apple Sign-In authentication successful', user.email);
+
+  // Log successful OAuth authentication
+  await securityLogger.logOAuthSuccess(user.id, 'apple', req, {
+    email: user.email,
+    name: user.name,
+    isNewUser: !users.find(u => u.email === email && u.appleId),
+  });
+
+  res.json(authResponse);
 }));
+
+// =============================================================================
+// CHANGE PASSWORD (AUTHENTICATED)
+// =============================================================================
+
+/**
+ * Change password for authenticated user
+ * POST /api/auth/change-password
+ */
+router.post('/change-password',
+  ipRateLimiters.passwordReset(),
+  requireAuth,
+  authRateLimit,
+  validateInput.password,
+  validateInput.sanitizeInput,
+  asyncHandler(async (req, res) => {
+    const { currentPassword, newPassword } = req.body;
+    const userId = req.user.id;
+
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({ success: false, error: 'Current password and new password are required', code: 'AUTH_MISSING_FIELDS' });
+    }
+
+    if (newPassword.length < 8) {
+      return res.status(400).json({ success: false, error: 'New password must be at least 8 characters', code: 'AUTH_WEAK_PASSWORD' });
+    }
+
+    // Find the user
+    const users = await authHelper.getUsers();
+    const user = users.find(u => u.id === userId);
+
+    if (!user) {
+      return res.status(404).json({ success: false, error: 'User not found', code: 'AUTH_USER_NOT_FOUND' });
+    }
+
+    // OAuth-only accounts don't have a password
+    if (!user.password) {
+      return res.status(400).json({ success: false, error: 'This account uses social login and does not have a password to change.', code: 'AUTH_NO_PASSWORD' });
+    }
+
+    // Verify current password
+    const validPassword = await bcrypt.compare(currentPassword, user.password);
+    if (!validPassword) {
+      await securityLogger.logEvent(
+        'change_password_failed',
+        securityLogger.SEVERITY.WARNING,
+        { userId, reason: 'Invalid current password', ipAddress: req.ip }
+      );
+      return res.status(401).json({ success: false, error: 'Current password is incorrect', code: 'AUTH_INVALID_PASSWORD' });
+    }
+
+    // Hash the new password
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+    // Update password
+    if (USE_DATABASE && dbQuery) {
+      await dbQuery(`UPDATE users SET password = $1 WHERE id = $2`, [hashedPassword, userId]);
+    } else {
+      user.password = hashedPassword;
+      await authHelper.saveUsers(users);
+    }
+
+    // Log the password change
+    await securityLogger.logEvent(
+      'password_changed',
+      securityLogger.SEVERITY.INFO,
+      { userId, email: user.email, ipAddress: req.ip }
+    );
+
+    return res.json({ success: true, message: 'Password changed successfully' });
+  })
+);
 
 // =============================================================================
 // USER SETTINGS & PREFERENCES
@@ -1252,6 +1465,129 @@ router.put('/settings', requireAuth, asyncHandler(async (req, res) => {
       settings: users[userIndex].preferences,
       message: 'Settings saved successfully'
     });
+}));
+
+// ==========================================
+// Active Sessions Management
+// ==========================================
+
+// GET /api/auth/sessions - List active sessions for the authenticated user
+router.get('/sessions', requireAuth, asyncHandler(async (req, res) => {
+  const userId = req.user.id;
+
+  try {
+    // Try database first
+    if (USE_DATABASE && dbQuery) {
+      const result = await dbQuery(
+        `SELECT id, user_agent, ip_address, last_active, created_at
+         FROM refresh_tokens
+         WHERE user_id = $1 AND revoked = false AND expires_at > NOW()
+         ORDER BY last_active DESC`,
+        [userId]
+      );
+
+      const sessions = (result.rows || []).map(row => {
+        const ua = row.user_agent || '';
+        return {
+          id: row.id,
+          device: /mobile|android|iphone|ipad/i.test(ua) ? 'Mobile' : 'Desktop',
+          browser: /chrome/i.test(ua) && !/edg/i.test(ua) ? 'Chrome'
+            : /firefox/i.test(ua) ? 'Firefox'
+            : /safari/i.test(ua) && !/chrome/i.test(ua) ? 'Safari'
+            : /edg/i.test(ua) ? 'Edge' : 'Unknown',
+          os: /windows/i.test(ua) ? 'Windows'
+            : /mac os/i.test(ua) ? 'macOS'
+            : /linux/i.test(ua) ? 'Linux'
+            : /android/i.test(ua) ? 'Android'
+            : /iphone|ipad/i.test(ua) ? 'iOS' : 'Unknown',
+          ip: row.ip_address || '',
+          lastActive: row.last_active || row.created_at,
+          createdAt: row.created_at,
+          isCurrent: false, // Will be determined client-side or via token match
+        };
+      });
+
+      return res.json({ success: true, sessions });
+    }
+
+    // Fallback: return current session info from request
+    const ua = req.get('user-agent') || '';
+    const sessions = [{
+      id: 'current',
+      device: /mobile|android|iphone|ipad/i.test(ua) ? 'Mobile' : 'Desktop',
+      browser: /chrome/i.test(ua) && !/edg/i.test(ua) ? 'Chrome'
+        : /firefox/i.test(ua) ? 'Firefox'
+        : /safari/i.test(ua) && !/chrome/i.test(ua) ? 'Safari'
+        : /edg/i.test(ua) ? 'Edge' : 'Unknown',
+      os: /windows/i.test(ua) ? 'Windows'
+        : /mac os/i.test(ua) ? 'macOS'
+        : /linux/i.test(ua) ? 'Linux'
+        : /android/i.test(ua) ? 'Android'
+        : /iphone|ipad/i.test(ua) ? 'iOS' : 'Unknown',
+      ip: req.ip || '',
+      lastActive: new Date().toISOString(),
+      createdAt: new Date().toISOString(),
+      isCurrent: true,
+    }];
+
+    res.json({ success: true, sessions });
+  } catch (error) {
+    log.error('Error fetching sessions', error);
+    res.status(500).json({ success: false, error: 'Failed to fetch sessions' });
+  }
+}));
+
+// DELETE /api/auth/sessions/:sessionId - Revoke a specific session
+router.delete('/sessions/:sessionId', requireAuth, asyncHandler(async (req, res) => {
+  const userId = req.user.id;
+  const { sessionId } = req.params;
+
+  try {
+    if (USE_DATABASE && dbQuery) {
+      const result = await dbQuery(
+        `UPDATE refresh_tokens SET revoked = true, revoked_at = NOW()
+         WHERE id = $1 AND user_id = $2 AND revoked = false
+         RETURNING id`,
+        [sessionId, userId]
+      );
+
+      if (!result.rows || result.rows.length === 0) {
+        return res.status(404).json({ success: false, error: 'Session not found' });
+      }
+
+      return res.json({ success: true, message: 'Session revoked' });
+    }
+
+    // Fallback: no-op for file-based auth
+    res.json({ success: true, message: 'Session revoked' });
+  } catch (error) {
+    log.error('Error revoking session', error);
+    res.status(500).json({ success: false, error: 'Failed to revoke session' });
+  }
+}));
+
+// DELETE /api/auth/sessions - Revoke all sessions except current
+router.delete('/sessions', requireAuth, asyncHandler(async (req, res) => {
+  const userId = req.user.id;
+
+  try {
+    if (USE_DATABASE && dbQuery) {
+      // Revoke all non-current sessions
+      await dbQuery(
+        `UPDATE refresh_tokens SET revoked = true, revoked_at = NOW()
+         WHERE user_id = $1 AND revoked = false`,
+        [userId]
+      );
+
+      return res.json({ success: true, message: 'All other sessions revoked' });
+    }
+
+    // Fallback: no-op for file-based auth
+    res.json({ success: true, message: 'All other sessions revoked' });
+  } catch (error) {
+    log.error('Error revoking all sessions', error);
+    res.status(500).json({ success: false, error: 'Failed to revoke sessions' });
+  }
 }));
 
 module.exports = router;

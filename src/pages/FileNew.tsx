@@ -31,6 +31,10 @@ import { FileToolbar } from '../components/files/FileToolbar';
 import { FileFilters, FileStatsBar, FileErrorBar, FileUploadProgress } from '../components/files/FileMetadata';
 import { FileViewer } from '../components/files/FileViewer';
 
+const EnhancedFileUpload = React.lazy(() =>
+  import('../components/ai/EnhancedFileUpload').then(m => ({ default: m.EnhancedFileUpload }))
+);
+
 type ViewMode = 'grid' | 'list';
 
 // File type icons
@@ -299,13 +303,24 @@ export function FileNew() {
 
         {/* Upload Dialog */}
         <Dialog open={showUploadDialog} onOpenChange={setShowUploadDialog}>
-          <DialogContent>
+          <DialogContent className="max-w-2xl">
             <DialogHeader><DialogTitle>Upload Files</DialogTitle></DialogHeader>
-            <div className={cn('border-2 border-dashed rounded-lg p-12 text-center transition-colors', 'border-neutral-300 hover:border-primary-500')}>
-              <Upload className="h-12 w-12 text-neutral-400 mx-auto mb-4" aria-hidden="true" />
-              <p className="text-neutral-600 mb-4">Drag and drop files here, or click to select</p>
-              <Button variant="outline" onClick={() => fileInputRef.current?.click()}>Choose Files</Button>
-            </div>
+            <React.Suspense fallback={
+              <div className={cn('border-2 border-dashed rounded-lg p-12 text-center transition-colors', 'border-neutral-300 hover:border-primary-500')}>
+                <Upload className="h-12 w-12 text-neutral-400 mx-auto mb-4" aria-hidden="true" />
+                <p className="text-neutral-600 mb-4">Loading enhanced uploader...</p>
+              </div>
+            }>
+              <EnhancedFileUpload
+                onUpload={async (files) => {
+                  await handleUpload(files);
+                }}
+                maxFiles={10}
+                maxSize={50}
+                enableAIAnalysis
+                showInsights
+              />
+            </React.Suspense>
             <div className="flex justify-end gap-3 pt-4"><Button variant="ghost" onClick={() => setShowUploadDialog(false)}>Cancel</Button></div>
           </DialogContent>
         </Dialog>

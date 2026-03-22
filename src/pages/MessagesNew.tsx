@@ -5,7 +5,7 @@
  * and the useMessagesPageState hook for all state management.
  */
 
-import { lazy, Suspense } from 'react';
+import { lazy, Suspense, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { DashboardLayout } from '@/components/templates';
 import { Button, Card } from '@/components/ui';
@@ -42,6 +42,8 @@ import {
   MessageListView,
   ConversationOptionsMenu,
 } from '../components/messaging';
+import type { SlashCommand } from '../components/messaging/SlashCommandMenu';
+import type { PollData } from '../components/messaging/PollCreateDialog';
 import { useMessagesPageState } from '../hooks/messaging/useMessagesPageState';
 
 // Lazy-load conditionally rendered panels to reduce page-messages chunk size
@@ -57,6 +59,12 @@ const ConversationSummary = lazy(() =>
 const ConversationInfoPanel = lazy(() =>
   import('../components/messaging/ConversationInfoPanel').then(m => ({ default: m.ConversationInfoPanel }))
 );
+const GiphySearchDialog = lazy(() =>
+  import('../components/messaging/GiphySearchDialog').then(m => ({ default: m.GiphySearchDialog }))
+);
+const PollCreateDialog = lazy(() =>
+  import('../components/messaging/PollCreateDialog').then(m => ({ default: m.PollCreateDialog }))
+);
 
 function MessagesNew() {
   const navigate = useNavigate();
@@ -70,6 +78,34 @@ function MessagesNew() {
   const handleViewInFiles = (assetId: string) => {
     navigate(`/assets?highlight=${assetId}`);
   };
+
+  // Slash command dialog state
+  const [showGiphyDialog, setShowGiphyDialog] = useState(false);
+  const [showPollDialog, setShowPollDialog] = useState(false);
+
+  const handleSlashCommand = useCallback((command: SlashCommand) => {
+    switch (command.id) {
+      case 'giphy':
+        setShowGiphyDialog(true);
+        break;
+      case 'poll':
+        setShowPollDialog(true);
+        break;
+    }
+  }, []);
+
+  const handleGiphySelect = useCallback((gifUrl: string) => {
+    // Send the GIF URL as a message
+    state.handleInputChange(gifUrl);
+    setTimeout(() => state.handleSendMessage(), 0);
+  }, [state]);
+
+  const handleCreatePoll = useCallback((poll: PollData) => {
+    // Format poll as a structured message
+    const pollText = `📊 **Poll: ${poll.question}**\n${poll.options.map((opt, i) => `${i + 1}. ${opt}`).join('\n')}`;
+    state.handleInputChange(pollText);
+    setTimeout(() => state.handleSendMessage(), 0);
+  }, [state]);
 
   return (
     <DashboardLayout
@@ -186,6 +222,8 @@ function MessagesNew() {
                 showSummary={state.isSummaryPanelOpen}
                 onToggleSummary={() => state.setIsSummaryPanelOpen(!state.isSummaryPanelOpen)}
                 onMoreOptions={() => state.setIsOptionsMenuOpen(!state.isOptionsMenuOpen)}
+                userId={state.user?.id}
+                userName={state.user?.name}
                 moreOptionsSlot={
                   <ConversationOptionsMenu
                     conversation={state.selectedConversation}
@@ -289,6 +327,7 @@ function MessagesNew() {
                   pendingAttachments={state.pendingAttachments}
                   onRemoveAttachment={state.handleRemoveAttachment}
                   onSendVoice={state.handleSendVoice}
+                  onSlashCommand={handleSlashCommand}
                 />
               </div>
             </>
@@ -381,6 +420,24 @@ function MessagesNew() {
         onCancel={state.handleCancelForward}
         onConfirm={state.handleConfirmForward}
       />
+
+      {/* Giphy Search Dialog */}
+      <Suspense fallback={null}>
+        <GiphySearchDialog
+          open={showGiphyDialog}
+          onOpenChange={setShowGiphyDialog}
+          onSelect={handleGiphySelect}
+        />
+      </Suspense>
+
+      {/* Poll Create Dialog */}
+      <Suspense fallback={null}>
+        <PollCreateDialog
+          open={showPollDialog}
+          onOpenChange={setShowPollDialog}
+          onCreatePoll={handleCreatePoll}
+        />
+      </Suspense>
     </DashboardLayout>
   );
 }

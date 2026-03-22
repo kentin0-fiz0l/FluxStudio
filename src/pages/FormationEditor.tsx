@@ -35,6 +35,7 @@ import type { ComposedPrimitive } from '../services/scene3d/types';
 import { ProductTour, type TourStep } from '@/components/onboarding/ProductTour';
 import { openShortcutsDialog } from '@/components/ui/KeyboardShortcutsDialog';
 import { CollaborationStatusIndicator } from '@/components/formation/CollaborationStatusIndicator';
+import { FormationCollaborationProvider } from '@/contexts/FormationCollaborationContext';
 import { useWebSocket } from '@/hooks/useWebSocket';
 import { UsageLimitNudge } from '@/components/UsageLimitNudge';
 import { Layout, Clock, Wrench, Sparkles, Play } from 'lucide-react';
@@ -365,6 +366,12 @@ export default function FormationEditor() {
 
   return (
     <DashboardLayout>
+      <FormationCollaborationProvider
+        projectId={projectId}
+        formationId={formationId ?? ''}
+        enabled={!!formationId}
+        onFormationUpdate={(f) => handleSave(f as unknown as Formation)}
+      >
       <div className="h-full flex flex-col">
         {/* Header with breadcrumb and view toggle */}
         <div className="flex items-center gap-4 p-4 border-b border-gray-200 dark:border-gray-700">
@@ -596,6 +603,7 @@ export default function FormationEditor() {
         isActive={showTour}
         onComplete={handleTourComplete}
       />
+      </FormationCollaborationProvider>
     </DashboardLayout>
   );
 }

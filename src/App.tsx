@@ -44,6 +44,7 @@ import { useAuth, useAuthInit } from '@/store/slices/authSlice';
 import { useFeatureFlag } from './hooks/useFeatureFlag';
 import { FEATURE_FLAGS } from './constants/featureFlags';
 import { AssetsProvider } from './contexts/AssetsContext';
+import { AICoPilotProvider } from './components/ai/AICoPilotProvider';
 
 // All pages lazy loaded for smaller initial bundle
 // SimpleHomePage kept as backup -- replaced by LandingPage
@@ -70,6 +71,10 @@ const { Component: MessagesNew, preload: preloadMessagesNew } = lazyLoadWithRetr
 const { Component: Tools } = lazyLoadWithRetry(() => import('./pages/Tools'));
 const { Component: ToolsMetMap } = lazyLoadWithRetry(() => import('./pages/ToolsMetMap'));
 const { Component: DesignBoardPage } = lazyLoadWithRetry(() => import('./pages/DesignBoardPage'));
+const { Component: AIDesignAssistant } = lazyLoadWithRetry(() => import('./components/ai/DesignAssistant'));
+
+// Sessions management page
+const { Component: SessionsManagement } = lazyLoadWithRetry(() => import('./pages/settings/SessionsManagement'));
 
 // Lazy load non-critical pages and components
 const { Component: Signup } = lazyLoadWithRetry(() => import('./pages/Signup'));
@@ -264,6 +269,7 @@ function IdlePrefetcher() {
 function AuthenticatedRoutes() {
   return (
     <RootProviders>
+      <AICoPilotProvider>
       {/* Idle-time prefetcher for common routes */}
       <IdlePrefetcher />
       {/* Project Context Bar - shows when a project is focused */}
@@ -354,6 +360,7 @@ function AuthenticatedRoutes() {
                   <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
                   <Route path="/settings" element={<ProtectedRoute><Suspense fallback={<SettingsSkeleton />}><Settings /></Suspense></ProtectedRoute>} />
                   <Route path="/settings/privacy" element={<ProtectedRoute><PrivacySettings /></ProtectedRoute>} />
+                  <Route path="/settings/sessions" element={<ProtectedRoute><Suspense fallback={<DefaultLoadingFallback message="Loading sessions..." />}><SessionsManagement /></Suspense></ProtectedRoute>} />
                   <Route path="/search" element={<ProtectedRoute><SearchResults /></ProtectedRoute>} />
                   <Route path="/connectors" element={<ProtectedRoute><ConnectorsErrorBoundary><Connectors /></ConnectorsErrorBoundary></ProtectedRoute>} />
                   <Route path="/plugins" element={<ProtectedRoute><Suspense fallback={<DefaultLoadingFallback message="Loading plugins..." />}><PluginManagerPage /></Suspense></ProtectedRoute>} />
@@ -368,6 +375,7 @@ function AuthenticatedRoutes() {
                   <Route path="/admin/sso" element={<ProtectedRoute><AdminErrorBoundary><SSOSettings /></AdminErrorBoundary></ProtectedRoute>} />
                   <Route path="/tools" element={<ProtectedRoute><ToolsErrorBoundary><Tools /></ToolsErrorBoundary></ProtectedRoute>} />
                   <Route path="/tools/metmap" element={<ProtectedRoute><ToolsErrorBoundary><ToolsMetMap /></ToolsErrorBoundary></ProtectedRoute>} />
+                  <Route path="/tools/ai-design" element={<ProtectedRoute><ToolsErrorBoundary><Suspense fallback={<DefaultLoadingFallback message="Loading AI Design Assistant..." />}><AIDesignAssistant /></Suspense></ToolsErrorBoundary></ProtectedRoute>} />
                   {/* /tools/files and /tools/assets now redirect to /projects (consolidated) */}
 
                   {/* ================================================
@@ -442,6 +450,7 @@ function AuthenticatedRoutes() {
       </AuthOnly>
       {/* SW Update Banner */}
       <UpdateBanner />
+      </AICoPilotProvider>
     </RootProviders>
   );
 }

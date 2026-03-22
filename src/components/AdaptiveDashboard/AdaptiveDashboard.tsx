@@ -12,6 +12,7 @@ import { IntegratedActivityFeed } from '../IntegratedActivityFeed';
 
 const DraggableWidgetGrid = lazy(() => import('../widgets/DraggableWidgetGrid').then(m => ({ default: m.DraggableWidgetGrid })));
 const AIWorkflowAssistant = lazy(() => import('../workflows/AIWorkflowAssistant').then(m => ({ default: m.AIWorkflowAssistant })));
+const WorkflowTemplateBrowser = lazy(() => import('../workflows/WorkflowTemplateBrowser'));
 import { GettingStartedCard } from '../common/GettingStartedCard';
 import { useFirstTimeExperience } from '../../hooks/useFirstTimeExperience';
 import { useProjects } from '../../hooks/project/useProjects';
@@ -139,7 +140,7 @@ export function AdaptiveDashboard() {
                       </TabsContent>
 
                       <TabsContent value="workflows" className="mt-6">
-                        <p className="text-sm text-neutral-500">Workflow templates coming soon.</p>
+                        <WorkflowTemplateBrowser />
                       </TabsContent>
 
                       <TabsContent value="assistant" className="mt-6">
@@ -185,7 +186,7 @@ export function AdaptiveDashboard() {
                   </TabsContent>
 
                   <TabsContent value="workflows" className="mt-6">
-                    <p className="text-sm text-neutral-500">Workflow templates coming soon.</p>
+                    <WorkflowTemplateBrowser />
                   </TabsContent>
 
                   <TabsContent value="assistant" className="mt-6">

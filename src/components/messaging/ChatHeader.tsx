@@ -9,6 +9,7 @@
  * Extracted from MessagesNew.tsx for Phase 4.2 Technical Debt Resolution
  */
 
+import { useState, lazy, Suspense } from 'react';
 import {
   ArrowLeft,
   Search,
@@ -20,8 +21,10 @@ import {
 } from 'lucide-react';
 import { ChatAvatar as Avatar } from './ChatMessageBubble';
 import { ConversationHeaderPresence } from './PresenceIndicator';
-import { toast } from '@/lib/toast';
 import type { Conversation } from './types';
+
+const VoiceCall = lazy(() => import('../communication/VoiceCall'));
+const VideoCallComponent = lazy(() => import('../communication/VideoCall'));
 
 export interface ChatHeaderProps {
   /** The selected conversation */
@@ -46,6 +49,10 @@ export interface ChatHeaderProps {
   onMoreOptions?: () => void;
   /** Optional slot to render a dropdown/menu anchored to the MoreVertical button */
   moreOptionsSlot?: React.ReactNode;
+  /** Current user ID for call initiation */
+  userId?: string;
+  /** Current user display name for call initiation */
+  userName?: string;
 }
 
 export function ChatHeader({
@@ -60,8 +67,55 @@ export function ChatHeader({
   onToggleSummary,
   onMoreOptions,
   moreOptionsSlot,
+  userId,
+  userName,
 }: ChatHeaderProps) {
+  const [showVoiceCall, setShowVoiceCall] = useState(false);
+  const [showVideoCall, setShowVideoCall] = useState(false);
+  const [activeCallId, setActiveCallId] = useState<string | null>(null);
+
+  const participantIds = conversation.participants?.map(p => p.id).filter(id => id !== userId) ?? [conversation.participant.id];
+
+  const handleStartVoiceCall = () => {
+    setActiveCallId(crypto.randomUUID());
+    setShowVoiceCall(true);
+  };
+
+  const handleStartVideoCall = () => {
+    setActiveCallId(crypto.randomUUID());
+    setShowVideoCall(true);
+  };
+
   return (
+    <>
+    {showVoiceCall && activeCallId && userId && (
+      <Suspense fallback={null}>
+        <VoiceCall
+          callId={activeCallId}
+          userId={userId}
+          userName={userName || 'You'}
+          participantIds={participantIds}
+          onClose={() => {
+            setShowVoiceCall(false);
+            setActiveCallId(null);
+          }}
+        />
+      </Suspense>
+    )}
+    {showVideoCall && activeCallId && userId && (
+      <Suspense fallback={null}>
+        <VideoCallComponent
+          callId={activeCallId}
+          userId={userId}
+          userName={userName || 'You'}
+          participantIds={participantIds}
+          onClose={() => {
+            setShowVideoCall(false);
+            setActiveCallId(null);
+          }}
+        />
+      </Suspense>
+    )}
     <div className="p-4 border-b border-neutral-200 dark:border-neutral-700 flex items-center justify-between bg-white dark:bg-neutral-900">
       <div className="flex items-center gap-3 min-w-0 flex-1">
         <button
@@ -94,14 +148,14 @@ export function ChatHeader({
           <Search className={`w-5 h-5 ${showMessageSearch ? 'text-primary-600' : 'text-neutral-600 dark:text-neutral-400'}`} />
         </button>
         <button
-          onClick={() => toast.info('Voice calls coming soon')}
+          onClick={handleStartVoiceCall}
           className="p-2 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-lg"
           title="Voice call"
         >
           <Phone className="w-5 h-5 text-neutral-600 dark:text-neutral-400" aria-hidden="true" />
         </button>
         <button
-          onClick={() => toast.info('Video calls coming soon')}
+          onClick={handleStartVideoCall}
           className="p-2 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-lg"
           title="Video call"
         >
@@ -133,6 +187,7 @@ export function ChatHeader({
         </div>
       </div>
     </div>
+    </>
   );
 }
 
