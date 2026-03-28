@@ -3,7 +3,8 @@
  */
 
 // React import not needed with JSX transform
-import { X, Trash2, Archive, FolderInput, Tag } from 'lucide-react';
+import { useState } from 'react';
+import { X, Trash2, Archive, FolderInput, Tag, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
@@ -14,8 +15,16 @@ interface BulkActionBarProps {
   onArchive?: () => void;
   onMove?: () => void;
   onTag?: () => void;
+  onStatusChange?: (status: string) => void;
   className?: string;
 }
+
+const STATUS_OPTIONS = [
+  { value: 'active', label: 'Active' },
+  { value: 'paused', label: 'Paused' },
+  { value: 'completed', label: 'Completed' },
+  { value: 'archived', label: 'Archived' },
+];
 
 export function BulkActionBar({
   selectedCount,
@@ -24,8 +33,11 @@ export function BulkActionBar({
   onArchive,
   onMove,
   onTag,
+  onStatusChange,
   className,
 }: BulkActionBarProps) {
+  const [showStatusSelect, setShowStatusSelect] = useState(false);
+
   if (selectedCount === 0) return null;
 
   return (
@@ -51,6 +63,37 @@ export function BulkActionBar({
 
       {/* Actions */}
       <div className="flex items-center gap-2">
+        {onStatusChange && (
+          <div className="relative">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setShowStatusSelect(!showStatusSelect)}
+              className="text-white dark:text-neutral-900 hover:bg-neutral-800 dark:hover:bg-neutral-200"
+              aria-label="Change status of selected items"
+            >
+              <RefreshCw className="w-4 h-4 mr-2" aria-hidden="true" />
+              Status
+            </Button>
+            {showStatusSelect && (
+              <div className="absolute bottom-full mb-2 left-0 bg-white dark:bg-neutral-800 rounded-lg shadow-lg border border-neutral-200 dark:border-neutral-700 py-1 min-w-[140px]">
+                {STATUS_OPTIONS.map((opt) => (
+                  <button
+                    key={opt.value}
+                    onClick={() => {
+                      onStatusChange(opt.value);
+                      setShowStatusSelect(false);
+                    }}
+                    className="w-full text-left px-3 py-2 text-sm text-neutral-900 dark:text-neutral-100 hover:bg-neutral-100 dark:hover:bg-neutral-700"
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
         {onMove && (
           <Button
             variant="ghost"

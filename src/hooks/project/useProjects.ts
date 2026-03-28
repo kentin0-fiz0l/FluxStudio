@@ -84,7 +84,15 @@ function isNetworkError(error: unknown): boolean {
   return false;
 }
 
-export function useProjects() {
+export interface ProjectFilters {
+  search?: string;
+  status?: string;
+  teamId?: string;
+  startDate?: string;
+  endDate?: string;
+}
+
+export function useProjects(filters?: ProjectFilters) {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const queueAction = useStore((s) => s.offline.queueAction);
@@ -96,9 +104,17 @@ export function useProjects() {
     error: queryError,
     refetch,
   } = useQuery<Project[], Error>({
-    queryKey: queryKeys.projects.all,
+    queryKey: [...queryKeys.projects.all, filters],
     queryFn: async () => {
-      const response = await apiService.get<{ projects: Project[] }>('/projects');
+      const params = new URLSearchParams();
+      if (filters?.search) params.set('search', filters.search);
+      if (filters?.status) params.set('status', filters.status);
+      if (filters?.teamId) params.set('teamId', filters.teamId);
+      if (filters?.startDate) params.set('startDate', filters.startDate);
+      if (filters?.endDate) params.set('endDate', filters.endDate);
+      const qs = params.toString();
+      const url = qs ? `/projects?${qs}` : '/projects';
+      const response = await apiService.get<{ projects: Project[] }>(url);
 
       if (!response.success) {
         throw new Error(response.error || 'Failed to fetch projects');

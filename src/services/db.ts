@@ -47,6 +47,11 @@ export interface OfflineConflict {
   resolved: boolean;
 }
 
+export interface FailedMutation extends PendingMutation {
+  lastError: string;
+  failedAt: number;
+}
+
 export interface CachedProject {
   id: string;
   data: unknown;
@@ -87,6 +92,7 @@ export class FluxDB extends Dexie {
   conversations!: Table<CachedConversation, string>;
   messages!: Table<CachedMessage, string>;
   formations!: Table<CachedFormation, string>;
+  failedMutations!: Table<FailedMutation, string>;
 
   constructor() {
     super('fluxstudio-db');
@@ -108,6 +114,17 @@ export class FluxDB extends Dexie {
       conversations: 'id, updatedAt',
       messages: 'id, conversationId, updatedAt',
       formations: 'id, projectId, updatedAt, dirty',
+    });
+
+    this.version(3).stores({
+      cache: 'key, timestamp, expiresAt',
+      pendingMutations: 'id, timestamp, type, priority',
+      conflicts: 'id, entityType, entityId, timestamp',
+      projects: 'id, updatedAt',
+      conversations: 'id, updatedAt',
+      messages: 'id, conversationId, updatedAt',
+      formations: 'id, projectId, updatedAt, dirty',
+      failedMutations: 'id, timestamp, type, lastError, failedAt',
     });
   }
 }

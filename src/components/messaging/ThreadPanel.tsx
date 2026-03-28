@@ -36,6 +36,7 @@ interface ThreadPanelProps {
   isLoading?: boolean;
   onClose: () => void;
   onReply: (text: string) => Promise<void>;
+  onMarkThreadRead?: (messageId: string) => void;
   currentUserId?: string;
   className?: string;
 }
@@ -222,11 +223,19 @@ export function ThreadPanel({
   isLoading = false,
   onClose,
   onReply,
+  onMarkThreadRead,
   currentUserId,
   className,
 }: ThreadPanelProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [showFirstTimeHint, setShowFirstTimeHint] = useState(getInitialHintState);
+
+  // Mark thread as read when panel opens
+  useEffect(() => {
+    if (rootMessage?.id && onMarkThreadRead) {
+      onMarkThreadRead(rootMessage.id);
+    }
+  }, [rootMessage?.id, onMarkThreadRead]);
 
   // Dismiss the hint
   const dismissHint = () => {

@@ -15,6 +15,7 @@ import type { Notification } from '@/store/slices/notificationSlice';
 import { messagingSocketService } from '@/services/messagingSocketService';
 import { useAuth } from '@/store/slices/authSlice';
 import { showLocalNotification } from '@/utils/pushNotifications';
+import { announceToScreenReader } from '@/utils/accessibility';
 
 interface RealtimeNotificationsProps {
   enabled?: boolean;
@@ -101,6 +102,11 @@ export function RealtimeNotifications({
   const handleUnreadCountUpdate = useCallback(
     ({ count }: { count: number }) => {
       dispatch({ type: 'SET_UNREAD_COUNT', payload: count });
+      if (count > 0) {
+        announceToScreenReader(
+          `${count} unread notification${count === 1 ? '' : 's'}`
+        );
+      }
     },
     [dispatch]
   );

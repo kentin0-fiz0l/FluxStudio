@@ -2,6 +2,7 @@ import React from 'react';
 import { ProjectCard } from '../molecules';
 import { Target, FolderOpen } from 'lucide-react';
 import { EmptyState, emptyStateConfigs } from '../common/EmptyState';
+import { useLazyLoad, useStableCallback } from '../../hooks/usePerformance';
 import { Project } from '../../hooks/project/useProjects';
 
 type ViewMode = 'grid' | 'list';
@@ -17,6 +18,62 @@ const mapProjectStatus = (status: Project['status']): CardStatus => {
   };
   return statusMap[status];
 };
+
+/** Lazy-loaded project card wrapper: renders a placeholder until the card scrolls into view */
+function LazyProjectCard({
+  project,
+  viewMode,
+  selectedProjects,
+  onSelectProject,
+  onViewProject,
+  onEditProject,
+  onFocusProject,
+  isProjectFocused,
+}: {
+  project: Project;
+  viewMode: ViewMode;
+  selectedProjects: Set<string>;
+  onSelectProject: (projectId: string, selected: boolean) => void;
+  onViewProject: (project: Project) => void;
+  onEditProject: (project: Project) => void;
+  onFocusProject: (project: Project) => void;
+  isProjectFocused: (projectId: string) => boolean;
+}) {
+  const [lazyRef, isVisible] = useLazyLoad({ rootMargin: '100px' });
+
+  return (
+    <div ref={lazyRef} key={project.id} className="relative group">
+      {isVisible ? (
+        <>
+          <div className="absolute top-3 left-3 z-10">
+            <input
+              type="checkbox"
+              checked={selectedProjects.has(project.id)}
+              onChange={(e) => onSelectProject(project.id, e.target.checked)}
+              onClick={(e) => e.stopPropagation()}
+              className="w-5 h-5 rounded border-neutral-300 dark:border-neutral-600 text-primary-600 focus:ring-primary-500 focus:ring-offset-0 cursor-pointer"
+              aria-label={`Select ${project.name}`}
+            />
+          </div>
+          <ProjectCard
+            project={{ ...project, status: mapProjectStatus(project.status) }}
+            variant={viewMode === 'list' ? 'compact' : 'default'}
+            showActions
+            showProgress
+            showTeam
+            showTags
+            onView={() => onViewProject(project)}
+            onEdit={() => onEditProject(project)}
+            onFocus={() => onFocusProject(project)}
+            isFocused={isProjectFocused(project.id)}
+          />
+        </>
+      ) : (
+        <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 rounded-xl p-5 h-48 animate-pulse" />
+      )}
+    </div>
+  );
+}
 
 export interface ProjectsListProps {
   projects: Project[];
@@ -51,6 +108,11 @@ export function ProjectsList({
   onCreateProject,
   projectListRef,
 }: ProjectsListProps) {
+  // Stabilize callbacks to prevent re-renders of lazy-loaded child cards
+  const stableOnSelectProject = useStableCallback(onSelectProject);
+  const stableOnViewProject = useStableCallback(onViewProject);
+  const stableOnEditProject = useStableCallback(onEditProject);
+  const stableOnFocusProject = useStableCallback(onFocusProject);
   if (loading) {
     return (
       <div role="status" aria-label="Loading projects" className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -123,31 +185,17 @@ export function ProjectsList({
       }
     >
       {projects.map((project) => (
-        <div key={project.id} className="relative group">
-          <div className="absolute top-3 left-3 z-10">
-            <input
-              type="checkbox"
-              checked={selectedProjects.has(project.id)}
-              onChange={(e) => onSelectProject(project.id, e.target.checked)}
-              onClick={(e) => e.stopPropagation()}
-              className="w-5 h-5 rounded border-neutral-300 dark:border-neutral-600 text-primary-600 focus:ring-primary-500 focus:ring-offset-0 cursor-pointer"
-              aria-label={`Select ${project.name}`}
-            />
-          </div>
-
-          <ProjectCard
-            project={{ ...project, status: mapProjectStatus(project.status) }}
-            variant={viewMode === 'list' ? 'compact' : 'default'}
-            showActions
-            showProgress
-            showTeam
-            showTags
-            onView={() => onViewProject(project)}
-            onEdit={() => onEditProject(project)}
-            onFocus={() => onFocusProject(project)}
-            isFocused={isProjectFocused(project.id)}
-          />
-        </div>
+        <LazyProjectCard
+          key={project.id}
+          project={project}
+          viewMode={viewMode}
+          selectedProjects={selectedProjects}
+          onSelectProject={stableOnSelectProject}
+          onViewProject={stableOnViewProject}
+          onEditProject={stableOnEditProject}
+          onFocusProject={stableOnFocusProject}
+          isProjectFocused={isProjectFocused}
+        />
       ))}
     </div>
   );

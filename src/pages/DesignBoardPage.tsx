@@ -29,8 +29,8 @@ import {
   Unlock,
   ZoomIn,
   ZoomOut,
-  Users,
 } from 'lucide-react';
+import { PresenceIndicator } from '@/components/collaboration';
 
 // Node type configurations
 const NODE_TYPES = {
@@ -596,10 +596,12 @@ export default function DesignBoardPage() {
           <div className="flex items-center gap-2">
             {/* Collaborators */}
             {collaborators.length > 0 && (
-              <div className="flex items-center gap-1 mr-2">
-                <Users className="w-4 h-4 text-gray-400" aria-hidden="true" />
-                <span className="text-sm text-gray-600">{collaborators.length}</span>
-              </div>
+              <PresenceIndicator
+                roomId={boardId}
+                roomType="canvas"
+                className="mr-2"
+                maxDisplay={4}
+              />
             )}
 
             {/* Add node buttons */}

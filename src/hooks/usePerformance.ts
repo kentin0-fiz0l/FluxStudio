@@ -17,7 +17,8 @@ import { useDebouncedCallback } from 'use-debounce';
  * but always calls the latest version of the callback.
  * Useful for event handlers that are passed to memoized children.
  */
-export function useStableCallback<T extends (...args: unknown[]) => unknown>(
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function useStableCallback<T extends (...args: any[]) => any>(
   callback: T
 ): T {
   const callbackRef = useRef(callback);

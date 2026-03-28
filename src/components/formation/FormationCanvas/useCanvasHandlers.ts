@@ -428,7 +428,8 @@ export function useCanvasHandlers({ state, formationId, projectId, onSave, sandb
   const handleKeyframeSelect = useCallback((keyframeId: string) => {
     setSelectedKeyframeId(keyframeId);
     if (formation) { const kf = formation.keyframes.find((k) => k.id === keyframeId); if (kf) setCurrentPositions(new Map(kf.positions)); }
-  }, [formation, setSelectedKeyframeId, setCurrentPositions]);
+    if (isCollaborativeEnabled && collab.isConnected) collab.setActiveKeyframe(keyframeId);
+  }, [formation, setSelectedKeyframeId, setCurrentPositions, isCollaborativeEnabled, collab]);
 
   const handleKeyframeAdd = useCallback((timestamp: number) => {
     if (!formation) return;

@@ -27,7 +27,7 @@ export function registerSW() {
   cleanupStaleCaches();
 
   try {
-    wb = new Workbox('/sw.js');
+    wb = new Workbox('/sw-custom.js');
 
     wb.addEventListener('waiting', () => {
       onUpdateAvailable?.();
@@ -49,16 +49,25 @@ export function applyUpdate() {
 
 /**
  * Remove old cache buckets left behind by previous SW versions.
- * The current SW uses v4-0 caches; anything else is stale.
+ * The new Workbox-managed SW uses: workbox-precache, api-cache, image-cache, font-cache.
+ * Delete any legacy v3/v4 manual caches.
  */
 function cleanupStaleCaches() {
   if (!('caches' in window)) return;
 
-  const CURRENT_PREFIXES = ['fluxstudio-v4-0', 'fluxstudio-static-v4-0', 'fluxstudio-api-v4-0'];
+  const KNOWN_CACHES = [
+    'workbox-precache',
+    'api-cache',
+    'image-cache',
+    'font-cache',
+    'fluxstudio-runtime',
+  ];
 
   caches.keys().then((names) => {
     for (const name of names) {
-      if (!CURRENT_PREFIXES.includes(name)) {
+      // Keep Workbox-managed caches and known runtime caches
+      const isKnown = KNOWN_CACHES.some(prefix => name.startsWith(prefix));
+      if (!isKnown) {
         caches.delete(name).catch(() => {});
       }
     }

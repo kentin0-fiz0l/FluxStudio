@@ -10,11 +10,15 @@
  * Extracted from MessagesNew.tsx for Phase 4.2 Technical Debt Resolution
  */
 
-import * as React from 'react';
-import { forwardRef, useImperativeHandle, useRef } from 'react';
+import { forwardRef, useImperativeHandle, useRef, useMemo, useCallback } from 'react';
+import { Virtuoso, type VirtuosoHandle } from 'react-virtuoso';
 import { MessageCircle } from 'lucide-react';
 import { ChatMessageBubble as MessageBubble } from './ChatMessageBubble';
 import type { Message } from './types';
+
+type FlatItem =
+  | { type: 'date'; date: Date }
+  | { type: 'message'; message: Message; isGrouped: boolean };
 
 export interface MessageListViewProps {
   messages: Message[];
@@ -46,6 +50,7 @@ export interface MessageListViewProps {
 export interface MessageListViewRef {
   scrollToEnd: () => void;
   container: HTMLDivElement | null;
+  scrollToMessage?: (messageId: string) => void;
 }
 
 // Date separator helper
@@ -128,12 +133,112 @@ export const MessageListView = forwardRef<MessageListViewRef, MessageListViewPro
     ref
   ) {
     const containerRef = useRef<HTMLDivElement>(null);
-    const endRef = useRef<HTMLDivElement>(null);
+    const virtuosoRef = useRef<VirtuosoHandle>(null);
+
+    // Pre-compute flat items array interleaving date separators with messages
+    const flatItems = useMemo<FlatItem[]>(() => {
+      const items: FlatItem[] = [];
+      for (let i = 0; i < messages.length; i++) {
+        const message = messages[i];
+        const prevMessage = messages[i - 1];
+        const showDateSeparator =
+          !prevMessage ||
+          message.timestamp.toDateString() !== prevMessage.timestamp.toDateString();
+        const isGrouped =
+          !!prevMessage &&
+          prevMessage.author.id === message.author.id &&
+          message.timestamp.getTime() - prevMessage.timestamp.getTime() < 60000;
+
+        if (showDateSeparator) {
+          items.push({ type: 'date', date: message.timestamp });
+        }
+        items.push({ type: 'message', message, isGrouped: showDateSeparator ? false : isGrouped });
+      }
+      return items;
+    }, [messages]);
 
     useImperativeHandle(ref, () => ({
-      scrollToEnd: () => endRef.current?.scrollIntoView({ behavior: 'smooth' }),
+      scrollToEnd: () => {
+        virtuosoRef.current?.scrollToIndex({
+          index: flatItems.length - 1,
+          behavior: 'smooth',
+        });
+      },
       container: containerRef.current,
+      scrollToMessage: (messageId: string) => {
+        const index = flatItems.findIndex(
+          (item) => item.type === 'message' && item.message.id === messageId
+        );
+        if (index !== -1) {
+          virtuosoRef.current?.scrollToIndex({
+            index,
+            align: 'center',
+            behavior: 'smooth',
+          });
+        }
+      },
     }));
+
+    const itemContent = useCallback(
+      (index: number) => {
+        const item = flatItems[index];
+        if (!item) return null;
+
+        if (item.type === 'date') {
+          return <DateSeparator date={item.date} />;
+        }
+
+        const message = item.message;
+        const parentMessage = message.replyTo?.id
+          ? messageById.get(message.replyTo.id)
+          : undefined;
+
+        const enrichedMessage =
+          parentMessage && message.replyTo
+            ? {
+                ...message,
+                replyTo: {
+                  id: parentMessage.id,
+                  content: parentMessage.content,
+                  author: parentMessage.author,
+                },
+              }
+            : message;
+
+        return (
+          <MessageBubble
+            message={enrichedMessage}
+            onReply={() => onReply(message)}
+            onEdit={() => onEdit(message)}
+            onDelete={() => onDelete(message.id)}
+            onPin={() => onPin(message.id)}
+            onCopy={() => onCopy(message.id)}
+            onJumpToMessage={onJumpToMessage}
+            onForward={() => onForward(message)}
+            onReact={(emoji) => onReact(message.id, emoji)}
+            onOpenThread={() => onOpenThread(message.id)}
+            onViewInFiles={onViewInFiles}
+            isGrouped={item.isGrouped}
+            currentUserId={currentUserId || ''}
+            isPinned={pinnedMessageIds.includes(message.id)}
+            isHighlighted={
+              highlightedMessageId === message.id ||
+              threadHighlightId === message.id
+            }
+            isEditing={editingMessageId === message.id}
+            editingDraft={editingMessageId === message.id ? editingDraft : ''}
+            onChangeEditingDraft={onChangeEditingDraft}
+            onSubmitEdit={onSubmitEdit}
+            onCancelEdit={onCancelEdit}
+            readBy={enrichedMessage.readBy}
+          />
+        );
+      },
+      [flatItems, messageById, currentUserId, pinnedMessageIds, highlightedMessageId,
+       threadHighlightId, editingMessageId, editingDraft, onReply, onEdit, onDelete,
+       onPin, onCopy, onJumpToMessage, onForward, onReact, onOpenThread, onViewInFiles,
+       onChangeEditingDraft, onSubmitEdit, onCancelEdit]
+    );
 
     if (messages.length === 0) {
       return (
@@ -153,72 +258,18 @@ export const MessageListView = forwardRef<MessageListViewRef, MessageListViewPro
     }
 
     return (
-      <div ref={containerRef} className="flex-1 overflow-y-auto py-4">
-        {messages.map((message, index) => {
-          const prevMessage = messages[index - 1];
-          const showDateSeparator =
-            !prevMessage ||
-            message.timestamp.toDateString() !== prevMessage.timestamp.toDateString();
-          const isGrouped =
-            prevMessage &&
-            prevMessage.author.id === message.author.id &&
-            message.timestamp.getTime() - prevMessage.timestamp.getTime() < 60000;
+      <div ref={containerRef} className="flex-1 flex flex-col">
+        <Virtuoso
+          ref={virtuosoRef}
+          totalCount={flatItems.length}
+          itemContent={itemContent}
+          initialTopMostItemIndex={flatItems.length - 1}
+          followOutput="smooth"
+          className="flex-1"
+        />
 
-          // Look up parent message for reply threading
-          const parentMessage = message.replyTo?.id
-            ? messageById.get(message.replyTo.id)
-            : undefined;
-
-          // Enrich message with parent data if available
-          const enrichedMessage =
-            parentMessage && message.replyTo
-              ? {
-                  ...message,
-                  replyTo: {
-                    id: parentMessage.id,
-                    content: parentMessage.content,
-                    author: parentMessage.author,
-                  },
-                }
-              : message;
-
-          return (
-            <React.Fragment key={message.id}>
-              {showDateSeparator && <DateSeparator date={message.timestamp} />}
-              <MessageBubble
-                message={enrichedMessage}
-                onReply={() => onReply(message)}
-                onEdit={() => onEdit(message)}
-                onDelete={() => onDelete(message.id)}
-                onPin={() => onPin(message.id)}
-                onCopy={() => onCopy(message.id)}
-                onJumpToMessage={onJumpToMessage}
-                onForward={() => onForward(message)}
-                onReact={(emoji) => onReact(message.id, emoji)}
-                onOpenThread={() => onOpenThread(message.id)}
-                onViewInFiles={onViewInFiles}
-                isGrouped={isGrouped}
-                currentUserId={currentUserId || ''}
-                isPinned={pinnedMessageIds.includes(message.id)}
-                isHighlighted={
-                  highlightedMessageId === message.id ||
-                  threadHighlightId === message.id
-                }
-                isEditing={editingMessageId === message.id}
-                editingDraft={editingMessageId === message.id ? editingDraft : ''}
-                onChangeEditingDraft={onChangeEditingDraft}
-                onSubmitEdit={onSubmitEdit}
-                onCancelEdit={onCancelEdit}
-                readBy={enrichedMessage.readBy}
-              />
-            </React.Fragment>
-          );
-        })}
-
-        {/* Typing indicator */}
+        {/* Typing indicator stays outside virtualized list */}
         {typingUserNames.length > 0 && <TypingIndicator users={typingUserNames} />}
-
-        <div ref={endRef} />
       </div>
     );
   }

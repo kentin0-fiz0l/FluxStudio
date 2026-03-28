@@ -229,6 +229,9 @@ export const ConversationItem = React.memo(function ConversationItem({ conversat
                   <span className="text-xs text-neutral-500 dark:text-neutral-400">
                     {conversation.lastMessage && formatTime(conversation.lastMessage.timestamp)}
                   </span>
+                  {conversation.threadUnreadCount != null && conversation.threadUnreadCount > 0 && (
+                    <span className="inline-flex items-center justify-center w-2 h-2 rounded-full bg-indigo-500" title={`${conversation.threadUnreadCount} unread thread replies`} />
+                  )}
                   {conversation.unreadCount > 0 && (
                     <Badge variant="solidPrimary" size="sm" className="animate-pulse min-w-[20px] justify-center">
                       {conversation.unreadCount > 99 ? '99+' : conversation.unreadCount}

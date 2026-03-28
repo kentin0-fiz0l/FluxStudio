@@ -102,8 +102,10 @@ export interface Message {
   isForwarded?: boolean;
   voiceMessage?: VoiceMessage;
   threadReplyCount?: number;
+  threadUnreadCount?: number;
   threadRootMessageId?: string | null;
   threadLastReplyAt?: Date;
+  threadLastReplierAvatar?: string;
   readBy?: Array<{ id: string; name: string; avatar?: string }>;
 }
 
@@ -121,6 +123,7 @@ export interface Conversation {
   isMuted?: boolean;
   isTyping?: boolean;
   typingUsers?: string[];
+  threadUnreadCount?: number;
   projectId?: string | null;
   projectName?: string | null;
 }

@@ -72,10 +72,53 @@ export function usePWA(): UsePWAReturn {
           if (response.ok) {
             await db.pendingMutations.delete(item.id);
             success++;
+          } else if (response.status === 409) {
+            // Conflict — move to conflicts table for user resolution
+            try {
+              const serverData = await response.json();
+              await db.conflicts.put({
+                id: `conflict-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+                entityType: item.type,
+                entityId: item.id,
+                localData: item.payload,
+                serverData: serverData.data ?? serverData,
+                timestamp: Date.now(),
+                resolved: false,
+              });
+            } catch { /* ignore parse errors */ }
+            await db.pendingMutations.delete(item.id);
+            failed++;
           } else {
+            // Other failure — increment retry count with backoff
+            const newRetryCount = (item.retryCount || 0) + 1;
+            if (newRetryCount >= (item.maxRetries || 5)) {
+              // Move to failed mutations
+              await db.failedMutations.put({
+                ...item,
+                retryCount: newRetryCount,
+                lastError: `HTTP ${response.status}: ${response.statusText}`,
+                failedAt: Date.now(),
+              });
+              await db.pendingMutations.delete(item.id);
+            } else {
+              await db.pendingMutations.update(item.id, { retryCount: newRetryCount });
+            }
             failed++;
           }
         } catch {
+          // Network error — increment retry
+          const newRetryCount = (item.retryCount || 0) + 1;
+          if (newRetryCount >= (item.maxRetries || 5)) {
+            await db.failedMutations.put({
+              ...item,
+              retryCount: newRetryCount,
+              lastError: 'Network error',
+              failedAt: Date.now(),
+            });
+            await db.pendingMutations.delete(item.id);
+          } else {
+            await db.pendingMutations.update(item.id, { retryCount: newRetryCount });
+          }
           failed++;
         }
       }

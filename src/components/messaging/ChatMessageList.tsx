@@ -4,11 +4,20 @@
  * message grouping, typing indicators, and scroll management
  */
 
-import React, { useRef, useEffect, useMemo, useCallback, forwardRef, useImperativeHandle } from 'react';
-import { MessageCircle, Pin, Check, CheckCheck, Clock, AlertCircle, Play, Pause } from 'lucide-react';
+import React, { useRef, useEffect, useMemo, useCallback, forwardRef, useImperativeHandle, useState } from 'react';
+import { Virtuoso, type VirtuosoHandle } from 'react-virtuoso';
+import { MessageCircle, Pin, Check, CheckCheck, Clock, AlertCircle, Play, Pause, AlertTriangle, CheckSquare } from 'lucide-react';
 import { ChatAvatar } from './ChatMessageBubble';
+import { messageIntelligenceService, type MessageAnalysis } from '@/services/messageIntelligenceService';
+import { useMemoizedArray, useStableCallback } from '@/hooks/usePerformance';
+import { announceToScreenReader } from '@/utils/accessibility';
 import type { Message } from './types';
 import type { VoiceMessage } from './types';
+import type { Message as ServiceMessage, Conversation as ServiceConversation } from '@/types/messaging';
+
+type FlatItem =
+  | { type: 'date'; date: Date }
+  | { type: 'message'; message: Message; isGrouped: boolean };
 
 // ============================================================================
 // Helper Components
@@ -148,6 +157,7 @@ interface MessageBubbleWrapperProps {
   isHighlighted: boolean;
   isEditing: boolean;
   editingDraft: string;
+  analysis?: MessageAnalysis | null;
 }
 
 const MessageBubbleWrapper = React.memo(function MessageBubbleWrapper({
@@ -159,6 +169,7 @@ const MessageBubbleWrapper = React.memo(function MessageBubbleWrapper({
   isHighlighted,
   isEditing,
   editingDraft,
+  analysis,
 }: MessageBubbleWrapperProps) {
   const onReply = useCallback(() => handlers.onReply(message), [handlers, message]);
   const onEdit = useCallback(() => handlers.onEdit(message), [handlers, message]);
@@ -172,6 +183,10 @@ const MessageBubbleWrapper = React.memo(function MessageBubbleWrapper({
   const onCancelEdit = handlers.onCancelEdit;
   const isOwn = message.author.id === currentUserId;
 
+  const isUrgent = analysis?.urgency === 'critical' || analysis?.urgency === 'high';
+  const hasActionItems = (analysis?.extractedData?.actionItems?.length ?? 0) > 0;
+  const actionItemCount = analysis?.extractedData?.actionItems?.length ?? 0;
+
   return (
     <div
       data-message-id={message.id}
@@ -179,7 +194,9 @@ const MessageBubbleWrapper = React.memo(function MessageBubbleWrapper({
         isHighlighted ? 'bg-primary-50 dark:bg-primary-900/20 ring-2 ring-primary-500 rounded' : ''
       } ${isOwn ? 'flex justify-end' : ''}`}
     >
-      <div className={`flex gap-3 max-w-[85%] ${isOwn ? 'flex-row-reverse' : ''}`}>
+      <div className={`flex gap-3 max-w-[85%] ${isOwn ? 'flex-row-reverse' : ''} ${
+        isUrgent ? 'border-l-2 border-red-500 pl-2' : ''
+      }`}>
         {!isGrouped && !isOwn && (
           <ChatAvatar user={message.author} size="sm" />
         )}
@@ -302,9 +319,23 @@ const MessageBubbleWrapper = React.memo(function MessageBubbleWrapper({
           {message.threadReplyCount && message.threadReplyCount > 0 && (
             <button
               onClick={onOpenThread}
-              className="mt-1 text-xs text-primary-600 dark:text-primary-400 hover:underline"
+              className={`mt-1 flex items-center gap-1.5 text-xs text-primary-600 dark:text-primary-400 hover:underline ${
+                message.threadUnreadCount && message.threadUnreadCount > 0 ? 'animate-pulse' : ''
+              }`}
             >
-              {message.threadReplyCount} {message.threadReplyCount === 1 ? 'reply' : 'replies'}
+              {message.threadLastReplierAvatar && (
+                <img
+                  src={message.threadLastReplierAvatar}
+                  alt=""
+                  className="w-4 h-4 rounded-full object-cover"
+                />
+              )}
+              <span>{message.threadReplyCount} {message.threadReplyCount === 1 ? 'reply' : 'replies'}</span>
+              {message.threadUnreadCount != null && message.threadUnreadCount > 0 && (
+                <span className="inline-flex items-center justify-center min-w-[16px] h-4 px-1 rounded-full bg-indigo-600 text-white text-[10px] font-medium">
+                  {message.threadUnreadCount}
+                </span>
+              )}
             </button>
           )}
 
@@ -319,6 +350,24 @@ const MessageBubbleWrapper = React.memo(function MessageBubbleWrapper({
                   {reaction.emoji} {reaction.count}
                 </span>
               ))}
+            </div>
+          )}
+
+          {/* Intelligence indicators */}
+          {(isUrgent || hasActionItems) && (
+            <div className="flex flex-wrap gap-1.5 mt-1">
+              {isUrgent && (
+                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400">
+                  <AlertTriangle className="w-3 h-3" aria-hidden="true" />
+                  {analysis?.urgency === 'critical' ? 'Urgent' : 'High priority'}
+                </span>
+              )}
+              {hasActionItems && (
+                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400">
+                  <CheckSquare className="w-3 h-3" aria-hidden="true" />
+                  {actionItemCount} action item{actionItemCount !== 1 ? 's' : ''}
+                </span>
+              )}
             </div>
           )}
         </div>
@@ -387,43 +436,214 @@ export const ChatMessageList = forwardRef<ChatMessageListRef, ChatMessageListPro
     },
     ref
   ) {
-    const messagesEndRef = useRef<HTMLDivElement>(null);
-    const messagesContainerRef = useRef<HTMLDivElement>(null);
+    const virtuosoRef = useRef<VirtuosoHandle>(null);
+
+    // Memoize message array to preserve referential equality when items haven't changed
+    const messageKeyFn = useCallback((m: Message) => m.id, []);
+    const stableMessages = useMemoizedArray(messages, messageKeyFn);
 
     const messageById = useMemo(
-      () => new Map(messages.map((m) => [m.id, m])),
-      [messages]
+      () => new Map(stableMessages.map((m) => [m.id, m])),
+      [stableMessages]
     );
+
+    // Pre-compute flat items array interleaving date separators with messages
+    const flatItems = useMemo<FlatItem[]>(() => {
+      const items: FlatItem[] = [];
+      for (let i = 0; i < stableMessages.length; i++) {
+        const message = stableMessages[i];
+        const prevMessage = stableMessages[i - 1];
+        const showDateSeparator =
+          !prevMessage ||
+          message.timestamp.toDateString() !== prevMessage.timestamp.toDateString();
+        const isGrouped =
+          !!prevMessage &&
+          prevMessage.author.id === message.author.id &&
+          message.timestamp.getTime() - prevMessage.timestamp.getTime() < 60000;
+
+        if (showDateSeparator) {
+          items.push({ type: 'date', date: message.timestamp });
+        }
+        items.push({ type: 'message', message, isGrouped: showDateSeparator ? false : isGrouped });
+      }
+      return items;
+    }, [stableMessages]);
+
+    // Stabilize handler callbacks to prevent unnecessary re-renders of memoized children
+    const stableOnJumpToMessage = useStableCallback(onJumpToMessage);
+    const stableOnChangeEditingDraft = useStableCallback(onChangeEditingDraft);
+    const stableOnSubmitEdit = useStableCallback(onSubmitEdit);
+    const stableOnCancelEdit = useStableCallback(onCancelEdit);
 
     const handlerRefs = useMemo<MessageHandlerRefs>(() => ({
       onReply, onEdit, onDelete, onPin, onCopy, onForward, onReact,
-      onOpenThread, onViewInFiles, onJumpToMessage, onChangeEditingDraft,
-      onSubmitEdit, onCancelEdit,
+      onOpenThread, onViewInFiles, onJumpToMessage: stableOnJumpToMessage,
+      onChangeEditingDraft: stableOnChangeEditingDraft,
+      onSubmitEdit: stableOnSubmitEdit, onCancelEdit: stableOnCancelEdit,
     }), [onReply, onEdit, onDelete, onPin, onCopy, onForward, onReact,
-         onOpenThread, onViewInFiles, onJumpToMessage, onChangeEditingDraft,
-         onSubmitEdit, onCancelEdit]);
+         onOpenThread, onViewInFiles, stableOnJumpToMessage, stableOnChangeEditingDraft,
+         stableOnSubmitEdit, stableOnCancelEdit]);
 
     useImperativeHandle(ref, () => ({
       scrollToBottom: () => {
-        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+        virtuosoRef.current?.scrollToIndex({
+          index: flatItems.length - 1,
+          behavior: 'smooth',
+        });
       },
       scrollToMessage: (messageId: string) => {
-        const messageEl = document.querySelector(`[data-message-id="${messageId}"]`);
-        if (messageEl) {
-          messageEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
-          messageEl.classList.add('ring-2', 'ring-primary-500');
-          setTimeout(() => messageEl.classList.remove('ring-2', 'ring-primary-500'), 2000);
+        const index = flatItems.findIndex(
+          (item) => item.type === 'message' && item.message.id === messageId
+        );
+        if (index !== -1) {
+          virtuosoRef.current?.scrollToIndex({
+            index,
+            align: 'center',
+            behavior: 'smooth',
+          });
+          // Highlight after scroll settles
+          setTimeout(() => {
+            const messageEl = document.querySelector(`[data-message-id="${messageId}"]`);
+            if (messageEl) {
+              messageEl.classList.add('ring-2', 'ring-primary-500');
+              setTimeout(() => messageEl.classList.remove('ring-2', 'ring-primary-500'), 2000);
+            }
+          }, 300);
         }
       },
     }));
 
+    // Message intelligence: analyze last 20 messages for urgency and action items
+    const [analysisMap, setAnalysisMap] = useState<Map<string, MessageAnalysis>>(new Map());
+
+    const recentMessageIds = useMemo(() => {
+      const recent = messages.slice(-20);
+      return recent.map((m) => m.id);
+    }, [messages]);
+
     useEffect(() => {
-      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-    }, [messages.length]);
+      let cancelled = false;
+      const analyzeRecent = async () => {
+        const recent = messages.slice(-20);
+        if (recent.length === 0) return;
+
+        // Build a minimal service-compatible conversation object
+        const stubConversation = {
+          id: '',
+          type: 'direct' as const,
+          name: '',
+          participants: [],
+          metadata: { isArchived: false, isMuted: false, isPinned: false, priority: 'low' as const, tags: [] },
+          lastActivity: new Date(),
+          unreadCount: 0,
+          permissions: { canWrite: true, canAddMembers: false, canArchive: false, canDelete: false },
+          createdBy: { id: '', name: '', userType: 'client' as const },
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        } satisfies ServiceConversation;
+
+        const results = new Map<string, MessageAnalysis>();
+        for (const msg of recent) {
+          // Skip already-analyzed messages
+          if (analysisMap.has(msg.id)) {
+            results.set(msg.id, analysisMap.get(msg.id)!);
+            continue;
+          }
+          try {
+            // Adapt UI message to service message shape
+            const serviceMsg = {
+              id: msg.id,
+              conversationId: '',
+              type: 'text' as const,
+              content: msg.content,
+              author: { ...msg.author, userType: 'client' as const },
+              status: msg.status ?? ('sent' as const),
+              isEdited: msg.isEdited ?? false,
+              createdAt: msg.timestamp,
+              updatedAt: msg.timestamp,
+              attachments: msg.attachments as unknown as ServiceMessage['attachments'],
+            } satisfies ServiceMessage;
+            const analysis = await messageIntelligenceService.analyzeMessage(serviceMsg, stubConversation);
+            if (cancelled) return;
+            results.set(msg.id, analysis);
+          } catch {
+            // Silently skip analysis failures
+          }
+        }
+        if (!cancelled) {
+          setAnalysisMap(results);
+        }
+      };
+      analyzeRecent();
+      return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [recentMessageIds.join(',')]);
+
+    const itemContent = useCallback(
+      (index: number) => {
+        const item = flatItems[index];
+        if (!item) return null;
+
+        if (item.type === 'date') {
+          return <DateSeparator date={item.date} />;
+        }
+
+        const message = item.message;
+        const parentMessage = message.replyTo?.id
+          ? messageById.get(message.replyTo.id)
+          : undefined;
+
+        const enrichedMessage =
+          parentMessage && message.replyTo
+            ? {
+                ...message,
+                replyTo: {
+                  id: parentMessage.id,
+                  content: parentMessage.content,
+                  author: parentMessage.author,
+                },
+              }
+            : message;
+
+        return (
+          <MessageBubbleWrapper
+            message={enrichedMessage}
+            handlers={handlerRefs}
+            isGrouped={item.isGrouped}
+            currentUserId={currentUserId}
+            isPinned={pinnedMessageIds.includes(message.id)}
+            isHighlighted={
+              highlightedMessageId === message.id || threadHighlightId === message.id
+            }
+            isEditing={editingMessageId === message.id}
+            editingDraft={editingMessageId === message.id ? editingDraft : ''}
+            analysis={analysisMap.get(message.id) ?? null}
+          />
+        );
+      },
+      [flatItems, messageById, handlerRefs, currentUserId, pinnedMessageIds, highlightedMessageId, threadHighlightId, editingMessageId, editingDraft, analysisMap]
+    );
+
+    // Announce new messages to screen readers
+    const prevMessageCountRef = useRef(stableMessages.length);
+    useEffect(() => {
+      const prevCount = prevMessageCountRef.current;
+      const newCount = stableMessages.length;
+      prevMessageCountRef.current = newCount;
+
+      if (newCount > prevCount && prevCount > 0) {
+        const latestMessage = stableMessages[newCount - 1];
+        if (latestMessage && latestMessage.author.id !== currentUserId) {
+          announceToScreenReader(
+            `New message from ${latestMessage.author.name}: ${latestMessage.content.slice(0, 100)}`
+          );
+        }
+      }
+    }, [stableMessages, currentUserId]);
 
     return (
-      <div ref={messagesContainerRef} className="flex-1 overflow-y-auto py-4 relative">
-        {messages.length === 0 ? (
+      <div className="flex-1 flex flex-col relative" role="log" aria-live="polite" aria-label="Message list">
+        {stableMessages.length === 0 ? (
           <div className="h-full flex items-center justify-center">
             <div className="text-center">
               <div className="w-16 h-16 rounded-full bg-gradient-to-br from-primary-100 to-indigo-100 dark:from-primary-900/30 dark:to-indigo-900/30 flex items-center justify-center mx-auto mb-4">
@@ -436,50 +656,14 @@ export const ChatMessageList = forwardRef<ChatMessageListRef, ChatMessageListPro
           </div>
         ) : (
           <>
-            {messages.map((message, index) => {
-              const prevMessage = messages[index - 1];
-              const showDateSeparator =
-                !prevMessage ||
-                message.timestamp.toDateString() !== prevMessage.timestamp.toDateString();
-              const isGrouped =
-                prevMessage &&
-                prevMessage.author.id === message.author.id &&
-                message.timestamp.getTime() - prevMessage.timestamp.getTime() < 60000;
-
-              const parentMessage = message.replyTo?.id
-                ? messageById.get(message.replyTo.id)
-                : undefined;
-
-              const enrichedMessage =
-                parentMessage && message.replyTo
-                  ? {
-                      ...message,
-                      replyTo: {
-                        id: parentMessage.id,
-                        content: parentMessage.content,
-                        author: parentMessage.author,
-                      },
-                    }
-                  : message;
-
-              return (
-                <React.Fragment key={message.id}>
-                  {showDateSeparator && <DateSeparator date={message.timestamp} />}
-                  <MessageBubbleWrapper
-                    message={enrichedMessage}
-                    handlers={handlerRefs}
-                    isGrouped={isGrouped || false}
-                    currentUserId={currentUserId}
-                    isPinned={pinnedMessageIds.includes(message.id)}
-                    isHighlighted={
-                      highlightedMessageId === message.id || threadHighlightId === message.id
-                    }
-                    isEditing={editingMessageId === message.id}
-                    editingDraft={editingMessageId === message.id ? editingDraft : ''}
-                  />
-                </React.Fragment>
-              );
-            })}
+            <Virtuoso
+              ref={virtuosoRef}
+              totalCount={flatItems.length}
+              itemContent={itemContent}
+              initialTopMostItemIndex={flatItems.length - 1}
+              followOutput="smooth"
+              className="flex-1"
+            />
 
             {typingUsers.length > 0 && (
               <TypingIndicator
@@ -488,8 +672,6 @@ export const ChatMessageList = forwardRef<ChatMessageListRef, ChatMessageListPro
                 )}
               />
             )}
-
-            <div ref={messagesEndRef} />
           </>
         )}
       </div>

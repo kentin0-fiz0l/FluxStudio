@@ -10,6 +10,7 @@
 
 import { db, generateId, deleteLegacyDB } from './db';
 import type { FluxStore } from '@/store';
+import type { SyncConflict } from '@/store/slices/offlineSlice';
 
 type Store = {
   getState: () => FluxStore;
@@ -74,7 +75,16 @@ export function initOfflineBridge(store: Store) {
     }
   });
 
-  // 5. Clean up legacy IndexedDB database (one-time)
+  // 5. Subscribe to conflict resolutions — sync resolved conflicts back
+  store.subscribe((state, prevState) => {
+    const currConflicts = state.offline.conflicts;
+    const prevConflicts = prevState.offline.conflicts;
+    if (currConflicts !== prevConflicts) {
+      handleConflictResolutions(currConflicts, store);
+    }
+  });
+
+  // 6. Clean up legacy IndexedDB database (one-time)
   deleteLegacyDB().catch(() => {});
 }
 
@@ -106,5 +116,19 @@ async function syncActionsToDexie(actions: FluxStore['offline']['pendingActions'
     await db.pendingMutations.bulkPut(records);
   } catch {
     // Dexie may be unavailable (private browsing, etc.)
+  }
+}
+
+async function handleConflictResolutions(conflicts: SyncConflict[], _store: Store) {
+  for (const conflict of conflicts) {
+    if (!conflict.resolved) continue;
+
+    try {
+      // For 'server' resolution, the server version is already canonical — just clean up in Dexie
+      // For 'local' resolution, the offlineSlice.resolveConflict already queues the re-sync action
+      await db.conflicts.update(conflict.id, { resolved: true });
+    } catch {
+      // ignore
+    }
   }
 }

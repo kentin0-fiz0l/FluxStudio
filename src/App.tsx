@@ -1,5 +1,5 @@
 import React, { Suspense } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { RootProviders } from './components/providers';
@@ -22,6 +22,10 @@ import {
   PrintingErrorBoundary,
   DesignBoardErrorBoundary,
   TemplateErrorBoundary,
+  FormationErrorBoundary,
+  SettingsErrorBoundary,
+  SearchErrorBoundary,
+  NotificationsErrorBoundary,
 } from './components/error/featureBoundaries';
 import { performanceMonitoring } from './services/monitoring';
 import { observability } from './services/observability';
@@ -38,6 +42,7 @@ import { HelmetProvider } from 'react-helmet-async';
 import { CookieConsent } from './components/ui/CookieConsent';
 import { FeedbackWidget } from './components/ui/FeedbackWidget';
 import { SupportWidget } from './components/ui/SupportWidget';
+import { ConflictResolutionDialog } from './components/offline/ConflictResolutionDialog';
 import { ProgressiveProfileCapture } from './components/onboarding/ProgressiveProfileCapture';
 
 import { useAuth, useAuthInit } from '@/store/slices/authSlice';
@@ -45,6 +50,9 @@ import { useFeatureFlag } from './hooks/useFeatureFlag';
 import { FEATURE_FLAGS } from './constants/featureFlags';
 import { AssetsProvider } from './contexts/AssetsContext';
 import { AICoPilotProvider } from './components/ai/AICoPilotProvider';
+import { useGlobalKeyboardShortcuts } from './hooks/useGlobalKeyboardShortcuts';
+import { KeyboardShortcutsDialog } from './components/ui/KeyboardShortcutsDialog';
+import { getSkipLinkProps } from './utils/accessibility';
 
 // All pages lazy loaded for smaller initial bundle
 // SimpleHomePage kept as backup -- replaced by LandingPage
@@ -267,6 +275,17 @@ function IdlePrefetcher() {
 
 // Authenticated app wrapper - contains all providers for authenticated routes
 function AuthenticatedRoutes() {
+  const { shortcutsDialogOpen, setShortcutsDialogOpen } = useGlobalKeyboardShortcuts();
+  const location = useLocation();
+
+  // Route change focus management - move focus to main content on navigation
+  React.useEffect(() => {
+    const main = document.getElementById('main-content');
+    if (main) {
+      main.focus({ preventScroll: true });
+    }
+  }, [location.pathname]);
+
   return (
     <RootProviders>
       <AICoPilotProvider>
@@ -284,9 +303,12 @@ function AuthenticatedRoutes() {
           </Suspense>
         </AgentPanelErrorBoundary>
       </AuthOnly>
+      {/* Keyboard Shortcuts Dialog */}
+      <KeyboardShortcutsDialog open={shortcutsDialogOpen} onOpenChange={setShortcutsDialogOpen} />
       {/* Global Quick Actions - Cmd/Ctrl+K to open */}
       <AnnouncementBanner />
       <GlobalQuickActions>
+        <div id="main-content" tabIndex={-1} className="outline-none">
         <Suspense fallback={<DefaultLoadingFallback />}>
           <Routes>
                   {/* Root route - redirects based on auth state */}
@@ -352,16 +374,16 @@ function AuthenticatedRoutes() {
                   <Route path="/organization" element={<ProtectedRoute><OrganizationNew /></ProtectedRoute>} />
                   <Route path="/projects/:projectId/overview" element={<ProtectedRoute><ProjectsErrorBoundary><ProjectOverview /></ProjectsErrorBoundary></ProtectedRoute>} />
                   <Route path="/projects/:id" element={<ProtectedRoute><ProjectsErrorBoundary><AssetsProvider><ProjectDetail /></AssetsProvider></ProjectsErrorBoundary></ProtectedRoute>} />
-                  <Route path="/projects/:projectId/formations" element={<ProtectedRoute><Suspense fallback={<FormationEditorSkeleton />}><FormationEditor /></Suspense></ProtectedRoute>} />
-                  <Route path="/projects/:projectId/formations/:formationId" element={<ProtectedRoute><Suspense fallback={<FormationEditorSkeleton />}><FormationEditor /></Suspense></ProtectedRoute>} />
+                  <Route path="/projects/:projectId/formations" element={<ProtectedRoute><FormationErrorBoundary><Suspense fallback={<FormationEditorSkeleton />}><FormationEditor /></Suspense></FormationErrorBoundary></ProtectedRoute>} />
+                  <Route path="/projects/:projectId/formations/:formationId" element={<ProtectedRoute><FormationErrorBoundary><Suspense fallback={<FormationEditorSkeleton />}><FormationEditor /></Suspense></FormationErrorBoundary></ProtectedRoute>} />
                   <Route path="/boards/:boardId" element={<ProtectedRoute><DesignBoardErrorBoundary><Suspense fallback={<DefaultLoadingFallback message="Loading design board..." />}><DesignBoardPage /></Suspense></DesignBoardErrorBoundary></ProtectedRoute>} />
                   <Route path="/messages" element={<ProtectedRoute><MessagingErrorBoundary><MessagesNew /></MessagingErrorBoundary></ProtectedRoute>} />
-                  <Route path="/notifications" element={<ProtectedRoute><Notifications /></ProtectedRoute>} />
+                  <Route path="/notifications" element={<ProtectedRoute><NotificationsErrorBoundary><Notifications /></NotificationsErrorBoundary></ProtectedRoute>} />
                   <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
-                  <Route path="/settings" element={<ProtectedRoute><Suspense fallback={<SettingsSkeleton />}><Settings /></Suspense></ProtectedRoute>} />
-                  <Route path="/settings/privacy" element={<ProtectedRoute><PrivacySettings /></ProtectedRoute>} />
-                  <Route path="/settings/sessions" element={<ProtectedRoute><Suspense fallback={<DefaultLoadingFallback message="Loading sessions..." />}><SessionsManagement /></Suspense></ProtectedRoute>} />
-                  <Route path="/search" element={<ProtectedRoute><SearchResults /></ProtectedRoute>} />
+                  <Route path="/settings" element={<ProtectedRoute><SettingsErrorBoundary><Suspense fallback={<SettingsSkeleton />}><Settings /></Suspense></SettingsErrorBoundary></ProtectedRoute>} />
+                  <Route path="/settings/privacy" element={<ProtectedRoute><SettingsErrorBoundary><PrivacySettings /></SettingsErrorBoundary></ProtectedRoute>} />
+                  <Route path="/settings/sessions" element={<ProtectedRoute><SettingsErrorBoundary><Suspense fallback={<DefaultLoadingFallback message="Loading sessions..." />}><SessionsManagement /></Suspense></SettingsErrorBoundary></ProtectedRoute>} />
+                  <Route path="/search" element={<ProtectedRoute><SearchErrorBoundary><SearchResults /></SearchErrorBoundary></ProtectedRoute>} />
                   <Route path="/connectors" element={<ProtectedRoute><ConnectorsErrorBoundary><Connectors /></ConnectorsErrorBoundary></ProtectedRoute>} />
                   <Route path="/plugins" element={<ProtectedRoute><Suspense fallback={<DefaultLoadingFallback message="Loading plugins..." />}><PluginManagerPage /></Suspense></ProtectedRoute>} />
                   <Route path="/referrals" element={<ProtectedRoute><Referrals /></ProtectedRoute>} />
@@ -438,12 +460,14 @@ function AuthenticatedRoutes() {
                   <Route path="*" element={<NotFound />} />
           </Routes>
         </Suspense>
+        </div>
       </GlobalQuickActions>
       {/* Global Toast Notifications */}
       <ToastContainer />
       {/* Push Notification Permission Prompt - shows after 30s for eligible users */}
       <AuthOnly>
         <PushPermissionPrompt />
+        <ConflictResolutionDialog />
         <FeedbackWidget />
         <SupportWidget />
         <ProgressiveProfileCapture />
@@ -487,6 +511,7 @@ export default function App() {
 
   return (
     <HelmetProvider>
+    <a {...getSkipLinkProps('main-content')}>Skip to main content</a>
     <ErrorBoundary>
       <PersistQueryClientProvider
         client={queryClient}

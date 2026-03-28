@@ -54,6 +54,21 @@ function formatRelativeTime(timestamp: number): string {
   return `${days}d ago`;
 }
 
+function formatDateSeparator(timestamp: number): string {
+  const date = new Date(timestamp);
+  const now = new Date();
+  const yesterday = new Date(now);
+  yesterday.setDate(yesterday.getDate() - 1);
+
+  if (date.toDateString() === now.toDateString()) return 'Today';
+  if (date.toDateString() === yesterday.toDateString()) return 'Yesterday';
+  return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+}
+
+function isDifferentDay(a: number, b: number): boolean {
+  return new Date(a).toDateString() !== new Date(b).toDateString();
+}
+
 /** Single comment bubble used for both parents and replies. */
 function CommentBubble({
   comment,
@@ -150,6 +165,7 @@ export const FormationCommentLayer = React.memo(function FormationCommentLayer({
   // future coordinate transformations (e.g., performer-anchored comments)
   void _stageWidth; void _stageHeight; void _canvasWidth; void _canvasHeight;
   const [openCommentId, setOpenCommentId] = useState<string | null>(null);
+  const [expandedThreads, setExpandedThreads] = useState<Set<string>>(new Set());
   const [addingAt, setAddingAt] = useState<{ x: number; y: number } | null>(null);
   const [newCommentText, setNewCommentText] = useState('');
   const [replyText, setReplyText] = useState('');
@@ -308,16 +324,81 @@ export const FormationCommentLayer = React.memo(function FormationCommentLayer({
                   onToggleReaction={onToggleReaction}
                 />
 
-                {/* Replies */}
-                {replies.map((reply) => (
-                  <CommentBubble
-                    key={reply.id}
-                    comment={reply}
-                    currentUserId={currentUserId}
-                    isReply={true}
-                    onToggleReaction={onToggleReaction}
-                  />
-                ))}
+                {/* Replies with collapsible threading */}
+                {(() => {
+                  const isExpanded = expandedThreads.has(comment.id);
+                  const shouldCollapse = replyCount >= 5 && !isExpanded;
+                  const visibleReplies = shouldCollapse
+                    ? [...replies.slice(0, 2), ...replies.slice(-2)]
+                    : replies;
+                  const hiddenCount = replyCount - 4;
+
+                  const renderReplyWithSeparator = (reply: FormationComment, idx: number, arr: FormationComment[]) => {
+                    const prev = idx > 0 ? arr[idx - 1] : comment;
+                    const showSep = isDifferentDay(prev.createdAt, reply.createdAt);
+                    return (
+                      <React.Fragment key={reply.id}>
+                        {showSep && (
+                          <div className="flex items-center gap-2 my-1.5">
+                            <div className="flex-1 border-t border-neutral-100" />
+                            <span className="text-[9px] text-neutral-400 font-medium">{formatDateSeparator(reply.createdAt)}</span>
+                            <div className="flex-1 border-t border-neutral-100" />
+                          </div>
+                        )}
+                        <CommentBubble
+                          comment={reply}
+                          currentUserId={currentUserId}
+                          isReply={true}
+                          onToggleReaction={onToggleReaction}
+                        />
+                      </React.Fragment>
+                    );
+                  };
+
+                  if (shouldCollapse) {
+                    return (
+                      <>
+                        {replies.slice(0, 2).map((reply, idx, arr) => renderReplyWithSeparator(reply, idx, arr))}
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setExpandedThreads(prev => {
+                              const next = new Set(prev);
+                              next.add(comment.id);
+                              return next;
+                            });
+                          }}
+                          className="w-full text-center py-1.5 text-[10px] text-indigo-600 hover:text-indigo-800 font-medium transition-colors"
+                        >
+                          Show {hiddenCount} more {hiddenCount === 1 ? 'reply' : 'replies'}
+                        </button>
+                        {replies.slice(-2).map((reply, idx) => {
+                          const prev = idx === 0 ? replies.slice(0, 2).at(-1)! : replies.slice(-2)[idx - 1];
+                          const showSep = isDifferentDay(prev.createdAt, reply.createdAt);
+                          return (
+                            <React.Fragment key={reply.id}>
+                              {showSep && (
+                                <div className="flex items-center gap-2 my-1.5">
+                                  <div className="flex-1 border-t border-neutral-100" />
+                                  <span className="text-[9px] text-neutral-400 font-medium">{formatDateSeparator(reply.createdAt)}</span>
+                                  <div className="flex-1 border-t border-neutral-100" />
+                                </div>
+                              )}
+                              <CommentBubble
+                                comment={reply}
+                                currentUserId={currentUserId}
+                                isReply={true}
+                                onToggleReaction={onToggleReaction}
+                              />
+                            </React.Fragment>
+                          );
+                        })}
+                      </>
+                    );
+                  }
+
+                  return visibleReplies.map((reply, idx, arr) => renderReplyWithSeparator(reply, idx, arr));
+                })()}
 
                 {/* Reply input */}
                 <div className="mt-2 flex items-center gap-1.5">

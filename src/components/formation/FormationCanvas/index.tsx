@@ -27,6 +27,8 @@ import { MetMapSongSelector } from '../MetMapSongSelector';
 import { MeasurementOverlay } from '../MeasurementOverlay';
 import { GroupPanel } from '../GroupPanel';
 import { CollisionOverlay } from '../CollisionOverlay';
+import { CollaborationStatusIndicator } from '../CollaborationStatusIndicator';
+import { AlertTriangle, X } from 'lucide-react';
 import { GhostPreviewOverlay } from '../GhostPreviewOverlay';
 import { GhostPreviewControls } from '../GhostPreviewControls';
 import { FormationPromptBar } from '../FormationPromptBar';
@@ -681,7 +683,7 @@ export function FormationCanvas(props: FormationCanvasProps) {
           setShowTemplatePicker={setShowTemplatePicker} setIsExportDialogOpen={setIsExportDialogOpen}
           onSave={handleSave} saveStatus={saveStatus} apiSaving={apiSaving}
           onUndo={handleUndo} onRedo={handleRedo}
-          canUndo={history.canUndo} canRedo={history.canRedo}
+          canUndo={isCollaborativeEnabled && collab.isConnected ? collab.canYUndo : history.canUndo} canRedo={isCollaborativeEnabled && collab.isConnected ? collab.canYRedo : history.canRedo}
           hasUnsavedChanges={hasUnsavedChanges}
           sandboxMode={sandboxMode}
           formationId={formationId}
@@ -720,6 +722,16 @@ export function FormationCanvas(props: FormationCanvasProps) {
           showWaypointEditor={showWaypointEditor}
           setShowWaypointEditor={setShowWaypointEditor}
         />
+        {isCollaborativeEnabled && (
+          <CollaborationStatusIndicator
+            isConnected={collab.isConnected}
+            isSyncing={collab.isSyncing}
+            hasPendingChanges={collab.hasPendingChanges}
+            lastSyncedAt={collab.lastSyncedAt ? new Date(collab.lastSyncedAt) : null}
+            collaboratorCount={collab.collaborators.length}
+            documentSizeBytes={collab.documentSize}
+          />
+        )}
         </div>
       ) : (
         <MobileSetNavigator
@@ -1003,6 +1015,33 @@ export function FormationCanvas(props: FormationCanvasProps) {
         />
       </div>
 
+      {/* Collaboration conflict notifications */}
+      {isCollaborativeEnabled && collab.conflicts.length > 0 && (
+        <div className="fixed top-4 right-4 z-[9999] flex flex-col gap-2" style={{ maxWidth: '360px' }}>
+          {collab.conflicts.map((conflict) => (
+            <div
+              key={conflict.id}
+              className="flex items-start gap-2 bg-amber-50 dark:bg-amber-900/80 border border-amber-300 dark:border-amber-700 rounded-lg px-3 py-2 shadow-lg text-sm"
+              role="alert"
+            >
+              <AlertTriangle className="w-4 h-4 text-amber-600 dark:text-amber-400 mt-0.5 shrink-0" aria-hidden="true" />
+              <span className="flex-1 text-amber-800 dark:text-amber-200">
+                {conflict.type === 'simultaneous-move' && 'Another user moved the same performer'}
+                {conflict.type === 'performer-deleted' && 'A performer you were editing was deleted'}
+                {conflict.type === 'keyframe-deleted' && 'A keyframe you were editing was deleted'}
+              </span>
+              <button
+                onClick={() => collab.clearConflict(conflict.id)}
+                className="p-0.5 text-amber-600 dark:text-amber-400 hover:text-amber-800 dark:hover:text-amber-200"
+                aria-label="Dismiss"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+
       {/* Waypoint Editor (floating panel) */}
       {showWaypointEditor && (
         <div className="absolute top-20 left-4 z-50">
@@ -1121,8 +1160,8 @@ export function FormationCanvas(props: FormationCanvasProps) {
           setFingerMode={setFingerMode}
           onUndo={handleUndo}
           onRedo={handleRedo}
-          canUndo={history.canUndo}
-          canRedo={history.canRedo}
+          canUndo={isCollaborativeEnabled && collab.isConnected ? collab.canYUndo : history.canUndo}
+          canRedo={isCollaborativeEnabled && collab.isConnected ? collab.canYRedo : history.canRedo}
           zoom={zoom}
           onZoomIn={handleZoomIn}
           onZoomOut={handleZoomOut}

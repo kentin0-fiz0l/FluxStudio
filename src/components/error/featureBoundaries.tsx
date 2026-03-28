@@ -406,6 +406,88 @@ export function DesignBoardErrorBoundary({ children }: { children: ReactNode }) 
   );
 }
 
+export function FormationErrorBoundary({ children }: { children: ReactNode }) {
+  return (
+    <ErrorBoundary
+      isolateComponent
+      retryable
+      onError={(error) => boundaryLogger.error('Formation page error', error)}
+      fallback={
+        <PageErrorFallback
+          iconBgColor="bg-violet-100"
+          icon={<AlertTriangle className="h-6 w-6 text-violet-600" aria-hidden="true" />}
+          title="Formation Editor Unavailable"
+          message="The formation editor encountered an error. Your work has been preserved."
+          primaryAction={{ label: 'Reload', onClick: () => window.location.reload(), icon: <RefreshCw className="h-4 w-4 mr-2" aria-hidden="true" /> }}
+          secondaryAction={{ label: 'Projects', onClick: () => { window.location.href = '/projects'; }, icon: <Home className="h-4 w-4 mr-2" aria-hidden="true" /> }}
+        />
+      }
+    >
+      {children}
+    </ErrorBoundary>
+  );
+}
+
+export function SettingsErrorBoundary({ children }: { children: ReactNode }) {
+  return (
+    <ErrorBoundary
+      onError={(error) => boundaryLogger.error('Settings page error', error)}
+      fallback={
+        <PageErrorFallback
+          iconBgColor="bg-gray-100"
+          icon={<AlertTriangle className="h-6 w-6 text-gray-600" aria-hidden="true" />}
+          title="Settings Unavailable"
+          message="We're having trouble loading settings. Please try again."
+          primaryAction={{ label: 'Reload', onClick: () => window.location.reload(), icon: <RefreshCw className="h-4 w-4 mr-2" aria-hidden="true" /> }}
+          secondaryAction={{ label: 'Projects', onClick: () => { window.location.href = '/projects'; }, icon: <Home className="h-4 w-4 mr-2" aria-hidden="true" /> }}
+        />
+      }
+    >
+      {children}
+    </ErrorBoundary>
+  );
+}
+
+export function SearchErrorBoundary({ children }: { children: ReactNode }) {
+  return (
+    <ErrorBoundary
+      onError={(error) => boundaryLogger.error('Search page error', error)}
+      fallback={
+        <PageErrorFallback
+          iconBgColor="bg-amber-100"
+          icon={<AlertTriangle className="h-6 w-6 text-amber-600" aria-hidden="true" />}
+          title="Search Unavailable"
+          message="We're having trouble loading search results. Please try again."
+          primaryAction={{ label: 'Reload', onClick: () => window.location.reload(), icon: <RefreshCw className="h-4 w-4 mr-2" aria-hidden="true" /> }}
+          secondaryAction={{ label: 'Projects', onClick: () => { window.location.href = '/projects'; }, icon: <Home className="h-4 w-4 mr-2" aria-hidden="true" /> }}
+        />
+      }
+    >
+      {children}
+    </ErrorBoundary>
+  );
+}
+
+export function NotificationsErrorBoundary({ children }: { children: ReactNode }) {
+  return (
+    <ErrorBoundary
+      onError={(error) => boundaryLogger.error('Notifications page error', error)}
+      fallback={
+        <PageErrorFallback
+          iconBgColor="bg-sky-100"
+          icon={<AlertTriangle className="h-6 w-6 text-sky-600" aria-hidden="true" />}
+          title="Notifications Unavailable"
+          message="We're having trouble loading notifications. Please try again."
+          primaryAction={{ label: 'Reload', onClick: () => window.location.reload(), icon: <RefreshCw className="h-4 w-4 mr-2" aria-hidden="true" /> }}
+          secondaryAction={{ label: 'Projects', onClick: () => { window.location.href = '/projects'; }, icon: <Home className="h-4 w-4 mr-2" aria-hidden="true" /> }}
+        />
+      }
+    >
+      {children}
+    </ErrorBoundary>
+  );
+}
+
 export function TemplateErrorBoundary({ children }: { children: ReactNode }) {
   return (
     <ErrorBoundary

@@ -55,6 +55,13 @@ const DEFAULT_BINDINGS: Record<string, { label: string; group: KeyBindingEntry['
   zoomOut: { label: 'Zoom out', group: 'navigation', binding: { key: '-' } },
   cyclePerformer: { label: 'Cycle through performers', group: 'navigation', binding: { key: 'Tab' } },
 
+  // Global Navigation (2-key sequences handled by useGlobalKeyboardShortcuts)
+  goProjects: { label: 'Go to Projects', group: 'navigation', binding: { key: 'p' } },
+  goMessages: { label: 'Go to Messages', group: 'navigation', binding: { key: 'm' } },
+  goSettings: { label: 'Go to Settings', group: 'navigation', binding: { key: 's' } },
+  focusSearch: { label: 'Focus search', group: 'navigation', binding: { key: '/' } },
+  commandPalette: { label: 'Command palette', group: 'general', binding: { key: 'k', [mod]: true } },
+
   // Drill
   nextSet: { label: 'Next set', group: 'drill', binding: { key: 'j' } },
   prevSet: { label: 'Previous set', group: 'drill', binding: { key: 'k' } },

@@ -24,48 +24,13 @@
     plugins: [
       react(),
       VitePWA({
+        strategies: 'injectManifest',
+        srcDir: 'src',
+        filename: 'sw-custom.ts',
         registerType: 'prompt',
         injectRegister: false, // We register manually in main.tsx
-        workbox: {
+        injectManifest: {
           globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
-          runtimeCaching: [
-            {
-              urlPattern: /^https?:\/\/.*\/api\//,
-              handler: 'StaleWhileRevalidate',
-              options: {
-                cacheName: 'api-cache',
-                expiration: {
-                  maxEntries: 100,
-                  maxAgeSeconds: 60 * 60, // 1 hour
-                },
-                cacheableResponse: {
-                  statuses: [0, 200],
-                },
-              },
-            },
-            {
-              urlPattern: /\.(?:png|jpg|jpeg|svg|gif|webp)$/,
-              handler: 'CacheFirst',
-              options: {
-                cacheName: 'image-cache',
-                expiration: {
-                  maxEntries: 200,
-                  maxAgeSeconds: 60 * 60 * 24 * 30, // 30 days
-                },
-              },
-            },
-            {
-              urlPattern: /\.(?:woff2?|ttf|eot)$/,
-              handler: 'CacheFirst',
-              options: {
-                cacheName: 'font-cache',
-                expiration: {
-                  maxEntries: 20,
-                  maxAgeSeconds: 60 * 60 * 24 * 365, // 1 year
-                },
-              },
-            },
-          ],
         },
         manifest: {
           name: 'FluxStudio',

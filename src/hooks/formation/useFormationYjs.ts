@@ -159,6 +159,11 @@ export interface UseFormationYjsResult {
   canYRedo: boolean;
 
   // Conflict tracking
+  // Document size
+  /** Approximate size of the Yjs document in bytes */
+  documentSize: number;
+
+  // Conflict tracking
   /** Active conflict events (auto-clear after 3 seconds) */
   conflicts: ConflictEvent[];
   /** Manually clear a conflict event by ID */
@@ -187,6 +192,10 @@ export function useFormationYjs({
   const [collaborators, setCollaborators] = useState<FormationAwarenessState[]>([]);
   const [hasPendingChanges, setHasPendingChanges] = useState(false);
   const [lastSyncedAt, setLastSyncedAt] = useState<number | null>(null);
+
+  // Document size tracking (for >5MB warning in StatusIndicator)
+  const [documentSize, setDocumentSize] = useState(0);
+  const documentSizeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Conflict tracking state
   const [conflicts, setConflicts] = useState<ConflictEvent[]>([]);
@@ -421,6 +430,19 @@ export function useFormationYjs({
 
     const observer = () => {
       syncYjsToReact(ydoc);
+
+      // Throttled document size recalculation (~every 5 seconds)
+      if (!documentSizeTimerRef.current) {
+        documentSizeTimerRef.current = setTimeout(() => {
+          documentSizeTimerRef.current = null;
+          try {
+            const update = Y.encodeStateAsUpdate(ydoc);
+            setDocumentSize(update.byteLength);
+          } catch {
+            // Ignore encoding errors on destroyed docs
+          }
+        }, 5000);
+      }
     };
 
     meta.observeDeep(observer);
@@ -548,6 +570,11 @@ export function useFormationYjs({
     return () => {
       clearInterval(heartbeatInterval);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
+
+      if (documentSizeTimerRef.current) {
+        clearTimeout(documentSizeTimerRef.current);
+        documentSizeTimerRef.current = null;
+      }
 
       batcher.destroy();
       batcherRef.current = null;
@@ -1366,6 +1393,9 @@ export function useFormationYjs({
     yRedo,
     canYUndo,
     canYRedo,
+
+    // Document size
+    documentSize,
 
     // Conflict tracking
     conflicts,

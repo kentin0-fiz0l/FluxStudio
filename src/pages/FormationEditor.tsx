@@ -10,7 +10,6 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { DashboardLayout } from '@/components/templates';
 import { FormationCanvas } from '@/components/formation';
 import { FormationEditorErrorBoundary, Formation3DViewErrorBoundary } from '@/components/error/ErrorBoundary';
-import { CollaborationErrorBoundary } from '@/components/error/featureBoundaries';
 import { useRegisterShortcuts } from '@/contexts/KeyboardShortcutsContext';
 import { useAuth } from '@/store/slices/authSlice';
 import { useNotification } from '@/store/slices/notificationSlice';
@@ -34,9 +33,6 @@ import { observability } from '@/services/observability';
 import type { ComposedPrimitive } from '../services/scene3d/types';
 import { ProductTour, type TourStep } from '@/components/onboarding/ProductTour';
 import { openShortcutsDialog } from '@/components/ui/KeyboardShortcutsDialog';
-import { CollaborationStatusIndicator } from '@/components/formation/CollaborationStatusIndicator';
-import { FormationCollaborationProvider } from '@/contexts/FormationCollaborationContext';
-import { useWebSocket } from '@/hooks/useWebSocket';
 import { UsageLimitNudge } from '@/components/UsageLimitNudge';
 import { Layout, Clock, Wrench, Sparkles, Play } from 'lucide-react';
 
@@ -180,26 +176,6 @@ export default function FormationEditor() {
   // Track current positions and performers for 3D view (from FormationCanvas internal state)
   const [currentPositions, setCurrentPositions] = React.useState<Map<string, import('../services/formationTypes').Position>>(new Map());
   const [currentPerformers, setCurrentPerformers] = React.useState<import('../services/formationTypes').Performer[]>([]);
-
-  // Collaboration connection status via Socket.IO
-  const { connected: collabConnected, socket: collabSocket } = useWebSocket('/collaboration');
-  const [collabLastSyncedAt, setCollabLastSyncedAt] = React.useState<Date | null>(null);
-  const [collabCount, setCollabCount] = React.useState(0);
-
-  // Update last-synced timestamp and collaborator count from socket events
-  React.useEffect(() => {
-    if (!collabSocket) return;
-    const handleSync = () => setCollabLastSyncedAt(new Date());
-    const handlePresence = (data: { count?: number }) => {
-      if (typeof data?.count === 'number') setCollabCount(data.count);
-    };
-    collabSocket.on('sync', handleSync);
-    collabSocket.on('presence:update', handlePresence);
-    return () => {
-      collabSocket.off('sync', handleSync);
-      collabSocket.off('presence:update', handlePresence);
-    };
-  }, [collabSocket]);
 
   // Handle save — also persist scene objects alongside formation
   const handleSave = React.useCallback(
@@ -366,12 +342,6 @@ export default function FormationEditor() {
 
   return (
     <DashboardLayout>
-      <FormationCollaborationProvider
-        projectId={projectId}
-        formationId={formationId ?? ''}
-        enabled={!!formationId}
-        onFormationUpdate={(f) => handleSave(f as unknown as Formation)}
-      >
       <div className="h-full flex flex-col">
         {/* Header with breadcrumb and view toggle */}
         <div className="flex items-center gap-4 p-4 border-b border-gray-200 dark:border-gray-700">
@@ -434,15 +404,6 @@ export default function FormationEditor() {
               <option value="performer">Performer</option>
             </select>
           </div>
-          <CollaborationErrorBoundary>
-            <CollaborationStatusIndicator
-              isConnected={collabConnected}
-              isSyncing={false}
-              hasPendingChanges={!collabConnected && collabLastSyncedAt !== null}
-              lastSyncedAt={collabLastSyncedAt}
-              collaboratorCount={collabCount}
-            />
-          </CollaborationErrorBoundary>
           <ViewToggle mode={viewMode} onChange={setViewMode} />
           {/* Keyboard shortcuts button */}
           <button
@@ -603,7 +564,6 @@ export default function FormationEditor() {
         isActive={showTour}
         onComplete={handleTourComplete}
       />
-      </FormationCollaborationProvider>
     </DashboardLayout>
   );
 }
