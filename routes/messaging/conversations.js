@@ -15,6 +15,7 @@ const messagingConversationsAdapter = require('../../database/messaging-conversa
 const presenceAdapter = require('../../database/messaging/presence');
 const { query } = require('../../database/config');
 const { asyncHandler } = require('../../middleware/errorHandler');
+const { logAction } = require('../../lib/auditLog');
 
 // Try to load AI summary service (may not be available)
 let aiSummaryService = null;
@@ -77,6 +78,8 @@ router.post('/', authenticateToken, zodValidate(createConversationSchema), async
     creatorUserId: userId,
     memberUserIds: memberUserIds || []
   });
+
+  logAction(userId, 'conversation_create', 'conversation', conversation.id, { isGroup: !!isGroup, name: name || null }, req);
 
   res.status(201).json({ success: true, conversation });
 }));
@@ -230,6 +233,8 @@ router.delete('/:id/members/me', authenticateToken, asyncHandler(async (req, res
     conversationId,
     userId
   });
+
+  logAction(userId, 'conversation_delete', 'conversation', conversationId, {}, req);
 
   res.json({ success: true, removed });
 }));

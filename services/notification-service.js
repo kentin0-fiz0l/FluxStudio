@@ -20,6 +20,7 @@
 const messagingAdapter = require('../database/messaging-conversations-adapter');
 const { query } = require('../database/config');
 const { emitNotification } = require('../sockets/notifications-socket');
+const { sendPushToUser } = require('./push-delivery');
 const emailService = require('../lib/email/emailService');
 
 // =============================================================================
@@ -711,6 +712,15 @@ class NotificationService {
       // Sprint 44: Push to connected clients via Socket.IO
       if (notification) {
         emitNotification(userId, notification);
+
+        // Send web push notification (non-blocking)
+        sendPushToUser(userId, {
+          title,
+          body: body || '',
+          type: type || 'general',
+          tag: `flux-${type}-${notification.id || Date.now()}`,
+          url: this._buildNotificationUrl({ conversationId, messageId, projectId, type }),
+        }).catch(() => {});
       }
 
       // Sprint 44: Queue collaboration email if user has email_digest_enabled
@@ -876,6 +886,19 @@ class NotificationService {
   // ===========================================================================
   // Utility Methods
   // ===========================================================================
+
+  /**
+   * Build a deep-link URL for a notification based on its context
+   */
+  _buildNotificationUrl({ conversationId, messageId, projectId, type }) {
+    const base = process.env.FRONTEND_URL || 'https://fluxstudio.art';
+    if (conversationId) {
+      const msgFragment = messageId ? `?msg=${messageId}` : '';
+      return `${base}/messages/${conversationId}${msgFragment}`;
+    }
+    if (projectId) return `${base}/projects/${projectId}`;
+    return `${base}/notifications`;
+  }
 
   /**
    * Truncate content for notification body

@@ -14,6 +14,8 @@ const { logAiUsage, sanitizeApiError } = require('../services/ai-summary-service
 const { createLogger } = require('../lib/logger');
 const { getClient } = require('../lib/ai/client');
 const { getModelForTask, getMaxTokensForTask } = require('../lib/ai/config');
+const { zodValidate } = require('../middleware/zodValidate');
+const { aiSearchInterpretSchema, aiSearchSummarizeSchema } = require('../lib/schemas');
 const log = createLogger('AISearch');
 
 const router = express.Router();
@@ -22,13 +24,9 @@ const router = express.Router();
 // POST /interpret — Interpret natural language query
 // ============================================================================
 
-router.post('/interpret', authenticateToken, rateLimitByUser(20, 60000), async (req, res) => {
+router.post('/interpret', authenticateToken, rateLimitByUser(20, 60000), zodValidate(aiSearchInterpretSchema), async (req, res) => {
   const { query } = req.body;
   const userId = req.user.id;
-
-  if (!query || typeof query !== 'string') {
-    return res.status(400).json({ error: 'query is required' });
-  }
 
   const anthropic = getClient();
   if (!anthropic) {
@@ -106,13 +104,9 @@ Rules:
 // POST /summarize — Stream AI summary of search results (SSE)
 // ============================================================================
 
-router.post('/summarize', authenticateToken, rateLimitByUser(10, 60000), async (req, res) => {
+router.post('/summarize', authenticateToken, rateLimitByUser(10, 60000), zodValidate(aiSearchSummarizeSchema), async (req, res) => {
   const { results, query } = req.body;
   const userId = req.user.id;
-
-  if (!results || !Array.isArray(results) || !query) {
-    return res.status(400).json({ error: 'results (array) and query (string) are required' });
-  }
 
   // Set SSE headers
   res.setHeader('Content-Type', 'text/event-stream');

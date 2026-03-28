@@ -21,6 +21,8 @@ const axios = require('axios');
 const io = require('socket.io-client');
 const jwt = require('jsonwebtoken');
 const { createLogger } = require('../lib/logger');
+const { validateSocketPayload, checkSocketRateLimit, cleanupSocket } = require('../lib/socketValidation');
+const schemas = require('../lib/schemas/sockets');
 const log = createLogger('PrintingSocket');
 
 /**
@@ -188,14 +190,12 @@ module.exports = (namespace, JWT_SECRET) => {
     // Phase 4A: Join project room for project-scoped updates
     // SECURITY: Check project access before allowing room join
     socket.on('project:join', async (projectId) => {
-      try {
-        if (!projectId || typeof projectId !== 'string') {
-          return socket.emit('error', {
-            message: 'Invalid project ID',
-            code: 'INVALID_PROJECT_ID'
-          });
-        }
+      if (!checkSocketRateLimit(socket, 'project:join', 10, 10000)) return;
+      const validatedId = validateSocketPayload(schemas.projectJoinSchema, projectId, socket);
+      if (validatedId === null) return;
+      projectId = validatedId;
 
+      try {
         // TODO: Implement project access check when database is available
         // For now, we trust that the user is authenticated (verified by middleware)
         // In production, you should check:
@@ -218,6 +218,11 @@ module.exports = (namespace, JWT_SECRET) => {
 
     // Phase 4A: Leave project room
     socket.on('project:leave', (projectId) => {
+      if (!checkSocketRateLimit(socket, 'project:leave', 10, 10000)) return;
+      const validatedId = validateSocketPayload(schemas.projectLeaveSchema, projectId, socket);
+      if (validatedId === null) return;
+      projectId = validatedId;
+
       const room = `project:${projectId}`;
       socket.leave(room);
       log.info('Client left project room', { socketId: socket.id, room });
@@ -226,6 +231,7 @@ module.exports = (namespace, JWT_SECRET) => {
 
     // Handle client requests
     socket.on('printer:request_status', () => {
+      if (!checkSocketRateLimit(socket, 'printer:request_status', 20, 10000)) return;
       log.info('Client requested printer status', { socketId: socket.id });
 
       if (fluxprintClient && fluxprintClient.connected) {
@@ -242,11 +248,13 @@ module.exports = (namespace, JWT_SECRET) => {
     });
 
     socket.on('printer:subscribe', () => {
+      if (!checkSocketRateLimit(socket, 'printer:subscribe', 20, 10000)) return;
       log.info('Client subscribed to printer updates', { socketId: socket.id });
       socket.emit('printer:subscribed', { success: true });
     });
 
     socket.on('printer:unsubscribe', () => {
+      if (!checkSocketRateLimit(socket, 'printer:unsubscribe', 20, 10000)) return;
       log.info('Client unsubscribed from printer updates', { socketId: socket.id });
       socket.emit('printer:unsubscribed', { success: true });
     });
@@ -254,6 +262,7 @@ module.exports = (namespace, JWT_SECRET) => {
     // Handle disconnection
     socket.on('disconnect', () => {
       log.info('Client disconnected from /printing namespace', { socketId: socket.id });
+      cleanupSocket(socket.id);
       activeClients.delete(socket.id);
 
       // If no more clients, disconnect from FluxPrint to save resources

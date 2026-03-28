@@ -111,6 +111,20 @@ router.post('/:id/messages', authenticateToken, requireConversationAccess('id'),
     );
   }
 
+  // Emit thread reply notification if this is a thread reply
+  if (replyToMessageId) {
+    const { getMessagingNamespace } = require('../messaging');
+    const messagingNamespace = getMessagingNamespace();
+    if (messagingNamespace) {
+      messagingNamespace.to(conversationId).emit('thread:reply:new', {
+        threadRootMessageId: replyToMessageId,
+        conversationId,
+        message,
+        repliedBy: userId,
+      });
+    }
+  }
+
   // Auto-generate link previews
   const urls = text ? text.match(/https?:\/\/[^\s]+/g) : null;
   if (urls?.length) {

@@ -22,14 +22,52 @@ class AdvancedRateLimiter {
   constructor() {
     // Default rate limits per endpoint
     this.limits = {
-      'POST /api/auth/login': { max: 5, window: 300, tier: 'auth' },        // 5 per 5 min
-      'POST /api/auth/signup': { max: 3, window: 3600, tier: 'auth' },      // 3 per hour
-      'POST /api/auth/refresh': { max: 10, window: 600, tier: 'auth' },     // 10 per 10 min
-      'POST /api/files/upload': { max: 50, window: 3600, tier: 'upload' },  // 50 per hour
-      'GET /api/files': { max: 200, window: 3600, tier: 'api' },            // 200 per hour
-      'POST /api/teams': { max: 10, window: 3600, tier: 'api' },            // 10 per hour
-      'default': { max: 100, window: 3600, tier: 'api' }                    // 100 per hour default
+      // Auth tier (5 per 5 min)
+      'POST /api/auth/login': { max: 5, window: 300, tier: 'auth' },
+      'POST /api/auth/signup': { max: 3, window: 3600, tier: 'auth' },
+      'POST /api/auth/refresh': { max: 10, window: 600, tier: 'auth' },
+      'POST /api/auth/forgot-password': { max: 5, window: 300, tier: 'auth' },
+      'POST /api/auth/reset-password': { max: 5, window: 300, tier: 'auth' },
+      'POST /api/auth/2fa/verify': { max: 5, window: 300, tier: 'auth' },
+
+      // Upload tier (20 per hour)
+      'POST /api/files/upload': { max: 20, window: 3600, tier: 'upload' },
+      'POST /api/media/upload': { max: 20, window: 3600, tier: 'upload' },
+      'POST /api/assets/upload': { max: 20, window: 3600, tier: 'upload' },
+
+      // Default
+      'default': { max: 100, window: 3600, tier: 'api' },
     };
+
+    // Prefix-based tier limits (checked when no exact match)
+    this.prefixLimits = [
+      { prefix: '/api/ai/', method: '*', config: { max: 10, window: 60, tier: 'ai' } },
+      { prefix: '/api/admin/', method: '*', config: { max: 20, window: 60, tier: 'admin' } },
+      { prefix: '/api/payments/', method: 'POST', config: { max: 5, window: 300, tier: 'payments' } },
+      { prefix: '/api/projects', method: 'POST', config: { max: 30, window: 60, tier: 'write' } },
+      { prefix: '/api/projects', method: 'PUT', config: { max: 30, window: 60, tier: 'write' } },
+      { prefix: '/api/projects', method: 'PATCH', config: { max: 30, window: 60, tier: 'write' } },
+      { prefix: '/api/projects', method: 'DELETE', config: { max: 30, window: 60, tier: 'write' } },
+      { prefix: '/api/teams', method: 'POST', config: { max: 30, window: 60, tier: 'write' } },
+      { prefix: '/api/teams', method: 'PUT', config: { max: 30, window: 60, tier: 'write' } },
+      { prefix: '/api/teams', method: 'PATCH', config: { max: 30, window: 60, tier: 'write' } },
+      { prefix: '/api/teams', method: 'DELETE', config: { max: 30, window: 60, tier: 'write' } },
+      { prefix: '/api/files', method: 'POST', config: { max: 30, window: 60, tier: 'write' } },
+      { prefix: '/api/files', method: 'PUT', config: { max: 30, window: 60, tier: 'write' } },
+      { prefix: '/api/files', method: 'PATCH', config: { max: 30, window: 60, tier: 'write' } },
+      { prefix: '/api/files', method: 'DELETE', config: { max: 30, window: 60, tier: 'write' } },
+      { prefix: '/api/messages', method: 'POST', config: { max: 30, window: 60, tier: 'write' } },
+      { prefix: '/api/messages', method: 'PATCH', config: { max: 30, window: 60, tier: 'write' } },
+      { prefix: '/api/messages', method: 'DELETE', config: { max: 30, window: 60, tier: 'write' } },
+      { prefix: '/api/formations', method: 'POST', config: { max: 30, window: 60, tier: 'write' } },
+      { prefix: '/api/formations', method: 'PUT', config: { max: 30, window: 60, tier: 'write' } },
+      { prefix: '/api/formations', method: 'PATCH', config: { max: 30, window: 60, tier: 'write' } },
+      { prefix: '/api/formations', method: 'DELETE', config: { max: 30, window: 60, tier: 'write' } },
+      { prefix: '/api/design-boards', method: 'POST', config: { max: 30, window: 60, tier: 'write' } },
+      { prefix: '/api/design-boards', method: 'PUT', config: { max: 30, window: 60, tier: 'write' } },
+      { prefix: '/api/design-boards', method: 'PATCH', config: { max: 30, window: 60, tier: 'write' } },
+      { prefix: '/api/design-boards', method: 'DELETE', config: { max: 30, window: 60, tier: 'write' } },
+    ];
 
     // Whitelist (never rate limited)
     this.whitelist = new Set([
@@ -77,8 +115,19 @@ class AdvancedRateLimiter {
    * @private
    */
   getLimitConfig(method, path) {
+    // 1. Exact match
     const endpoint = `${method} ${path}`;
-    return this.limits[endpoint] || this.limits['default'];
+    if (this.limits[endpoint]) return this.limits[endpoint];
+
+    // 2. Prefix match
+    for (const rule of this.prefixLimits) {
+      if (path.startsWith(rule.prefix) && (rule.method === '*' || rule.method === method)) {
+        return rule.config;
+      }
+    }
+
+    // 3. Default
+    return this.limits['default'];
   }
 
   /**

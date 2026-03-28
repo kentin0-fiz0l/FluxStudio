@@ -16,6 +16,13 @@ const { logAiUsage, sanitizeApiError } = require('../services/ai-summary-service
 const { createLogger } = require('../lib/logger');
 const { getClient } = require('../lib/ai/client');
 const { getModelForTask, getMaxTokensForTask } = require('../lib/ai/config');
+const { zodValidate } = require('../middleware/zodValidate');
+const {
+  aiDesignAnalyzeStreamSchema,
+  aiDesignPaletteStreamSchema,
+  aiDesignLayoutStreamSchema,
+  aiDesignAccessibilityStreamSchema,
+} = require('../lib/schemas');
 const log = createLogger('AIDesignFeedback');
 
 const router = express.Router();
@@ -132,7 +139,7 @@ async function streamResponse(req, res, systemPrompt, userMessage, endpoint, use
  * Analyze a design image or description using Claude.
  * Streams the response as SSE events containing structured JSON.
  */
-router.post('/stream/analyze', authenticateToken, rateLimitByUser(10, 60000), async (req, res) => {
+router.post('/stream/analyze', authenticateToken, rateLimitByUser(10, 60000), zodValidate(aiDesignAnalyzeStreamSchema), async (req, res) => {
   const { imageUrl, designElements, context } = req.body;
   const userId = req.user.id;
 
@@ -218,7 +225,7 @@ Rules:
  * POST /stream/palette
  * Generate a color palette based on industry, mood, and brand context.
  */
-router.post('/stream/palette', authenticateToken, rateLimitByUser(10, 60000), async (req, res) => {
+router.post('/stream/palette', authenticateToken, rateLimitByUser(10, 60000), zodValidate(aiDesignPaletteStreamSchema), async (req, res) => {
   const { industry, mood, brand } = req.body;
   const userId = req.user.id;
 
@@ -263,7 +270,7 @@ Rules:
  * POST /stream/layout
  * Analyze layout elements and provide improvement suggestions.
  */
-router.post('/stream/layout', authenticateToken, rateLimitByUser(10, 60000), async (req, res) => {
+router.post('/stream/layout', authenticateToken, rateLimitByUser(10, 60000), zodValidate(aiDesignLayoutStreamSchema), async (req, res) => {
   const { elements, viewport } = req.body;
   const userId = req.user.id;
 
@@ -322,7 +329,7 @@ Evaluate spacing, alignment, visual hierarchy, balance, and contrast.`;
  * POST /stream/accessibility
  * Generate an accessibility report for a design.
  */
-router.post('/stream/accessibility', authenticateToken, rateLimitByUser(10, 60000), async (req, res) => {
+router.post('/stream/accessibility', authenticateToken, rateLimitByUser(10, 60000), zodValidate(aiDesignAccessibilityStreamSchema), async (req, res) => {
   const { designData } = req.body;
   const userId = req.user.id;
 

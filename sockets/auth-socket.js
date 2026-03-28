@@ -7,6 +7,7 @@
  */
 
 const { createLogger } = require('../lib/logger');
+const { checkSocketRateLimit, cleanupSocket } = require('../lib/socketValidation');
 const log = createLogger('AuthSocket');
 
 module.exports = (namespace, performanceMonitor, authAdapter) => {
@@ -19,6 +20,7 @@ module.exports = (namespace, performanceMonitor, authAdapter) => {
 
     // Handle metric requests
     socket.on('request_metrics', () => {
+      if (!checkSocketRateLimit(socket, 'request_metrics', 20, 10000)) return;
       const metrics = performanceMonitor.getCurrentMetrics();
       socket.emit('system_metrics', metrics);
 
@@ -40,6 +42,7 @@ module.exports = (namespace, performanceMonitor, authAdapter) => {
 
     socket.on('disconnect', () => {
       log.info('Auth socket disconnected', { socketId: socket.id });
+      cleanupSocket(socket.id);
     });
   });
 

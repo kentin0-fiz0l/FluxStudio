@@ -64,6 +64,8 @@ class MessagingAdapter {
   getMessageThread = threads.getMessageThread;
   createReply = threads.createReply;
   getMessageWithReplies = threads.getMessageWithReplies;
+  markThreadRead = threads.markThreadRead;
+  getThreadUnreadCount = threads.getThreadUnreadCount;
 
   // Notifications
   getNotifications = notifications.getNotifications;

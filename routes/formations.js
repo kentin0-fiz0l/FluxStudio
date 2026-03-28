@@ -24,6 +24,7 @@ const {
   updateSceneObjectSchema,
   bulkSyncSceneObjectsSchema,
 } = require('../lib/schemas');
+const { logAction } = require('../lib/auditLog');
 
 // Mount sub-routers
 const performers = require('./formations/performers');
@@ -105,6 +106,8 @@ router.post('/projects/:projectId/formations', authenticateToken, rateLimitByUse
     createdBy: req.user.id
   });
 
+  logAction(req.user.id, 'create', 'formation', formation.id, { name: formation.name, projectId }, req);
+
   res.status(201).json({ success: true, formation });
 }));
 
@@ -148,6 +151,8 @@ router.patch('/formations/:formationId', authenticateToken, rateLimitByUser(10, 
     audioTrack
   });
 
+  logAction(req.user.id, 'update', 'formation', formationId, { changes: { name, description, stageWidth, stageHeight, gridSize, isArchived } }, req);
+
   res.json({ success: true, formation: updatedFormation });
 }));
 
@@ -165,6 +170,8 @@ router.delete('/formations/:formationId', authenticateToken, rateLimitByUser(10,
   }
 
   await formationsAdapter.deleteFormation(formationId);
+
+  logAction(req.user.id, 'delete', 'formation', formationId, {}, req);
 
   res.json({ success: true, message: 'Formation deleted' });
 }));
@@ -412,6 +419,8 @@ router.post('/formations/:formationId/share', authenticateToken, rateLimitByUser
 
   // Share URL is deterministic based on formation ID
   const shareUrl = `${req.protocol}://${req.get('host')}/share/${formationId}`;
+
+  logAction(req.user.id, 'share', 'formation', formationId, {}, req);
 
   res.json({ success: true, shareUrl });
 }));

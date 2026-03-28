@@ -20,6 +20,7 @@ const { authenticateToken } = require('../lib/auth/middleware');
 const { zodValidate } = require('../middleware/zodValidate');
 const { asyncHandler } = require('../middleware/errorHandler');
 const { createTeamSchema, updateTeamSchema, inviteTeamMemberSchema, updateTeamMemberRoleSchema } = require('../lib/schemas/teams');
+const { logAction } = require('../lib/auditLog');
 
 // Try to load activity logger for audit trails
 let activityLogger = null;
@@ -94,6 +95,8 @@ router.post('/', authenticateToken, zodValidate(createTeamSchema), asyncHandler(
   teams.push(newTeam);
   await saveTeams(teams);
 
+  logAction(req.user.id, 'create', 'team', newTeam.id, { name: newTeam.name }, req);
+
   res.json({
     success: true,
     message: 'Team created successfully',
@@ -163,6 +166,9 @@ router.put('/:id', authenticateToken, zodValidate(updateTeamSchema), asyncHandle
   };
 
   await saveTeams(teams);
+
+  logAction(req.user.id, 'update', 'team', req.params.id, { changes: { name, description } }, req);
+
   res.json(teams[teamIndex]);
 }));
 
@@ -186,6 +192,8 @@ router.delete('/:id', authenticateToken, asyncHandler(async (req, res) => {
 
   teams.splice(teamIndex, 1);
   await saveTeams(teams);
+
+  logAction(req.user.id, 'delete', 'team', req.params.id, {}, req);
 
   res.json({ success: true, message: 'Team deleted successfully' });
 }));
@@ -241,6 +249,8 @@ router.post('/:id/invite', authenticateToken, zodValidate(inviteTeamMemberSchema
   teams[teamIndex].invites.push(invite);
 
   await saveTeams(teams);
+
+  logAction(req.user.id, 'invite', 'team', req.params.id, { invitedEmail: email }, req);
 
   res.json({
     success: true,
@@ -338,6 +348,8 @@ router.delete('/:id/members/:userId', authenticateToken, asyncHandler(async (req
 
   await saveTeams(teams);
 
+  logAction(req.user.id, 'remove_member', 'team', req.params.id, { removedUserId: req.params.userId }, req);
+
   // Log activity for member leave
   if (activityLogger && removedMemberInfo) {
     await activityLogger.memberLeft(req.user.id, null, {
@@ -389,6 +401,8 @@ router.put('/:id/members/:userId', authenticateToken, zodValidate(updateTeamMemb
   // Update role
   teams[teamIndex].members[targetMemberIndex].role = role;
   await saveTeams(teams);
+
+  logAction(req.user.id, 'update_role', 'team', req.params.id, { userId: req.params.userId, newRole: role }, req);
 
   res.json({
     success: true,

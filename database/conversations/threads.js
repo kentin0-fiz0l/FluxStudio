@@ -98,7 +98,26 @@ async function getThreadSummary({ conversationId, threadRootMessageId }) {
   };
 }
 
+/**
+ * Mark a thread as read for a user
+ */
+async function markThreadRead({ threadRootMessageId, userId }) {
+  try {
+    await query(`
+      INSERT INTO thread_read_states (thread_root_message_id, user_id, last_read_at)
+      VALUES ($1, $2, NOW())
+      ON CONFLICT (thread_root_message_id, user_id)
+      DO UPDATE SET last_read_at = NOW()
+    `, [threadRootMessageId, userId]);
+    return true;
+  } catch {
+    // Table may not exist yet; return gracefully
+    return false;
+  }
+}
+
 module.exports = {
   listThreadMessages,
-  getThreadSummary
+  getThreadSummary,
+  markThreadRead
 };

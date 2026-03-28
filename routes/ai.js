@@ -22,6 +22,13 @@ const { getModelForTask, getMaxTokensForTask, buildApiParams } = require('../lib
 const { extractTextContent } = require('../lib/ai/response-handlers');
 const { buildExamplesPrompt } = require('../lib/ai/formation-examples');
 const { asyncHandler } = require('../middleware/errorHandler');
+const { createCircuitBreaker } = require('../lib/circuitBreaker');
+
+const aiBreaker = createCircuitBreaker({
+  name: 'anthropic-api',
+  failureThreshold: 5,
+  recoveryTimeout: 30000,
+});
 
 // Load user preferences for prompt injection (4D)
 let loadPreferencesForPrompt = async () => '';
@@ -330,8 +337,8 @@ router.post('/chat', authenticateToken, requireAnthropicClient, rateLimitByUser(
       streamParams.tools = FORMATION_TOOLS;
     }
 
-    // Stream response from Claude
-    const stream = await getClient().messages.stream(streamParams);
+    // Stream response from Claude (wrapped with circuit breaker)
+    const stream = await aiBreaker.execute(() => getClient().messages.stream(streamParams));
 
     let fullContent = '';
     let inputTokens = 0;
@@ -414,12 +421,12 @@ router.post('/chat/sync', authenticateToken, requireAnthropicClient, rateLimitBy
 
   const systemPrompt = buildSystemPrompt(context);
 
-  const response = await getClient().messages.create({
+  const response = await aiBreaker.execute(() => getClient().messages.create({
     model,
     max_tokens: getMaxTokensForTask('chat-sync'),
     system: systemPrompt,
     messages: [{ role: 'user', content: message }],
-  });
+  }));
 
   const content = response.content[0]?.text || '';
   const inputTokens = response.usage?.input_tokens || 0;
@@ -526,7 +533,7 @@ Provide specific, actionable feedback for each aspect. Format your response with
     system: 'You are an expert UI/UX designer providing constructive feedback on designs. Be specific and actionable.',
     messages: [{ role: 'user', content: prompt }],
   });
-  const response = await getClient().messages.create(params);
+  const response = await aiBreaker.execute(() => getClient().messages.create(params));
 
   // Log token usage for cost tracking
   logAiUsage({
@@ -569,7 +576,7 @@ Return ONLY the code, no explanations.`;
     system: 'You are an expert React/TypeScript developer. Generate clean, well-typed, accessible components.',
     messages: [{ role: 'user', content: prompt }],
   });
-  const response = await getClient().messages.create(codeParams);
+  const response = await aiBreaker.execute(() => getClient().messages.create(codeParams));
 
   const code = extractTextContent(response);
 
@@ -653,12 +660,12 @@ if (process.env.NODE_ENV !== 'production') {
     const systemPrompt = buildSystemPrompt(context);
     const testModel = getModelForTask('test');
 
-    const response = await client.messages.create({
+    const response = await aiBreaker.execute(() => client.messages.create({
       model: testModel,
       max_tokens: getMaxTokensForTask('test'),
       system: systemPrompt,
       messages: [{ role: 'user', content: message }],
-    });
+    }));
 
     const content = response.content[0]?.text || '';
     const inputTokens = response.usage?.input_tokens || 0;
@@ -733,7 +740,7 @@ Be specific, actionable, and constructive in your feedback.`;
   else if (contentType.includes('webp')) mediaType = 'image/webp';
 
   const dfModel = getModelForTask('design-feedback');
-  const response = await getClient().messages.create({
+  const response = await aiBreaker.execute(() => getClient().messages.create({
     model: dfModel,
     max_tokens: getMaxTokensForTask('design-feedback'),
     messages: [{
@@ -743,7 +750,7 @@ Be specific, actionable, and constructive in your feedback.`;
         { type: 'text', text: prompt },
       ],
     }],
-  });
+  }));
 
   // Log token usage for cost tracking
   logAiUsage({
@@ -807,12 +814,12 @@ Rules:
 ${category ? `- The project category is: ${category}` : ''}`;
 
     const psModel = getModelForTask('project-structure');
-    const response = await getClient().messages.create({
+    const response = await aiBreaker.execute(() => getClient().messages.create({
       model: psModel,
       max_tokens: getMaxTokensForTask('project-structure'),
       system: systemPrompt,
       messages: [{ role: 'user', content: description.trim() }],
-    });
+    }));
 
     // Log token usage for cost tracking
     logAiUsage({
@@ -886,12 +893,12 @@ Rules:
 ${category ? `- Category: ${category}` : ''}`;
 
   const tplModel = getModelForTask('template');
-  const response = await getClient().messages.create({
+  const response = await aiBreaker.execute(() => getClient().messages.create({
     model: tplModel,
     max_tokens: getMaxTokensForTask('template'),
     system: systemPrompt,
     messages: [{ role: 'user', content: description.trim() }],
-  });
+  }));
 
   // Log token usage for cost tracking
   logAiUsage({
@@ -986,12 +993,12 @@ router.post('/suggest-drill-paths', authenticateToken, requireAnthropicClient, r
   const prompt = `Given these performer movements on a 0-100 normalized field:\n${positionSummary}\n\nGenerate cubic Bezier control points (cp1, cp2) for each performer so they follow ${style} curved paths. Ensure minimum spacing of ${minSpacing} units between performers during the transition. ${maintainShape ? 'Maintain relative formation shape during the move.' : ''}\n\nRespond with ONLY valid JSON:\n{\n  "curves": { "performerId": { "cp1": { "x": number, "y": number }, "cp2": { "x": number, "y": number } } },\n  "confidence": 0.0-1.0,\n  "description": "brief description of the suggested paths"\n}`;
 
   const dpModel = getModelForTask('drill-paths');
-  const response = await getClient().messages.create({
+  const response = await aiBreaker.execute(() => getClient().messages.create({
     model: dpModel,
     max_tokens: getMaxTokensForTask('drill-paths'),
     system: 'You are an expert marching band drill designer specializing in smooth transition paths. Generate cubic Bezier control points that create visually appealing, collision-free curved paths between formations. Coordinates are normalized 0-100.' + buildExamplesPrompt('paths', 3),
     messages: [{ role: 'user', content: prompt }],
-  });
+  }));
 
   logAiUsage({ userId, model: dpModel, inputTokens: response.usage?.input_tokens || 0, outputTokens: response.usage?.output_tokens || 0, endpoint: 'suggest-drill-paths' });
 
@@ -1040,7 +1047,7 @@ router.post('/drill/generate-show', authenticateToken, requireAnthropicClient, r
       system: 'You are an expert marching band drill designer. Generate formations that are visually effective, have safe spacing, and create smooth transitions. Positions are normalized 0-100 (x=left-right, y=front-back). Output each set as a separate JSON object on its own line. Do not wrap in markdown code blocks.' + userPrefs + buildExamplesPrompt('generate', 4),
       messages: [{ role: 'user', content: prompt }],
     });
-    const stream = await getClient().messages.stream(showParams);
+    const stream = await aiBreaker.execute(() => getClient().messages.stream(showParams));
 
     let fullContent = '';
     let inputTokens = 0;
@@ -1123,12 +1130,12 @@ router.post('/drill/suggest-sets', authenticateToken, requireAnthropicClient, ra
     const prompt = `I'm designing drill for a marching band show linked to song ${songId}.${contextStr}\n\nPlease suggest where to place sets (formation changes) in the music. Consider:\n- Musical phrases and sections\n- Tempo changes that affect step sizes\n- Dynamic contrasts (loud/soft) for visual impact\n- Rehearsal marks as natural set boundaries\n\nProvide specific, actionable advice about set placement, counts per set, and formation ideas for each section.`;
 
     const setsModel = getModelForTask('sets');
-    const stream = await getClient().messages.stream({
+    const stream = await aiBreaker.execute(() => getClient().messages.stream({
       model: setsModel,
       max_tokens: getMaxTokensForTask('sets'),
       system: 'You are an experienced marching band drill designer advising on set placement within music. Give practical, specific advice tied to musical structure. Be concise and use band terminology.',
       messages: [{ role: 'user', content: prompt }],
-    });
+    }));
 
     let fullContent = '';
     let inputTokens = 0;
@@ -1222,7 +1229,7 @@ Be specific and constructive. Reference actual metrics from the data. For perSet
     messages: [{ role: 'user', content: prompt }],
   });
 
-  const response = await getClient().messages.create(critiqueParams);
+  const response = await aiBreaker.execute(() => getClient().messages.create(critiqueParams));
 
   logAiUsage({
     userId,
@@ -1286,7 +1293,7 @@ Respond with ONLY valid JSON:
 Keep positions well-spaced (minimum 3 units apart). Be creative with the formation.`;
 
   const sandboxModel = getModelForTask('chat-sync');
-  const response = await getClient().messages.create({
+  const response = await aiBreaker.execute(() => getClient().messages.create({
     model: sandboxModel,
     max_tokens: 1024,
     system: systemPrompt,
@@ -1294,7 +1301,7 @@ Keep positions well-spaced (minimum 3 units apart). Be creative with the formati
       role: 'user',
       content: `Formation: "${prompt}"\nPerformers: ${performerList}`,
     }],
-  });
+  }));
 
   logAiUsage({
     userId: 'sandbox',
@@ -1350,7 +1357,7 @@ router.post('/drill/autocomplete', authenticateToken, requireAnthropicClient, ra
   const contextBlock = contextLines.length > 0 ? `\n\nContext:\n${contextLines.join('\n')}` : '';
 
   const acModel = getModelForTask('chat-sync');
-  const response = await getClient().messages.create({
+  const response = await aiBreaker.execute(() => getClient().messages.create({
     model: acModel,
     max_tokens: 256,
     system: `You are a marching band drill command autocomplete engine. Given a partial command, suggest 3-5 completions. Return ONLY a JSON array of strings. Each suggestion should be a complete, natural-language drill/formation command. Be concise.`,
@@ -1358,7 +1365,7 @@ router.post('/drill/autocomplete', authenticateToken, requireAnthropicClient, ra
       role: 'user',
       content: `Complete this drill command: "${partial}"${contextBlock}\n\nReturn ONLY a JSON array of 3-5 completion strings.`,
     }],
-  });
+  }));
 
   logAiUsage({
     userId: req.user.id,
@@ -1393,3 +1400,4 @@ router.post('/drill/autocomplete', authenticateToken, requireAnthropicClient, ra
 }));
 
 module.exports = router;
+module.exports.aiBreaker = aiBreaker;

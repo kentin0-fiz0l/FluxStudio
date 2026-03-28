@@ -130,11 +130,57 @@ async function getMessageWithReplies(messageId, limit = 50) {
   }
 }
 
+/**
+ * Mark a thread as read for a user by updating their last-read timestamp.
+ * Uses an upsert to create or update the thread_read_state row.
+ */
+async function markThreadRead({ threadRootMessageId, userId }) {
+  try {
+    await query(
+      `INSERT INTO thread_read_states (thread_root_message_id, user_id, last_read_at)
+       VALUES ($1, $2, NOW())
+       ON CONFLICT (thread_root_message_id, user_id)
+       DO UPDATE SET last_read_at = NOW()`,
+      [threadRootMessageId, userId]
+    );
+    return true;
+  } catch (error) {
+    // Table may not exist yet; log and return gracefully
+    log.warn('markThreadRead: could not update thread read state', error.message);
+    return false;
+  }
+}
+
+/**
+ * Get the unread thread reply count for a specific message thread and user.
+ */
+async function getThreadUnreadCount({ threadRootMessageId, userId }) {
+  try {
+    const result = await query(
+      `SELECT COUNT(*) AS unread_count
+       FROM messages m
+       WHERE m.reply_to_message_id = $1
+         AND m.created_at > COALESCE(
+           (SELECT last_read_at FROM thread_read_states
+            WHERE thread_root_message_id = $1 AND user_id = $2),
+           '1970-01-01'::timestamptz
+         )`,
+      [threadRootMessageId, userId]
+    );
+    return parseInt(result.rows[0]?.unread_count || '0', 10);
+  } catch (error) {
+    log.warn('getThreadUnreadCount: could not query', error.message);
+    return 0;
+  }
+}
+
 module.exports = {
   transformThread,
   createThread,
   getThreads,
   getMessageThread,
   createReply,
-  getMessageWithReplies
+  getMessageWithReplies,
+  markThreadRead,
+  getThreadUnreadCount
 };

@@ -7,6 +7,8 @@
 
 const express = require('express');
 const { authenticateToken } = require('../lib/auth/middleware');
+const { zodValidate } = require('../middleware/zodValidate');
+const { setAiPreferenceSchema, aiPreferenceFeedbackSchema } = require('../lib/schemas');
 const { createLogger } = require('../lib/logger');
 const { asyncHandler } = require('../middleware/errorHandler');
 
@@ -64,13 +66,9 @@ router.get('/', authenticateToken, asyncHandler(async (req, res) => {
  * Manually set a user preference.
  * Body: { key: string, value: any }
  */
-router.post('/', authenticateToken, asyncHandler(async (req, res) => {
+router.post('/', authenticateToken, zodValidate(setAiPreferenceSchema), asyncHandler(async (req, res) => {
   const userId = req.user.id;
   const { key, value } = req.body;
-
-  if (!key || typeof key !== 'string' || key.length > 100) {
-    return res.status(400).json({ success: false, error: 'Invalid preference key' });
-  }
 
   if (!query) {
     return res.json({ success: true, message: 'Database not configured, preference not saved' });
@@ -95,13 +93,9 @@ router.post('/', authenticateToken, asyncHandler(async (req, res) => {
  * Record accept/reject for a suggestion. Updates inferred preferences.
  * Body: { suggestionType: string, accepted: boolean, context?: object }
  */
-router.post('/feedback', authenticateToken, asyncHandler(async (req, res) => {
+router.post('/feedback', authenticateToken, zodValidate(aiPreferenceFeedbackSchema), asyncHandler(async (req, res) => {
   const userId = req.user.id;
   const { suggestionType, accepted, context } = req.body;
-
-  if (!suggestionType || typeof accepted !== 'boolean') {
-    return res.status(400).json({ success: false, error: 'suggestionType and accepted are required' });
-  }
 
   if (!query) {
     return res.json({ success: true, message: 'Database not configured, feedback not saved' });

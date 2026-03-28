@@ -20,6 +20,9 @@ const { createLogger } = require('../lib/logger');
 const log = createLogger('Payments');
 const { ingestEvent } = require('../lib/analytics/funnelTracker');
 const { createCircuitBreaker } = require('../lib/circuitBreaker');
+const advancedRateLimiter = require('../middleware/advancedRateLimiter');
+const paymentsRateLimit = advancedRateLimiter.createLimiter(5, 300, 'payments');
+const { logAction } = require('../lib/auditLog');
 
 const stripeBreaker = createCircuitBreaker({
   name: 'stripe-api',
@@ -80,7 +83,7 @@ router.post('/webhooks/stripe', async (req, res) => {
  * Create Checkout Session
  * POST /api/payments/create-checkout-session
  */
-router.post('/create-checkout-session', requireAuth, zodValidate(createCheckoutSessionSchema), async (req, res) => {
+router.post('/create-checkout-session', paymentsRateLimit, requireAuth, zodValidate(createCheckoutSessionSchema), async (req, res) => {
   try {
     const { priceId, mode = 'subscription', successUrl, cancelUrl, metadata = {} } = req.body;
     const userId = req.user.id;
@@ -131,6 +134,8 @@ router.post('/create-checkout-session', requireAuth, zodValidate(createCheckoutS
       })
     );
 
+    logAction(req.user.id, 'subscription_create', 'payment', session.id, { plan: priceId }, req);
+
     res.json({ sessionId: session.id, url: session.url });
   } catch (error) {
     log.error('Create checkout session error', error);
@@ -142,7 +147,7 @@ router.post('/create-checkout-session', requireAuth, zodValidate(createCheckoutS
  * Create Customer Portal Session
  * POST /api/payments/create-portal-session
  */
-router.post('/create-portal-session', requireAuth, zodValidate(createPortalSessionSchema), async (req, res) => {
+router.post('/create-portal-session', paymentsRateLimit, requireAuth, zodValidate(createPortalSessionSchema), async (req, res) => {
   try {
     const userId = req.user.id;
     const { returnUrl } = req.body;
@@ -272,7 +277,7 @@ router.get('/subscription', requireAuth, async (req, res) => {
  * Create Payment Intent for Project
  * POST /api/payments/create-payment-intent
  */
-router.post('/create-payment-intent', requireAuth, async (req, res) => {
+router.post('/create-payment-intent', paymentsRateLimit, requireAuth, async (req, res) => {
   try {
     const { projectId, serviceTier, projectType, customizations = {} } = req.body;
     const userId = req.user.id;
@@ -353,7 +358,7 @@ router.post('/create-payment-intent', requireAuth, async (req, res) => {
  * No credit card required. Server-managed trial.
  * Sets plan_id = 'pro' and trial_ends_at = NOW() + 14 days.
  */
-router.post('/start-trial', requireAuth, async (req, res) => {
+router.post('/start-trial', paymentsRateLimit, requireAuth, async (req, res) => {
   try {
     const userId = req.user.id;
 
@@ -442,3 +447,4 @@ router.post('/start-trial', requireAuth, async (req, res) => {
 });
 
 module.exports = router;
+module.exports.stripeBreaker = stripeBreaker;

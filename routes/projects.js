@@ -21,7 +21,7 @@ const { authenticateToken } = require('../lib/auth/middleware');
 const { validateInput } = require('../middleware/security');
 const { zodValidate } = require('../middleware/zodValidate');
 const { asyncHandler } = require('../middleware/errorHandler');
-const { createProjectSchema, updateProjectSchema, addProjectMemberSchema, updateProjectMemberRoleSchema } = require('../lib/schemas');
+const { createProjectSchema, updateProjectSchema, addProjectMemberSchema, updateProjectMemberRoleSchema, bulkProjectActionSchema } = require('../lib/schemas');
 const { query } = require('../database/config');
 const { ingestEvent } = require('../lib/analytics/funnelTracker');
 const { requireProjectAccess } = require('../middleware/requireProjectAccess');
@@ -76,7 +76,7 @@ async function saveProjectsToFile(projects) {
  * instead of N+1 pattern (one query per project)
  */
 router.get('/', authenticateToken, asyncHandler(async (req, res) => {
-  const { organizationId, status, limit = 50, offset = 0 } = req.query;
+  const { organizationId, status, limit = 50, offset = 0, search, teamId, startDate, endDate } = req.query;
   const userId = req.user.id;
 
   let projects = [];
@@ -85,6 +85,10 @@ router.get('/', authenticateToken, asyncHandler(async (req, res) => {
     projects = await projectsAdapter.getProjects(userId, {
       organizationId,
       status,
+      search,
+      teamId,
+      startDate,
+      endDate,
       limit: parseInt(limit),
       offset: parseInt(offset)
     });
@@ -342,6 +346,43 @@ router.put('/:projectId', authenticateToken, requireProjectAccess(), validateInp
   }
 
   res.json({ success: true, project: updatedProject });
+}));
+
+/**
+ * PATCH /api/projects/bulk
+ * Perform bulk operations on projects (archive, status change, delete)
+ */
+router.patch('/bulk', authenticateToken, validateInput.sanitizeInput, zodValidate(bulkProjectActionSchema), asyncHandler(async (req, res) => {
+  const userId = req.user.id;
+  const { action, projectIds, status } = req.body;
+
+  if (!projectsAdapter) {
+    return res.status(501).json({ success: false, error: 'Bulk operations require database mode' });
+  }
+
+  let updates;
+  switch (action) {
+    case 'archive':
+      updates = { status: 'archived' };
+      break;
+    case 'status_change':
+      if (!status) {
+        return res.status(400).json({ success: false, error: 'Status is required for status_change action' });
+      }
+      updates = { status };
+      break;
+    case 'delete':
+      updates = { status: 'cancelled' };
+      break;
+    default:
+      return res.status(400).json({ success: false, error: `Unknown action: ${action}` });
+  }
+
+  const updatedProjects = await projectsAdapter.bulkUpdateProjects(projectIds, updates, userId);
+
+  logAction(req.user.id, 'bulk_update', 'project', projectIds.join(','), { action, projectIds, status }, req);
+
+  res.json({ success: true, projects: updatedProjects, count: updatedProjects.length });
 }));
 
 /**

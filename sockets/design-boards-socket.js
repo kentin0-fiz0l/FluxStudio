@@ -8,6 +8,8 @@
 
 const jwt = require('jsonwebtoken');
 const { createLogger } = require('../lib/logger');
+const { validateSocketPayload, checkSocketRateLimit, cleanupSocket } = require('../lib/socketValidation');
+const schemas = require('../lib/schemas/sockets');
 const log = createLogger('DesignBoardsSocket');
 
 module.exports = (namespace, designBoardsAdapter, JWT_SECRET) => {
@@ -53,6 +55,11 @@ module.exports = (namespace, designBoardsAdapter, JWT_SECRET) => {
 
     // Join a board for real-time collaboration
     socket.on('board:join', async (boardId) => {
+      if (!checkSocketRateLimit(socket, 'board:join', 10, 10000)) return;
+      const validatedId = validateSocketPayload(schemas.boardJoinSchema, boardId, socket);
+      if (validatedId === null) return;
+      boardId = validatedId;
+
       try {
         // Verify board exists
         const board = await designBoardsAdapter.getBoardById(boardId);
@@ -98,6 +105,11 @@ module.exports = (namespace, designBoardsAdapter, JWT_SECRET) => {
 
     // Leave a board
     socket.on('board:leave', (boardId) => {
+      if (!checkSocketRateLimit(socket, 'board:leave', 10, 10000)) return;
+      const validatedId = validateSocketPayload(schemas.boardLeaveSchema, boardId, socket);
+      if (validatedId === null) return;
+      boardId = validatedId;
+
       socket.leave(`board:${boardId}`);
 
       // Remove from board session
@@ -121,7 +133,10 @@ module.exports = (namespace, designBoardsAdapter, JWT_SECRET) => {
 
     // Update cursor position (for showing collaborator cursors)
     socket.on('cursor:move', (data) => {
-      const { boardId, x, y } = data;
+      if (!checkSocketRateLimit(socket, 'cursor:move', 30, 5000)) return;
+      const validated = validateSocketPayload(schemas.cursorMoveSchema, data, socket);
+      if (!validated) return;
+      const { boardId, x, y } = validated;
 
       // Update session cursor
       const session = boardSessions.get(boardId);
@@ -140,7 +155,10 @@ module.exports = (namespace, designBoardsAdapter, JWT_SECRET) => {
 
     // Node created
     socket.on('node:create', async (data) => {
-      const { boardId, node } = data;
+      if (!checkSocketRateLimit(socket, 'node:create', 10, 10000)) return;
+      const validated = validateSocketPayload(schemas.nodeCreateSchema, data, socket);
+      if (!validated) return;
+      const { boardId, node } = validated;
 
       try {
         const createdNode = await designBoardsAdapter.createNode({
@@ -178,7 +196,10 @@ module.exports = (namespace, designBoardsAdapter, JWT_SECRET) => {
 
     // Node updated (position, size, rotation, data)
     socket.on('node:update', async (data) => {
-      const { boardId, nodeId, patch } = data;
+      if (!checkSocketRateLimit(socket, 'node:update', 30, 5000)) return;
+      const validated = validateSocketPayload(schemas.nodeUpdateSchema, data, socket);
+      if (!validated) return;
+      const { boardId, nodeId, patch } = validated;
 
       try {
         const updatedNode = await designBoardsAdapter.updateNode(nodeId, patch);
@@ -209,7 +230,10 @@ module.exports = (namespace, designBoardsAdapter, JWT_SECRET) => {
 
     // Node deleted
     socket.on('node:delete', async (data) => {
-      const { boardId, nodeId } = data;
+      if (!checkSocketRateLimit(socket, 'node:delete', 10, 10000)) return;
+      const validated = validateSocketPayload(schemas.nodeDeleteSchema, data, socket);
+      if (!validated) return;
+      const { boardId, nodeId } = validated;
 
       try {
         const deleted = await designBoardsAdapter.deleteNode(nodeId);
@@ -240,7 +264,10 @@ module.exports = (namespace, designBoardsAdapter, JWT_SECRET) => {
 
     // Bulk node position update (for multi-select drag)
     socket.on('nodes:bulk-position', async (data) => {
-      const { boardId, updates } = data;
+      if (!checkSocketRateLimit(socket, 'nodes:bulk-position', 10, 10000)) return;
+      const validated = validateSocketPayload(schemas.nodesBulkPositionSchema, data, socket);
+      if (!validated) return;
+      const { boardId, updates } = validated;
 
       try {
         const updatedNodes = await designBoardsAdapter.bulkUpdateNodePositions(boardId, updates);
@@ -266,7 +293,10 @@ module.exports = (namespace, designBoardsAdapter, JWT_SECRET) => {
 
     // Node selection (show what other users have selected)
     socket.on('node:select', (data) => {
-      const { boardId, nodeId } = data;
+      if (!checkSocketRateLimit(socket, 'node:select', 10, 10000)) return;
+      const validated = validateSocketPayload(schemas.nodeSelectSchema, data, socket);
+      if (!validated) return;
+      const { boardId, nodeId } = validated;
 
       broadcastToBoard(socket, boardId, 'node:selected', {
         nodeId,
@@ -277,7 +307,10 @@ module.exports = (namespace, designBoardsAdapter, JWT_SECRET) => {
 
     // Node deselection
     socket.on('node:deselect', (data) => {
-      const { boardId, nodeId } = data;
+      if (!checkSocketRateLimit(socket, 'node:deselect', 10, 10000)) return;
+      const validated = validateSocketPayload(schemas.nodeDeselectSchema, data, socket);
+      if (!validated) return;
+      const { boardId, nodeId } = validated;
 
       broadcastToBoard(socket, boardId, 'node:deselected', {
         nodeId,
@@ -287,7 +320,10 @@ module.exports = (namespace, designBoardsAdapter, JWT_SECRET) => {
 
     // Board metadata updated (name, description, etc.)
     socket.on('board:update', async (data) => {
-      const { boardId, patch } = data;
+      if (!checkSocketRateLimit(socket, 'board:update', 10, 10000)) return;
+      const validated = validateSocketPayload(schemas.boardUpdateSchema, data, socket);
+      if (!validated) return;
+      const { boardId, patch } = validated;
 
       try {
         const updatedBoard = await designBoardsAdapter.updateBoard(boardId, patch);
@@ -319,6 +355,7 @@ module.exports = (namespace, designBoardsAdapter, JWT_SECRET) => {
     // Handle disconnect
     socket.on('disconnect', () => {
       log.info('User disconnected', { userId: socket.userId });
+      cleanupSocket(socket.id);
 
       // Clean up all board sessions this user was part of
       for (const [boardId, session] of boardSessions.entries()) {

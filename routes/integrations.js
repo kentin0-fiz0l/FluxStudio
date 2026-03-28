@@ -20,6 +20,21 @@ const { query } = require('../database/config');
 const { zodValidate } = require('../middleware/zodValidate');
 const { asyncHandler } = require('../middleware/errorHandler');
 const { oauthCallbackSchema, slackMessageSchema, slackProjectUpdateSchema, githubCreateIssueSchema, githubLinkRepoSchema } = require('../lib/schemas');
+const { logAction } = require('../lib/auditLog');
+
+const { createCircuitBreaker } = require('../lib/circuitBreaker');
+
+const slackBreaker = createCircuitBreaker({
+  name: 'slack-api',
+  failureThreshold: 5,
+  recoveryTimeout: 30000,
+});
+
+const githubBreaker = createCircuitBreaker({
+  name: 'github-api',
+  failureThreshold: 5,
+  recoveryTimeout: 30000,
+});
 
 const router = express.Router();
 
@@ -143,6 +158,8 @@ router.post('/:provider/callback', zodValidate(oauthCallbackSchema), asyncHandle
   const providerData = result.userInfo || {};
   const permissions = providerData.scope || [];
 
+  logAction(req.user?.id || null, 'oauth_connect', 'integration', provider, { provider }, req);
+
   res.json({
     success: true,
     message: `${provider.charAt(0).toUpperCase() + provider.slice(1)} integration successful`,
@@ -164,6 +181,8 @@ router.get('/', authenticateToken, asyncHandler(async (req, res) => {
 router.delete('/:provider', authenticateToken, asyncHandler(async (req, res) => {
   const { provider } = req.params;
   await getOAuthManager().disconnectIntegration(req.user.id, provider);
+
+  logAction(req.user.id, 'oauth_disconnect', 'integration', provider, { provider }, req);
 
   res.json({
     message: `${provider} integration disconnected successfully`,
@@ -267,7 +286,7 @@ router.get('/slack/channels', authenticateToken, asyncHandler(async (req, res) =
   const SlackService = require('../src/services/slackService').default;
   const slack = new SlackService(accessToken);
 
-  const channels = await slack.listChannels(true);
+  const channels = await slackBreaker.execute(() => slack.listChannels(true));
 
   res.json({ channels });
 }));
@@ -283,7 +302,7 @@ router.post('/slack/message', authenticateToken, zodValidate(slackMessageSchema)
   const SlackService = require('../src/services/slackService').default;
   const slack = new SlackService(accessToken);
 
-  const message = await slack.postMessage(channel, text, { blocks });
+  const message = await slackBreaker.execute(() => slack.postMessage(channel, text, { blocks }));
 
   res.json({ message });
 }));
@@ -299,7 +318,7 @@ router.post('/slack/project-update', authenticateToken, zodValidate(slackProject
   const SlackService = require('../src/services/slackService').default;
   const slack = new SlackService(accessToken);
 
-  const message = await slack.sendProjectUpdate(channel, projectName, updateType, details);
+  const message = await slackBreaker.execute(() => slack.sendProjectUpdate(channel, projectName, updateType, details));
 
   res.json({ message });
 }));
@@ -359,12 +378,12 @@ router.get('/github/repositories', authenticateToken, asyncHandler(async (req, r
 
   const { type, sort, direction, per_page } = req.query;
 
-  const { data } = await octokit.repos.listForAuthenticatedUser({
+  const { data } = await githubBreaker.execute(() => octokit.repos.listForAuthenticatedUser({
     type: type || 'owner',
     sort: sort || 'updated',
     direction: direction || 'desc',
     per_page: per_page ? parseInt(per_page) : 30
-  });
+  }));
 
   res.json({ repositories: data });
 }));
@@ -376,7 +395,7 @@ router.get('/github/repositories/:owner/:repo', authenticateToken, asyncHandler(
 
   const { owner, repo } = req.params;
 
-  const { data } = await octokit.repos.get({ owner, repo });
+  const { data } = await githubBreaker.execute(() => octokit.repos.get({ owner, repo }));
 
   res.json(data);
 }));
@@ -389,7 +408,7 @@ router.get('/github/repositories/:owner/:repo/issues', authenticateToken, asyncH
   const { owner, repo } = req.params;
   const { state, labels, sort, direction, per_page } = req.query;
 
-  const { data } = await octokit.issues.listForRepo({
+  const { data } = await githubBreaker.execute(() => octokit.issues.listForRepo({
     owner,
     repo,
     state: state || 'open',
@@ -397,7 +416,7 @@ router.get('/github/repositories/:owner/:repo/issues', authenticateToken, asyncH
     sort: sort || 'created',
     direction: direction || 'desc',
     per_page: per_page ? parseInt(per_page) : 30
-  });
+  }));
 
   res.json({ issues: data });
 }));
@@ -409,11 +428,11 @@ router.get('/github/repositories/:owner/:repo/issues/:issue_number', authenticat
 
   const { owner, repo, issue_number } = req.params;
 
-  const { data } = await octokit.issues.get({
+  const { data } = await githubBreaker.execute(() => octokit.issues.get({
     owner,
     repo,
     issue_number: parseInt(issue_number)
-  });
+  }));
 
   res.json(data);
 }));
@@ -430,14 +449,14 @@ router.post('/github/repositories/:owner/:repo/issues', authenticateToken, zodVa
     return res.status(400).json({ success: false, error: 'Issue title is required', code: 'INTEGRATION_GITHUB_MISSING_TITLE' });
   }
 
-  const { data } = await octokit.issues.create({
+  const { data } = await githubBreaker.execute(() => octokit.issues.create({
     owner,
     repo,
     title,
     body,
     labels,
     assignees
-  });
+  }));
 
   res.json(data);
 }));
@@ -450,7 +469,7 @@ router.patch('/github/repositories/:owner/:repo/issues/:issue_number', authentic
   const { owner, repo, issue_number } = req.params;
   const { title, body, state, labels, assignees } = req.body;
 
-  const { data } = await octokit.issues.update({
+  const { data } = await githubBreaker.execute(() => octokit.issues.update({
     owner,
     repo,
     issue_number: parseInt(issue_number),
@@ -459,7 +478,7 @@ router.patch('/github/repositories/:owner/:repo/issues/:issue_number', authentic
     state,
     labels,
     assignees
-  });
+  }));
 
   res.json(data);
 }));
@@ -476,12 +495,12 @@ router.post('/github/repositories/:owner/:repo/issues/:issue_number/comments', a
     return res.status(400).json({ success: false, error: 'Comment body is required', code: 'INTEGRATION_GITHUB_MISSING_BODY' });
   }
 
-  const { data } = await octokit.issues.createComment({
+  const { data } = await githubBreaker.execute(() => octokit.issues.createComment({
     owner,
     repo,
     issue_number: parseInt(issue_number),
     body
-  });
+  }));
 
   res.json(data);
 }));
@@ -494,14 +513,14 @@ router.get('/github/repositories/:owner/:repo/pulls', authenticateToken, asyncHa
   const { owner, repo } = req.params;
   const { state, sort, direction, per_page } = req.query;
 
-  const { data } = await octokit.pulls.list({
+  const { data } = await githubBreaker.execute(() => octokit.pulls.list({
     owner,
     repo,
     state: state || 'open',
     sort: sort || 'created',
     direction: direction || 'desc',
     per_page: per_page ? parseInt(per_page) : 30
-  });
+  }));
 
   res.json({ pulls: data });
 }));
@@ -514,13 +533,13 @@ router.get('/github/repositories/:owner/:repo/commits', authenticateToken, async
   const { owner, repo } = req.params;
   const { sha, path, per_page } = req.query;
 
-  const { data } = await octokit.repos.listCommits({
+  const { data } = await githubBreaker.execute(() => octokit.repos.listCommits({
     owner,
     repo,
     sha,
     path,
     per_page: per_page ? parseInt(per_page) : 30
-  });
+  }));
 
   res.json({ commits: data });
 }));
@@ -532,7 +551,7 @@ router.get('/github/repositories/:owner/:repo/branches', authenticateToken, asyn
 
   const { owner, repo } = req.params;
 
-  const { data } = await octokit.repos.listBranches({ owner, repo });
+  const { data } = await githubBreaker.execute(() => octokit.repos.listBranches({ owner, repo }));
 
   const branches = data.map(branch => ({
     name: branch.name,
@@ -549,7 +568,7 @@ router.get('/github/repositories/:owner/:repo/collaborators', authenticateToken,
 
   const { owner, repo } = req.params;
 
-  const { data } = await octokit.repos.listCollaborators({ owner, repo });
+  const { data } = await githubBreaker.execute(() => octokit.repos.listCollaborators({ owner, repo }));
 
   const collaborators = data.map(collab => ({
     login: collab.login,
@@ -766,3 +785,5 @@ router.get('/github/sync/status/:linkId', authenticateToken, asyncHandler(async 
 }));
 
 module.exports = router;
+module.exports.slackBreaker = slackBreaker;
+module.exports.githubBreaker = githubBreaker;

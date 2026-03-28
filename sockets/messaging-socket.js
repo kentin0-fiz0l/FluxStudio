@@ -10,6 +10,8 @@ const jwt = require('jsonwebtoken');
 const messagingConversationsAdapter = require('../database/messaging-conversations-adapter');
 const notificationService = require('../services/notification-service');
 const { createLogger } = require('../lib/logger');
+const { validateSocketPayload, checkSocketRateLimit, cleanupSocket } = require('../lib/socketValidation');
+const socketSchemas = require('../lib/schemas/sockets');
 const log = createLogger('MessagingSocket');
 
 module.exports = (namespace, createMessage, getMessages, getChannels, messagingAdapter, JWT_SECRET) => {
@@ -69,6 +71,11 @@ module.exports = (namespace, createMessage, getMessages, getChannels, messagingA
 
     // Join a conversation room
     socket.on('conversation:join', async (conversationId) => {
+      if (!checkSocketRateLimit(socket, 'conversation:join', 20, 10000)) return;
+      const validated = validateSocketPayload(socketSchemas.conversationJoinSchema, conversationId, socket);
+      if (validated === null) return;
+      conversationId = validated;
+
       try {
         // Verify user is a member of the conversation
         const conversation = await messagingConversationsAdapter.getConversationById(conversationId, socket.userId);
@@ -102,6 +109,11 @@ module.exports = (namespace, createMessage, getMessages, getChannels, messagingA
 
     // Leave a conversation room
     socket.on('conversation:leave', (conversationId) => {
+      if (!checkSocketRateLimit(socket, 'conversation:leave', 20, 10000)) return;
+      const validated = validateSocketPayload(socketSchemas.conversationLeaveSchema, conversationId, socket);
+      if (validated === null) return;
+      conversationId = validated;
+
       socket.leave(`conversation:${conversationId}`);
       log.info('User left conversation', { userId: socket.userId, conversationId });
 
@@ -114,13 +126,10 @@ module.exports = (namespace, createMessage, getMessages, getChannels, messagingA
 
     // Send message to a conversation
     socket.on('conversation:message:send', async (data) => {
-      const { conversationId, text, replyToMessageId, assetId, projectId, threadRootMessageId } = data;
-
-      // Require conversationId and either text or assetId
-      if (!conversationId || (!text && !assetId)) {
-        socket.emit('error', { message: 'Conversation ID and either text or asset are required' });
-        return;
-      }
+      if (!checkSocketRateLimit(socket, 'conversation:message:send', 10, 10000)) return;
+      const validated = validateSocketPayload(socketSchemas.conversationMessageSendSchema, data, socket);
+      if (!validated) return;
+      const { conversationId, text, replyToMessageId, assetId, projectId, threadRootMessageId } = validated;
 
       try {
         // Verify user is a member of the conversation
@@ -217,6 +226,11 @@ module.exports = (namespace, createMessage, getMessages, getChannels, messagingA
 
     // Typing indicator for conversations (enhanced with user info)
     socket.on('conversation:typing:start', async (conversationId) => {
+      if (!checkSocketRateLimit(socket, 'conversation:typing:start', 5, 5000)) return;
+      const validatedId = validateSocketPayload(socketSchemas.conversationTypingStartSchema, conversationId, socket);
+      if (validatedId === null) return;
+      conversationId = validatedId;
+
       try {
         // Get user info for the typing indicator
         const userInfo = await messagingConversationsAdapter.getUserById?.(socket.userId) || {};
@@ -243,6 +257,11 @@ module.exports = (namespace, createMessage, getMessages, getChannels, messagingA
     });
 
     socket.on('conversation:typing:stop', (conversationId) => {
+      if (!checkSocketRateLimit(socket, 'conversation:typing:stop', 5, 5000)) return;
+      const validatedId = validateSocketPayload(socketSchemas.conversationTypingStopSchema, conversationId, socket);
+      if (validatedId === null) return;
+      conversationId = validatedId;
+
       socket.to(`conversation:${conversationId}`).emit('conversation:user-stopped-typing', {
         conversationId,
         userId: socket.userId,
@@ -252,12 +271,10 @@ module.exports = (namespace, createMessage, getMessages, getChannels, messagingA
 
     // Mark conversation as read up to a specific message
     socket.on('conversation:read', async (data) => {
-      const { conversationId, messageId } = data;
-
-      if (!conversationId || !messageId) {
-        socket.emit('error', { message: 'Conversation ID and message ID are required' });
-        return;
-      }
+      if (!checkSocketRateLimit(socket, 'conversation:read', 20, 10000)) return;
+      const validated = validateSocketPayload(socketSchemas.conversationReadSchema, data, socket);
+      if (!validated) return;
+      const { conversationId, messageId } = validated;
 
       try {
         await messagingConversationsAdapter.setLastRead(conversationId, socket.userId, messageId);
@@ -277,14 +294,32 @@ module.exports = (namespace, createMessage, getMessages, getChannels, messagingA
       }
     });
 
+    // Mark thread as read
+    socket.on('thread:mark_read', async (data) => {
+      if (!checkSocketRateLimit(socket, 'thread:mark_read', 20, 10000)) return;
+      const validated = validateSocketPayload(socketSchemas.threadMarkReadSchema, data || {}, socket);
+      if (!validated) return;
+      const { messageId, conversationId } = validated;
+
+      try {
+        await messagingConversationsAdapter.markThreadRead?.({
+          threadRootMessageId: messageId,
+          userId: socket.userId,
+        });
+
+        socket.emit('thread:mark_read:confirmed', { messageId });
+      } catch (error) {
+        log.error('Error marking thread as read', error);
+        socket.emit('error', { message: 'Failed to mark thread as read' });
+      }
+    });
+
     // Delete message from conversation
     socket.on('conversation:message:delete', async (data) => {
-      const { conversationId, messageId } = data;
-
-      if (!conversationId || !messageId) {
-        socket.emit('error', { message: 'Conversation ID and message ID are required' });
-        return;
-      }
+      if (!checkSocketRateLimit(socket, 'conversation:message:delete', 20, 10000)) return;
+      const validated = validateSocketPayload(socketSchemas.conversationMessageDeleteSchema, data, socket);
+      if (!validated) return;
+      const { conversationId, messageId } = validated;
 
       try {
         const deleted = await messagingConversationsAdapter.deleteMessage(messageId, socket.userId);
@@ -305,12 +340,10 @@ module.exports = (namespace, createMessage, getMessages, getChannels, messagingA
 
     // Add reaction to a message
     socket.on('conversation:reaction:add', async (data, ack) => {
-      const { messageId, emoji } = data;
-
-      if (!messageId || !emoji) {
-        if (ack) ack({ ok: false, error: 'Message ID and emoji are required' });
-        return;
-      }
+      if (!checkSocketRateLimit(socket, 'conversation:reaction:add', 20, 10000)) return;
+      const validated = validateSocketPayload(socketSchemas.conversationReactionAddSchema, data, socket);
+      if (!validated) return;
+      const { messageId, emoji } = validated;
 
       try {
         // Get the message to verify conversation membership
@@ -354,12 +387,10 @@ module.exports = (namespace, createMessage, getMessages, getChannels, messagingA
 
     // Remove reaction from a message
     socket.on('conversation:reaction:remove', async (data, ack) => {
-      const { messageId, emoji } = data;
-
-      if (!messageId || !emoji) {
-        if (ack) ack({ ok: false, error: 'Message ID and emoji are required' });
-        return;
-      }
+      if (!checkSocketRateLimit(socket, 'conversation:reaction:remove', 20, 10000)) return;
+      const validated = validateSocketPayload(socketSchemas.conversationReactionRemoveSchema, data, socket);
+      if (!validated) return;
+      const { messageId, emoji } = validated;
 
       try {
         // Get the message to verify conversation membership
@@ -403,12 +434,10 @@ module.exports = (namespace, createMessage, getMessages, getChannels, messagingA
 
     // Pin a message
     socket.on('conversation:pin', async (data, ack) => {
-      const { messageId } = data || {};
-
-      if (!messageId) {
-        if (ack) ack({ ok: false, error: 'Message ID is required' });
-        return;
-      }
+      if (!checkSocketRateLimit(socket, 'conversation:pin', 20, 10000)) return;
+      const validated = validateSocketPayload(socketSchemas.conversationPinSchema, data || {}, socket);
+      if (!validated) return;
+      const { messageId } = validated;
 
       try {
         // Get the message to verify conversation membership
@@ -452,12 +481,10 @@ module.exports = (namespace, createMessage, getMessages, getChannels, messagingA
 
     // Unpin a message
     socket.on('conversation:unpin', async (data, ack) => {
-      const { messageId } = data || {};
-
-      if (!messageId) {
-        if (ack) ack({ ok: false, error: 'Message ID is required' });
-        return;
-      }
+      if (!checkSocketRateLimit(socket, 'conversation:unpin', 20, 10000)) return;
+      const validated = validateSocketPayload(socketSchemas.conversationUnpinSchema, data || {}, socket);
+      if (!validated) return;
+      const { messageId } = validated;
 
       try {
         // Get the message to verify conversation membership
@@ -502,12 +529,10 @@ module.exports = (namespace, createMessage, getMessages, getChannels, messagingA
 
     // Edit a message
     socket.on('conversation:message:edit', async (data, ack) => {
-      const { conversationId, messageId, content } = data || {};
-
-      if (!conversationId || !messageId || !content) {
-        if (ack) ack({ ok: false, error: 'Conversation ID, message ID, and content are required' });
-        return;
-      }
+      if (!checkSocketRateLimit(socket, 'conversation:message:edit', 20, 10000)) return;
+      const validated = validateSocketPayload(socketSchemas.conversationMessageEditSchema, data || {}, socket);
+      if (!validated) return;
+      const { conversationId, messageId, content } = validated;
 
       try {
         // Verify user is a member of the conversation
@@ -571,12 +596,10 @@ module.exports = (namespace, createMessage, getMessages, getChannels, messagingA
 
     // Forward a message to another conversation
     socket.on('conversation:message:forward', async (data, ack) => {
-      const { sourceConversationId, targetConversationId, messageId } = data || {};
-
-      if (!sourceConversationId || !targetConversationId || !messageId) {
-        if (ack) ack({ ok: false, error: 'Source conversation ID, target conversation ID, and message ID are required' });
-        return;
-      }
+      if (!checkSocketRateLimit(socket, 'conversation:message:forward', 20, 10000)) return;
+      const validated = validateSocketPayload(socketSchemas.conversationMessageForwardSchema, data || {}, socket);
+      if (!validated) return;
+      const { sourceConversationId, targetConversationId, messageId } = validated;
 
       // Prevent forwarding to the same conversation
       if (sourceConversationId === targetConversationId) {
@@ -653,6 +676,11 @@ module.exports = (namespace, createMessage, getMessages, getChannels, messagingA
 
     // Join team channels
     socket.on('channel:join', async (channelId) => {
+      if (!checkSocketRateLimit(socket, 'channel:join', 20, 10000)) return;
+      const validatedCh = validateSocketPayload(socketSchemas.channelJoinSchema, channelId, socket);
+      if (validatedCh === null) return;
+      channelId = validatedCh;
+
       socket.join(`channel:${channelId}`);
       log.info('User joined channel', { userId: socket.userId, channelId });
 
@@ -668,18 +696,21 @@ module.exports = (namespace, createMessage, getMessages, getChannels, messagingA
 
     // Leave channel
     socket.on('channel:leave', (channelId) => {
+      if (!checkSocketRateLimit(socket, 'channel:leave', 20, 10000)) return;
+      const validatedCh = validateSocketPayload(socketSchemas.channelLeaveSchema, channelId, socket);
+      if (validatedCh === null) return;
+      channelId = validatedCh;
+
       socket.leave(`channel:${channelId}`);
       log.info('User left channel', { userId: socket.userId, channelId });
     });
 
     // Send message
     socket.on('message:send', async (data) => {
-      const { channelId, text, replyTo, file } = data;
-
-      if (!channelId || (!text && !file)) {
-        socket.emit('error', { message: 'Channel ID and either text or file are required' });
-        return;
-      }
+      if (!checkSocketRateLimit(socket, 'message:send', 10, 10000)) return;
+      const validated = validateSocketPayload(socketSchemas.messageSendSchema, data, socket);
+      if (!validated) return;
+      const { channelId, text, replyTo, file } = validated;
 
       try {
         const messageData = {
@@ -706,7 +737,10 @@ module.exports = (namespace, createMessage, getMessages, getChannels, messagingA
 
     // Edit message
     socket.on('message:edit', async (data) => {
-      const { messageId, text } = data;
+      if (!checkSocketRateLimit(socket, 'message:edit', 20, 10000)) return;
+      const validated = validateSocketPayload(socketSchemas.messageEditSchema, data, socket);
+      if (!validated) return;
+      const { messageId, text } = validated;
 
       try {
         // Update message in database (includes authorization check)
@@ -735,6 +769,11 @@ module.exports = (namespace, createMessage, getMessages, getChannels, messagingA
 
     // Delete message
     socket.on('message:delete', async (messageId) => {
+      if (!checkSocketRateLimit(socket, 'message:delete', 20, 10000)) return;
+      const validatedMsgId = validateSocketPayload(socketSchemas.messageDeleteSchema, messageId, socket);
+      if (validatedMsgId === null) return;
+      messageId = validatedMsgId;
+
       try {
         // Get message first to check authorization and get channel
         const messages = await getMessages();
@@ -767,7 +806,10 @@ module.exports = (namespace, createMessage, getMessages, getChannels, messagingA
 
     // Add reaction
     socket.on('message:react', async (data) => {
-      const { messageId, emoji } = data;
+      if (!checkSocketRateLimit(socket, 'message:react', 20, 10000)) return;
+      const validated = validateSocketPayload(socketSchemas.messageReactSchema, data, socket);
+      if (!validated) return;
+      const { messageId, emoji } = validated;
 
       try {
         // Check if message exists first
@@ -809,6 +851,11 @@ module.exports = (namespace, createMessage, getMessages, getChannels, messagingA
 
     // Typing indicators (legacy channel-based)
     socket.on('typing:start', (channelId) => {
+      if (!checkSocketRateLimit(socket, 'typing:start', 5, 5000)) return;
+      const validatedCh = validateSocketPayload(socketSchemas.typingStartSchema, channelId, socket);
+      if (validatedCh === null) return;
+      channelId = validatedCh;
+
       socket.to(`channel:${channelId}`).emit('user:typing', {
         userId: socket.userId,
         userEmail: socket.userEmail,
@@ -817,6 +864,11 @@ module.exports = (namespace, createMessage, getMessages, getChannels, messagingA
     });
 
     socket.on('typing:stop', (channelId) => {
+      if (!checkSocketRateLimit(socket, 'typing:stop', 5, 5000)) return;
+      const validatedCh = validateSocketPayload(socketSchemas.typingStopSchema, channelId, socket);
+      if (validatedCh === null) return;
+      channelId = validatedCh;
+
       socket.to(`channel:${channelId}`).emit('user:stopped-typing', {
         userId: socket.userId,
         channelId
@@ -825,12 +877,10 @@ module.exports = (namespace, createMessage, getMessages, getChannels, messagingA
 
     // Direct messages
     socket.on('dm:send', async (data) => {
-      const { recipientId, text } = data;
-
-      if (!recipientId || !text) {
-        socket.emit('error', { message: 'Recipient and text are required' });
-        return;
-      }
+      if (!checkSocketRateLimit(socket, 'dm:send', 10, 10000)) return;
+      const validated = validateSocketPayload(socketSchemas.dmSendSchema, data, socket);
+      if (!validated) return;
+      const { recipientId, text } = validated;
 
       try {
         const messageData = {
@@ -859,6 +909,11 @@ module.exports = (namespace, createMessage, getMessages, getChannels, messagingA
 
     // Mark message as read
     socket.on('message:read', async (messageId) => {
+      if (!checkSocketRateLimit(socket, 'message:read', 20, 10000)) return;
+      const validatedMsgId = validateSocketPayload(socketSchemas.messageReadSchema, messageId, socket);
+      if (validatedMsgId === null) return;
+      messageId = validatedMsgId;
+
       try {
         const messages = await getMessages();
         const message = messages.find(m => m.id === messageId);
@@ -889,6 +944,7 @@ module.exports = (namespace, createMessage, getMessages, getChannels, messagingA
 
     // Get online users
     socket.on('users:get-online', () => {
+      if (!checkSocketRateLimit(socket, 'users:get-online', 20, 10000)) return;
       const onlineUsers = Array.from(activeUsers.entries()).map(([userId, data]) => ({
         userId,
         ...data
@@ -902,6 +958,7 @@ module.exports = (namespace, createMessage, getMessages, getChannels, messagingA
 
     // Subscribe to notifications (auto-joined to user room on connection)
     socket.on('notifications:subscribe', async () => {
+      if (!checkSocketRateLimit(socket, 'notifications:subscribe', 20, 10000)) return;
       try {
         const count = await messagingConversationsAdapter.getUnreadNotificationCount({
           userId: socket.userId
@@ -915,6 +972,11 @@ module.exports = (namespace, createMessage, getMessages, getChannels, messagingA
 
     // Mark notification as read
     socket.on('notification:mark-read', async (notificationId) => {
+      if (!checkSocketRateLimit(socket, 'notification:mark-read', 20, 10000)) return;
+      const validatedNotifId = validateSocketPayload(socketSchemas.notificationMarkReadSchema, notificationId, socket);
+      if (validatedNotifId === null) return;
+      notificationId = validatedNotifId;
+
       try {
         const notification = await messagingConversationsAdapter.markNotificationRead({
           notificationId,
@@ -938,6 +1000,7 @@ module.exports = (namespace, createMessage, getMessages, getChannels, messagingA
 
     // Mark all notifications as read
     socket.on('notifications:mark-all-read', async () => {
+      if (!checkSocketRateLimit(socket, 'notifications:mark-all-read', 20, 10000)) return;
       try {
         const updatedCount = await messagingConversationsAdapter.markAllNotificationsRead({
           userId: socket.userId
@@ -954,6 +1017,7 @@ module.exports = (namespace, createMessage, getMessages, getChannels, messagingA
     // Handle disconnect
     socket.on('disconnect', async () => {
       log.info('User disconnected from messaging', { userId: socket.userId });
+      cleanupSocket(socket.id);
 
       // Update user status in memory
       const userData = activeUsers.get(socket.userId);

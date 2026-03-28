@@ -34,7 +34,7 @@ class ProjectsAdapter {
    */
   async getProjects(userId, options = {}) {
     try {
-      const { organizationId, status, search, limit = 50, offset = 0 } = options;
+      const { organizationId, status, search, teamId, startDate, endDate, limit = 50, offset = 0 } = options;
 
       const params = [userId];
       let paramIndex = 2;
@@ -55,8 +55,26 @@ class ProjectsAdapter {
       }
 
       if (search) {
-        conditions += ` AND (p.name ILIKE $${paramIndex} OR p.description ILIKE $${paramIndex})`;
-        params.push(`%${search}%`);
+        conditions += ` AND to_tsvector('english', p.name || ' ' || COALESCE(p.description, '')) @@ plainto_tsquery('english', $${paramIndex})`;
+        params.push(search);
+        paramIndex++;
+      }
+
+      if (teamId) {
+        conditions += ` AND p.team_id = $${paramIndex}`;
+        params.push(teamId);
+        paramIndex++;
+      }
+
+      if (startDate) {
+        conditions += ` AND p.created_at >= $${paramIndex}`;
+        params.push(startDate);
+        paramIndex++;
+      }
+
+      if (endDate) {
+        conditions += ` AND p.created_at <= $${paramIndex}`;
+        params.push(endDate);
         paramIndex++;
       }
 
@@ -426,6 +444,61 @@ class ProjectsAdapter {
     } catch (error) {
       log.error('Error getting project unread count', error);
       return 0;
+    }
+  }
+
+  /**
+   * Bulk update projects (archive, status change, or delete)
+   */
+  async bulkUpdateProjects(projectIds, updates, userId) {
+    const client = await require('./config').pool.connect();
+    try {
+      await client.query('BEGIN');
+
+      // Verify user owns or is a member of all projects
+      const ownerCheck = await client.query(`
+        SELECT p.id FROM projects p
+        WHERE p.id = ANY($1::text[])
+          AND (
+            p.manager_id = $2
+            OR EXISTS (SELECT 1 FROM project_members pm WHERE pm.project_id = p.id AND pm.user_id = $2 AND pm.role IN ('manager', 'owner', 'admin'))
+          )
+      `, [projectIds, userId]);
+
+      const ownedIds = new Set(ownerCheck.rows.map(r => r.id));
+      const unauthorized = projectIds.filter(id => !ownedIds.has(id));
+      if (unauthorized.length > 0) {
+        throw new Error(`Unauthorized access to projects: ${unauthorized.join(', ')}`);
+      }
+
+      const setClauses = [];
+      const params = [projectIds];
+      let paramIndex = 2;
+
+      for (const [key, value] of Object.entries(updates)) {
+        const dbField = this.toSnakeCase(key);
+        setClauses.push(`${dbField} = $${paramIndex}`);
+        params.push(value);
+        paramIndex++;
+      }
+
+      setClauses.push('updated_at = NOW()');
+
+      const result = await client.query(`
+        UPDATE projects SET ${setClauses.join(', ')}
+        WHERE id = ANY($1::text[])
+        RETURNING *
+      `, params);
+
+      await client.query('COMMIT');
+
+      return result.rows.map(row => this.transformProject(row));
+    } catch (error) {
+      await client.query('ROLLBACK');
+      log.error('Error in bulk update', error);
+      throw error;
+    } finally {
+      client.release();
     }
   }
 

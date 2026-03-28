@@ -61,6 +61,7 @@ class MessagingConversationsAdapter {
   // Thread operations
   listThreadMessages = threads.listThreadMessages;
   getThreadSummary = threads.getThreadSummary;
+  markThreadRead = threads.markThreadRead;
 
   // Asset operations
   getAssetById = assets.getAssetById;

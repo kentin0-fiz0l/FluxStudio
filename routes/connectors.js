@@ -23,6 +23,7 @@ const log = createLogger('Connectors');
 const { zodValidate } = require('../middleware/zodValidate');
 const { asyncHandler } = require('../middleware/errorHandler');
 const { connectorImportSchema, connectorLinkSchema } = require('../lib/schemas');
+const { logAction } = require('../lib/auditLog');
 
 const router = express.Router();
 
@@ -122,6 +123,10 @@ router.get('/:provider/callback', asyncHandler(async (req, res) => {
     });
   }
 
+  if (result.userInfo?.userId) {
+    logAction(result.userInfo.userId, 'connect', 'connector', provider, { provider }, req);
+  }
+
   res.redirect(`/connectors?success=true&provider=${provider}`);
 }));
 
@@ -132,6 +137,9 @@ router.get('/:provider/callback', asyncHandler(async (req, res) => {
 router.delete('/:provider', authenticateToken, asyncHandler(async (req, res) => {
   const { provider } = req.params;
   await connectorsAdapter.disconnectConnector(req.user.id, provider);
+
+  logAction(req.user.id, 'disconnect', 'connector', provider, { provider }, req);
+
   res.json({ success: true });
 }));
 

@@ -70,10 +70,11 @@ const staticAssetCaching = (options = {}) => {
         // Immutable assets with content hash
         res.setHeader('Cache-Control', `public, max-age=${CACHE_DURATIONS.immutable}, immutable`);
       } else {
-        // Regular static assets
+        // Regular static assets with stale-while-revalidate
+        const swr = Math.floor(maxAge / 2);
         const cacheControl = immutable
           ? `public, max-age=${maxAge}, immutable`
-          : `public, max-age=${maxAge}`;
+          : `public, max-age=${maxAge}, stale-while-revalidate=${swr}`;
         res.setHeader('Cache-Control', cacheControl);
       }
     }
@@ -138,7 +139,8 @@ const apiCaching = (options = {}) => {
 
       // Set cache headers
       if (maxAge > 0) {
-        res.setHeader('Cache-Control', `private, max-age=${maxAge}, must-revalidate`);
+        const swr = Math.max(Math.floor(maxAge / 2), 30); // stale-while-revalidate: half of max-age, min 30s
+        res.setHeader('Cache-Control', `private, max-age=${maxAge}, stale-while-revalidate=${swr}, must-revalidate`);
       } else {
         res.setHeader('Cache-Control', 'no-store');
       }
@@ -179,6 +181,13 @@ const configuredApiCaching = () => {
       // File metadata - medium cache
       '^/api/files/[^/]+$': CACHE_DURATIONS.medium,
       '^/api/assets$': CACHE_DURATIONS.medium,
+
+      // Formations - short cache (collaborative data changes often)
+      '^/api/projects/[^/]+/formations': CACHE_DURATIONS.short,
+      '^/api/formations': CACHE_DURATIONS.short,
+
+      // Templates - medium cache (rarely change)
+      '^/api/templates': CACHE_DURATIONS.medium,
 
       // Health checks - no cache
       '^/health': CACHE_DURATIONS.none,

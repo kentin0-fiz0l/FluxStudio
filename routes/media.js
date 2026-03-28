@@ -17,6 +17,7 @@ const { createLogger } = require('../lib/logger');
 const log = createLogger('Media');
 const { zodValidate } = require('../middleware/zodValidate');
 const { transcodeSchema } = require('../lib/schemas');
+const { logAction } = require('../lib/auditLog');
 
 const router = express.Router();
 
@@ -75,6 +76,8 @@ router.post('/transcode', authenticateToken, zodValidate(transcodeSchema), async
       spacesKey: spacesKey,
       userId: req.user.id
     });
+
+    logAction(req.user.id, 'upload', 'media', file.id, { fileName: file.name }, req);
 
     res.json({
       message: 'Transcoding job submitted successfully',

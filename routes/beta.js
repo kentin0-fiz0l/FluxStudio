@@ -16,6 +16,8 @@ const router = express.Router();
 const { query } = require('../database/config');
 const { authenticateToken, requireAdmin, rateLimitByUser } = require('../lib/auth/middleware');
 const { rateLimit } = require('../middleware/security');
+const { zodValidate } = require('../middleware/zodValidate');
+const { joinBetaWaitlistSchema, inviteBetaUserSchema } = require('../lib/schemas');
 const { createLogger } = require('../lib/logger');
 const log = createLogger('BetaRoutes');
 const { asyncHandler } = require('../middleware/errorHandler');
@@ -33,16 +35,8 @@ const VALID_ROLES = ['band_director', 'drill_writer', 'color_guard', 'educator',
  * POST /api/beta
  * Join the beta waitlist (public, rate-limited).
  */
-router.post('/', rateLimit({ windowMs: 15 * 60 * 1000, max: 5 }), asyncHandler(async (req, res) => {
+router.post('/', rateLimit({ windowMs: 15 * 60 * 1000, max: 5 }), zodValidate(joinBetaWaitlistSchema), asyncHandler(async (req, res) => {
   const { email, name, role, organization } = req.body;
-
-  if (!email || !email.includes('@')) {
-    return res.status(400).json({ success: false, error: 'A valid email is required.' });
-  }
-
-  if (role && !VALID_ROLES.includes(role)) {
-    return res.status(400).json({ success: false, error: `Role must be one of: ${VALID_ROLES.join(', ')}` });
-  }
 
   const result = await query(
     `INSERT INTO beta_waitlist (email, name, role, organization)
@@ -105,12 +99,8 @@ router.get('/', authenticateToken, requireAdmin, asyncHandler(async (req, res) =
  * POST /api/beta/invite
  * Invite a user from the waitlist (admin only).
  */
-router.post('/invite', authenticateToken, requireAdmin, asyncHandler(async (req, res) => {
+router.post('/invite', authenticateToken, requireAdmin, zodValidate(inviteBetaUserSchema), asyncHandler(async (req, res) => {
   const { email } = req.body;
-
-  if (!email) {
-    return res.status(400).json({ success: false, error: 'Email is required.' });
-  }
 
   const waitlistEntry = await query('SELECT * FROM beta_waitlist WHERE email = $1', [email]);
   if (waitlistEntry.rows.length === 0) {

@@ -17,6 +17,34 @@ const log = createLogger('Health');
 
 const router = express.Router();
 
+// Circuit breaker imports for health reporting
+let circuitBreakers = {};
+try {
+  const { aiBreaker } = require('./ai');
+  circuitBreakers.anthropic = aiBreaker;
+} catch (_e) { /* not loaded */ }
+try {
+  const { stripeBreaker } = require('./payments');
+  circuitBreakers.stripe = stripeBreaker;
+} catch (_e) { /* not loaded */ }
+try {
+  const { oauthBreaker } = require('./auth');
+  circuitBreakers.oauth = oauthBreaker;
+} catch (_e) { /* not loaded */ }
+try {
+  const { slackBreaker, githubBreaker } = require('./integrations');
+  circuitBreakers.slack = slackBreaker;
+  circuitBreakers.github = githubBreaker;
+} catch (_e) { /* not loaded */ }
+try {
+  const { s3Breaker } = require('../lib/storage');
+  circuitBreakers.s3 = s3Breaker;
+} catch (_e) { /* not loaded */ }
+try {
+  const { emailBreaker } = require('../lib/email/emailService');
+  circuitBreakers.email = emailBreaker;
+} catch (_e) { /* not loaded */ }
+
 // Enhanced health check endpoint with dependency status
 async function getHealthStatus(app) {
   const cache = require('../lib/cache');
@@ -99,6 +127,15 @@ async function getHealthStatus(app) {
       designBoards: app.get('designBoardsNamespace') ? 'active' : 'inactive'
     }
   };
+
+  // Report circuit breaker states
+  const breakerStates = {};
+  for (const [name, breaker] of Object.entries(circuitBreakers)) {
+    if (breaker && breaker.getState) {
+      breakerStates[name] = breaker.getState();
+    }
+  }
+  health.circuitBreakers = breakerStates;
 
   return health;
 }

@@ -40,6 +40,7 @@ const { generateAuthResponse } = require('../lib/auth/authHelpers');
 const securityLogger = require('../lib/auth/securityLogger');
 const { captureAuthError } = require('../lib/monitoring/sentry');
 const { ingestEvent } = require('../lib/analytics/funnelTracker');
+const { logAction } = require('../lib/auditLog');
 const anomalyDetector = require('../lib/security/anomalyDetector');
 const { createCircuitBreaker } = require('../lib/circuitBreaker');
 
@@ -325,6 +326,9 @@ router.post('/signup',
         ).catch(() => {});
       }
 
+      // Audit log: signup
+      logAction(newUser.id, 'signup', 'user', newUser.id, { email }, req);
+
       // Return auth response with access + refresh tokens
       // Include emailVerified status so frontend knows to show verification reminder
       res.json({
@@ -442,6 +446,9 @@ router.post('/login',
         userType: user.userType
       });
 
+      // Audit log: login
+      logAction(user.id, 'login', 'user', user.id, { method: 'password' }, req);
+
       // Return auth response with access + refresh tokens
       res.json(authResponse);
   }));
@@ -460,10 +467,15 @@ router.get('/me', requireAuth, asyncHandler(async (req, res) => {
 }));
 
 // Logout endpoint
-router.post('/logout', requireAuth, (req, res) => {
-  // In a real app, you might want to invalidate the token server-side
+router.post('/logout', requireAuth, asyncHandler(async (req, res) => {
+  // Revoke the current access token via Redis blacklist
+  const tokenService = require('../lib/auth/tokenService');
+  if (req.user && req.user.jti) {
+    await tokenService.revokeToken(req.user.jti);
+  }
+  logAction(req.user?.id, 'logout', 'user', req.user?.id, {}, req);
   res.json({ success: true, message: 'Logged out successfully' });
-});
+}));
 
 // Google OAuth endpoint
 router.post('/google', asyncHandler(async (req, res) => {
@@ -979,6 +991,9 @@ router.post('/forgot-password',
       // Send reset email
       await emailService.sendPasswordResetEmail(email, resetToken, user.name || 'there');
 
+      // Audit log: password reset requested
+      logAction(null, 'password_reset', 'user', null, { email }, req);
+
       res.json({ success: true, message: 'If an account exists with this email, a password reset link has been sent.' });
   })
 );
@@ -1291,6 +1306,9 @@ router.post('/change-password',
       { userId, email: user.email, ipAddress: req.ip }
     );
 
+    // Audit log: password change
+    logAction(req.user.id, 'password_change', 'user', req.user.id, {}, req);
+
     return res.json({ success: true, message: 'Password changed successfully' });
   })
 );
@@ -1591,3 +1609,4 @@ router.delete('/sessions', requireAuth, asyncHandler(async (req, res) => {
 }));
 
 module.exports = router;
+module.exports.oauthBreaker = oauthBreaker;

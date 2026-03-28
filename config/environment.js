@@ -4,6 +4,7 @@
  */
 
 const crypto = require('crypto');
+const { z } = require('zod');
 
 /**
  * Generate secure random string
@@ -12,48 +13,102 @@ function generateSecureSecret(length = 64) {
   return crypto.randomBytes(length).toString('hex');
 }
 
+// ---------------------------------------------------------------------------
+// Zod schemas
+// ---------------------------------------------------------------------------
+
+/** Coerce a string env var to an integer with a fallback default */
+const intString = (fallback) =>
+  z.string().optional().transform((v) => {
+    const n = parseInt(v, 10);
+    return Number.isFinite(n) ? n : fallback;
+  });
+
+/** Boolean-ish env var: "true" => true, anything else => false */
+const boolTrue = z.string().optional().transform((v) => v === 'true');
+
+/** Boolean-ish env var: "false" => false, anything else => true */
+const boolNotFalse = z.string().optional().transform((v) => v !== 'false');
+
 /**
- * Validate required environment variables
+ * Base schema - always applied regardless of NODE_ENV.
+ * Optional fields accept `undefined` and fall back to defaults in the config object.
+ */
+const baseEnvSchema = z.object({
+  NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
+
+  // Required (auto-generated in dev when missing)
+  JWT_SECRET: z.string().optional(),
+
+  // Optional with defaults applied later
+  SESSION_SECRET: z.string().optional(),
+  DATABASE_URL: z.string().url().optional(),
+  REDIS_URL: z.string().optional(),
+  ANTHROPIC_API_KEY: z.string().optional(),
+  AI_SUMMARIES_ENABLED: boolTrue,
+  PORT: intString(3001),
+  MESSAGING_PORT: intString(3004),
+});
+
+/**
+ * Production-specific schema - stricter requirements.
+ */
+const productionEnvSchema = baseEnvSchema.extend({
+  JWT_SECRET: z.string().min(32, 'JWT_SECRET must be at least 32 characters in production'),
+  SESSION_SECRET: z.string().min(1, 'SESSION_SECRET must be explicitly set in production')
+    .refine((v) => v !== 'your-secret-key-change-in-production', {
+      message: 'SESSION_SECRET must not be the placeholder value in production',
+    }),
+  DATABASE_URL: z.string().url('DATABASE_URL is required in production'),
+  REDIS_URL: z.string().min(1, 'REDIS_URL is required in production'),
+});
+
+/**
+ * Validate required environment variables using Zod
  */
 function validateEnvironment() {
-  const required = ['JWT_SECRET'];
-  const missing = [];
+  const isProduction = process.env.NODE_ENV === 'production';
+  const schema = isProduction ? productionEnvSchema : baseEnvSchema;
 
-  for (const key of required) {
-    if (!process.env[key] || process.env[key] === 'your-secret-key-change-in-production') {
-      missing.push(key);
+  const result = schema.safeParse(process.env);
+
+  if (!result.success) {
+    const issues = result.error.issues;
+    console.error('Environment validation failed:');
+    for (const issue of issues) {
+      const path = issue.path.join('.') || '(root)';
+      console.error(`  - ${path}: ${issue.message}`);
+    }
+
+    if (isProduction) {
+      console.error('FATAL: Cannot start in production with invalid environment');
+      process.exit(1);
     }
   }
 
-  // Production-specific validation
-  if (process.env.NODE_ENV === 'production') {
-    if (!process.env.DATABASE_URL) {
-      throw new Error('FATAL: DATABASE_URL is required in production');
-    }
-    if (!process.env.REDIS_URL) {
-      throw new Error('FATAL: REDIS_URL is required in production');
-    }
-    if (missing.includes('JWT_SECRET')) {
-      throw new Error('FATAL: JWT_SECRET must be explicitly set in production (auto-generated secrets are not allowed)');
-    }
-    if (!process.env.SESSION_SECRET || process.env.SESSION_SECRET === 'your-secret-key-change-in-production') {
-      throw new Error('FATAL: SESSION_SECRET must be explicitly set in production (auto-generated secrets are not allowed)');
-    }
-  }
-
-  // Validate AI config consistency
+  // Validate AI config consistency (cross-field check)
   if (process.env.AI_SUMMARIES_ENABLED === 'true' && !process.env.ANTHROPIC_API_KEY) {
-    throw new Error('ANTHROPIC_API_KEY is required when AI_SUMMARIES_ENABLED is true');
+    const msg = 'ANTHROPIC_API_KEY is required when AI_SUMMARIES_ENABLED is true';
+    if (isProduction) {
+      console.error(`FATAL: ${msg}`);
+      process.exit(1);
+    }
+    throw new Error(msg);
   }
+
+  // Auto-generate missing secrets in development/test
+  const secretKeys = ['JWT_SECRET'];
+  const missing = secretKeys.filter(
+    (key) => !process.env[key] || process.env[key] === 'your-secret-key-change-in-production'
+  );
 
   if (missing.length > 0) {
-    console.warn('⚠️  Missing or insecure environment variables:', missing.join(', '));
-    console.warn('⚠️  Using auto-generated secrets for development. Set proper values in production!');
+    console.warn('Missing or insecure environment variables:', missing.join(', '));
+    console.warn('Using auto-generated secrets for development. Set proper values in production!');
 
-    // Auto-generate secrets for development
     for (const key of missing) {
       process.env[key] = generateSecureSecret();
-      console.warn(`⚠️  Auto-generated ${key}: ${process.env[key].substring(0, 16)}...`);
+      console.warn(`Auto-generated ${key}: ${process.env[key].substring(0, 16)}...`);
     }
   }
 }

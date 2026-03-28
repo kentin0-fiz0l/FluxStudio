@@ -13,6 +13,8 @@
 
 const jwt = require('jsonwebtoken');
 const { createLogger } = require('../lib/logger');
+const { validateSocketPayload, checkSocketRateLimit, cleanupSocket } = require('../lib/socketValidation');
+const schemas = require('../lib/schemas/sockets');
 const log = createLogger('WebRTCSocket');
 
 module.exports = (namespace, JWT_SECRET) => {
@@ -55,7 +57,11 @@ module.exports = (namespace, JWT_SECRET) => {
     // ------------------------------------------------------------------
     // call:initiate -- Start a new call
     // ------------------------------------------------------------------
-    socket.on('call:initiate', ({ callId, participantIds, callType }) => {
+    socket.on('call:initiate', (data) => {
+      if (!checkSocketRateLimit(socket, 'call:initiate', 5, 10000)) return;
+      const validated = validateSocketPayload(schemas.callInitiateSchema, data, socket);
+      if (!validated) return;
+      const { callId, participantIds, callType } = validated;
       log.info('Call initiated', { callId, initiator: userId, participantIds, callType });
 
       // Store call state
@@ -86,7 +92,11 @@ module.exports = (namespace, JWT_SECRET) => {
     // ------------------------------------------------------------------
     // call:accept -- Accept an incoming call
     // ------------------------------------------------------------------
-    socket.on('call:accept', ({ callId }) => {
+    socket.on('call:accept', (data) => {
+      if (!checkSocketRateLimit(socket, 'call:accept', 5, 10000)) return;
+      const validated = validateSocketPayload(schemas.callAcceptSchema, data, socket);
+      if (!validated) return;
+      const { callId } = validated;
       log.info('Call accepted', { callId, userId });
 
       const call = activeCalls.get(callId);
@@ -106,7 +116,11 @@ module.exports = (namespace, JWT_SECRET) => {
     // ------------------------------------------------------------------
     // call:reject -- Reject an incoming call
     // ------------------------------------------------------------------
-    socket.on('call:reject', ({ callId }) => {
+    socket.on('call:reject', (data) => {
+      if (!checkSocketRateLimit(socket, 'call:reject', 5, 10000)) return;
+      const validated = validateSocketPayload(schemas.callRejectSchema, data, socket);
+      if (!validated) return;
+      const { callId } = validated;
       log.info('Call rejected', { callId, userId });
 
       const call = activeCalls.get(callId);
@@ -126,7 +140,11 @@ module.exports = (namespace, JWT_SECRET) => {
     // ------------------------------------------------------------------
     // call:end -- End/leave a call
     // ------------------------------------------------------------------
-    socket.on('call:end', ({ callId }) => {
+    socket.on('call:end', (data) => {
+      if (!checkSocketRateLimit(socket, 'call:end', 5, 10000)) return;
+      const validated = validateSocketPayload(schemas.callEndSchema, data, socket);
+      if (!validated) return;
+      const { callId } = validated;
       log.info('Call ended by user', { callId, userId });
 
       const call = activeCalls.get(callId);
@@ -152,7 +170,11 @@ module.exports = (namespace, JWT_SECRET) => {
     // ------------------------------------------------------------------
     // signal -- Forward signaling messages (offer/answer/ICE candidates)
     // ------------------------------------------------------------------
-    socket.on('signal', ({ callId, targetUserId, signal }) => {
+    socket.on('signal', (data) => {
+      if (!checkSocketRateLimit(socket, 'signal', 30, 5000)) return;
+      const validated = validateSocketPayload(schemas.signalSchema, data, socket);
+      if (!validated) return;
+      const { callId, targetUserId, signal } = validated;
       const targetSocket = userSockets.get(targetUserId);
       if (targetSocket) {
         targetSocket.emit('signal', {
@@ -168,6 +190,7 @@ module.exports = (namespace, JWT_SECRET) => {
     // ------------------------------------------------------------------
     socket.on('disconnect', () => {
       log.info('WebRTC client disconnected', { userId });
+      cleanupSocket(socket.id);
       userSockets.delete(userId);
 
       // Remove from any active calls

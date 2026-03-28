@@ -12,6 +12,8 @@ const { logAiUsage, sanitizeApiError } = require('../services/ai-summary-service
 const { createLogger } = require('../lib/logger');
 const { getClient } = require('../lib/ai/client');
 const { getModelForTask, getMaxTokensForTask } = require('../lib/ai/config');
+const { zodValidate } = require('../middleware/zodValidate');
+const { aiFormationAnalyzeScreenshotSchema } = require('../lib/schemas');
 const { asyncHandler } = require('../middleware/errorHandler');
 
 const log = createLogger('AIFormationVision');
@@ -44,17 +46,9 @@ function requireAnthropicClient(req, res, next) {
  * POST /analyze-screenshot
  * Analyze a formation screenshot using Claude Vision.
  */
-router.post('/analyze-screenshot', authenticateToken, requireAnthropicClient, rateLimitByUser(10, 60000), checkAiQuota, asyncHandler(async (req, res) => {
+router.post('/analyze-screenshot', authenticateToken, requireAnthropicClient, rateLimitByUser(10, 60000), checkAiQuota, zodValidate(aiFormationAnalyzeScreenshotSchema), asyncHandler(async (req, res) => {
   const { image, formationId, analysisType = 'general' } = req.body;
   const userId = req.user.id;
-
-  if (!image || typeof image !== 'string') {
-    return res.status(400).json({
-      success: false,
-      error: 'image (base64 string) is required',
-      code: 'INVALID_INPUT',
-    });
-  }
 
   // Strip data URL prefix if present
   const base64Data = image.replace(/^data:image\/\w+;base64,/, '');

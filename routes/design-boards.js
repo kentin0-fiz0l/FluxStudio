@@ -19,6 +19,7 @@ const log = createLogger('DesignBoards');
 const { zodValidate } = require('../middleware/zodValidate');
 const { asyncHandler } = require('../middleware/errorHandler');
 const { createBoardSchema, updateBoardSchema, createNodeSchema, bulkPositionSchema } = require('../lib/schemas/design-boards');
+const { logAction } = require('../lib/auditLog');
 
 const router = express.Router();
 
@@ -65,6 +66,8 @@ router.post('/projects/:projectId/boards', authenticateToken, zodValidate(create
     eventType: 'board_created',
     payload: { name: board.name }
   });
+
+  logAction(req.user.id, 'create', 'design_board', board.id, { name: board.name, projectId }, req);
 
   res.status(201).json({ success: true, board });
 }));
@@ -126,6 +129,8 @@ router.patch('/:boardId', authenticateToken, zodValidate(updateBoardSchema), asy
     payload: { changes: { name, description, isArchived, thumbnailAssetId } }
   });
 
+  logAction(req.user.id, 'update', 'design_board', boardId, { changes: { name, description, isArchived, thumbnailAssetId } }, req);
+
   res.json({ success: true, board: updatedBoard });
 }));
 
@@ -142,6 +147,8 @@ router.delete('/:boardId', authenticateToken, asyncHandler(async (req, res) => {
   }
 
   await designBoardsAdapter.deleteBoard(boardId);
+
+  logAction(req.user.id, 'delete', 'design_board', boardId, {}, req);
 
   res.json({ success: true, message: 'Board deleted' });
 }));

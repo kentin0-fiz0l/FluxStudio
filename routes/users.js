@@ -16,6 +16,7 @@ const { updateUserSchema } = require('../lib/schemas/users');
 const { createLogger } = require('../lib/logger');
 const log = createLogger('Users');
 const { asyncHandler } = require('../middleware/errorHandler');
+const { logAction } = require('../lib/auditLog');
 
 const router = express.Router();
 
@@ -201,6 +202,8 @@ router.patch('/:id', authenticateToken, zodValidate(updateUserSchema), asyncHand
       return res.status(404).json({ success: false, error: 'User not found', code: 'USER_NOT_FOUND' });
     }
 
+    logAction(req.user.id, 'update_profile', 'user', id, { fields: Object.keys(req.body).filter(k => req.body[k] !== undefined) }, req);
+
     res.json({ user: result.rows[0] });
   } else {
     const fs = require('fs');
@@ -219,6 +222,8 @@ router.patch('/:id', authenticateToken, zodValidate(updateUserSchema), asyncHand
     if (name !== undefined) parsed.users[userIndex].name = name;
 
     fs.writeFileSync(USERS_FILE, JSON.stringify(parsed, null, 2));
+
+    logAction(req.user.id, 'update_profile', 'user', id, { fields: Object.keys(req.body).filter(k => req.body[k] !== undefined) }, req);
 
     const u = parsed.users[userIndex];
     res.json({ user: { id: u.id, name: u.name, email: u.email, avatar: u.avatar, status: u.status || 'offline', role: u.userType || u.role } });
@@ -241,6 +246,8 @@ router.delete('/:id', authenticateToken, asyncHandler(async (req, res) => {
       return res.status(404).json({ success: false, error: 'User not found', code: 'USER_NOT_FOUND' });
     }
 
+    logAction(req.user.id, 'delete_account', 'user', id, {}, req);
+
     res.json({ success: true, message: 'User deleted successfully' });
   } else {
     const fs = require('fs');
@@ -256,6 +263,8 @@ router.delete('/:id', authenticateToken, asyncHandler(async (req, res) => {
 
     parsed.users.splice(userIndex, 1);
     fs.writeFileSync(USERS_FILE, JSON.stringify(parsed, null, 2));
+
+    logAction(req.user.id, 'delete_account', 'user', id, {}, req);
 
     res.json({ success: true, message: 'User deleted successfully' });
   }

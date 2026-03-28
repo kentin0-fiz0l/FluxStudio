@@ -21,6 +21,7 @@ const { validateInput } = require('../middleware/security');
 const messagingConversationsAdapter = require('../database/messaging-conversations-adapter');
 const notificationService = require('../services/notification-service');
 const { query } = require('../database/config');
+const { logAction } = require('../lib/auditLog');
 
 const router = express.Router();
 
@@ -135,6 +136,9 @@ router.put('/preferences', authenticateToken, zodValidate(updateNotificationPref
   const updates = req.body;
 
   const preferences = await notificationService.updateUserPreferences(userId, updates);
+
+  logAction(userId, 'settings_change', 'notification', userId, { changes: Object.keys(updates) }, req);
+
   res.json({ success: true, preferences });
 }));
 

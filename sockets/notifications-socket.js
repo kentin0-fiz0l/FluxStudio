@@ -12,6 +12,7 @@
 
 const jwt = require('jsonwebtoken');
 const { createLogger } = require('../lib/logger');
+const { checkSocketRateLimit, cleanupSocket } = require('../lib/socketValidation');
 const log = createLogger('NotificationsSocket');
 
 let _io = null;
@@ -54,6 +55,7 @@ function initNotificationsSocket(namespace, jwtSecret) {
 
     // Client can request current unread count
     socket.on('notifications:request_count', async () => {
+      if (!checkSocketRateLimit(socket, 'notifications:request_count', 10, 10000)) return;
       try {
         const { query } = require('../database/config');
         const result = await query(
@@ -70,6 +72,7 @@ function initNotificationsSocket(namespace, jwtSecret) {
 
     socket.on('disconnect', () => {
       log.info('User disconnected', { userId });
+      cleanupSocket(socket.id);
     });
   });
 }

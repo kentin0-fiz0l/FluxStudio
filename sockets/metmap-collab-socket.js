@@ -15,6 +15,8 @@
 const jwt = require('jsonwebtoken');
 const Y = require('yjs');
 const { createLogger } = require('../lib/logger');
+const { validateSocketPayload, checkSocketRateLimit, cleanupSocket } = require('../lib/socketValidation');
+const schemas = require('../lib/schemas/sockets');
 const log = createLogger('MetmapCollabSocket');
 
 // LRU cache for Y.Doc instances
@@ -168,8 +170,11 @@ module.exports = function setupMetMapCollabSocket(namespace, metmapAdapter, jwtS
     log.info('User connected', { username: socket.username, socketId: socket.id });
 
     // ---------- Join room ----------
-    socket.on('yjs:join', async ({ room }) => {
-      if (!room || typeof room !== 'string') return;
+    socket.on('yjs:join', async (data) => {
+      if (!checkSocketRateLimit(socket, 'yjs:join', 10, 10000)) return;
+      const validated = validateSocketPayload(schemas.yjsJoinSchema, data, socket);
+      if (!validated) return;
+      const { room } = validated;
 
       // Clean up stale membership (reconnect case)
       if (roomClients.get(room)?.has(socket.id)) {
@@ -194,8 +199,11 @@ module.exports = function setupMetMapCollabSocket(namespace, metmapAdapter, jwtS
     });
 
     // ---------- Leave room ----------
-    socket.on('yjs:leave', ({ room }) => {
-      if (!room) return;
+    socket.on('yjs:leave', (data) => {
+      if (!checkSocketRateLimit(socket, 'yjs:leave', 10, 10000)) return;
+      const validated = validateSocketPayload(schemas.yjsLeaveSchema, data, socket);
+      if (!validated) return;
+      const { room } = validated;
       socket.leave(room);
       roomClients.get(room)?.delete(socket.id);
 
@@ -216,8 +224,11 @@ module.exports = function setupMetMapCollabSocket(namespace, metmapAdapter, jwtS
     });
 
     // ---------- Sync request ----------
-    socket.on('yjs:sync-request', async ({ room, stateVector }) => {
-      if (!room) return;
+    socket.on('yjs:sync-request', async (data) => {
+      if (!checkSocketRateLimit(socket, 'yjs:sync-request', 10, 10000)) return;
+      const validated = validateSocketPayload(schemas.yjsSyncRequestSchema, data, socket);
+      if (!validated) return;
+      const { room, stateVector } = validated;
 
       try {
         const doc = await getOrCreateDoc(room);
@@ -243,8 +254,11 @@ module.exports = function setupMetMapCollabSocket(namespace, metmapAdapter, jwtS
     });
 
     // ---------- Document update ----------
-    socket.on('yjs:update', async ({ room, update }) => {
-      if (!room || !update) return;
+    socket.on('yjs:update', async (data) => {
+      if (!checkSocketRateLimit(socket, 'yjs:update', 60, 5000)) return;
+      const validated = validateSocketPayload(schemas.yjsUpdateSchema, data, socket);
+      if (!validated) return;
+      const { room, update } = validated;
 
       // Broadcast to other room members
       socket.to(room).emit('yjs:update', { update });
@@ -263,15 +277,21 @@ module.exports = function setupMetMapCollabSocket(namespace, metmapAdapter, jwtS
     });
 
     // ---------- Awareness update ----------
-    socket.on('yjs:awareness-update', ({ room, update }) => {
-      if (!room || !update) return;
+    socket.on('yjs:awareness-update', (data) => {
+      if (!checkSocketRateLimit(socket, 'yjs:awareness-update', 30, 5000)) return;
+      const validated = validateSocketPayload(schemas.yjsAwarenessUpdateSchema, data, socket);
+      if (!validated) return;
+      const { room, update } = validated;
       // Broadcast to other room members (don't persist awareness)
       socket.to(room).emit('yjs:awareness-update', { update });
     });
 
     // ---------- Create snapshot from current doc state ----------
-    socket.on('yjs:create-snapshot', async ({ room, name, description }) => {
-      if (!room || !name) return;
+    socket.on('yjs:create-snapshot', async (data) => {
+      if (!checkSocketRateLimit(socket, 'yjs:create-snapshot', 5, 10000)) return;
+      const validated = validateSocketPayload(schemas.yjsCreateSnapshotSchema, data, socket);
+      if (!validated) return;
+      const { room, name, description } = validated;
 
       try {
         const doc = docCache.get(room);
@@ -314,8 +334,11 @@ module.exports = function setupMetMapCollabSocket(namespace, metmapAdapter, jwtS
     });
 
     // ---------- Restore snapshot ----------
-    socket.on('yjs:restore-snapshot', async ({ room, snapshotId }) => {
-      if (!room || !snapshotId) return;
+    socket.on('yjs:restore-snapshot', async (data) => {
+      if (!checkSocketRateLimit(socket, 'yjs:restore-snapshot', 3, 10000)) return;
+      const validated = validateSocketPayload(schemas.yjsRestoreSnapshotSchema, data, socket);
+      if (!validated) return;
+      const { room, snapshotId } = validated;
 
       try {
         const snapshot = await metmapAdapter.getSnapshot(snapshotId, socket.userId);
@@ -362,6 +385,7 @@ module.exports = function setupMetMapCollabSocket(namespace, metmapAdapter, jwtS
     // ---------- Disconnect ----------
     socket.on('disconnect', () => {
       log.info('User disconnected', { username: socket.username, socketId: socket.id });
+      cleanupSocket(socket.id);
 
       // Remove from all rooms
       for (const [room, clients] of roomClients) {

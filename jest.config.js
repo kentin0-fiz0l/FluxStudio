@@ -14,7 +14,8 @@ module.exports = {
     '<rootDir>/tests/**/*.test.js',
     '<rootDir>/tests/**/*.integration.test.js',
     '<rootDir>/services/__tests__/*.test.js',
-    '<rootDir>/lib/**/__tests__/*.test.js'
+    '<rootDir>/lib/**/__tests__/*.test.js',
+    '<rootDir>/sockets/__tests__/*.test.js'
   ],
 
   // Coverage configuration
