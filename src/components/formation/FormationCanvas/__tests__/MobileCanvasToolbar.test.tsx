@@ -39,7 +39,7 @@ describe('MobileCanvasToolbar', () => {
     render(<MobileCanvasToolbar {...defaultProps()} />);
 
     expect(screen.getByRole('toolbar', { name: /canvas tools/i })).toBeInTheDocument();
-    expect(screen.getByLabelText('Select tool')).toBeInTheDocument();
+    expect(screen.getByLabelText(/select tool/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/switch to pan mode/i)).toBeInTheDocument();
     expect(screen.getByLabelText('Add performer')).toBeInTheDocument();
     expect(screen.getByLabelText('Undo')).toBeInTheDocument();
@@ -55,7 +55,7 @@ describe('MobileCanvasToolbar', () => {
     const props = defaultProps({ activeTool: 'add' });
     render(<MobileCanvasToolbar {...props} />);
 
-    fireEvent.click(screen.getByLabelText('Select tool'));
+    fireEvent.click(screen.getByLabelText(/select tool/i));
     expect(props.setActiveTool).toHaveBeenCalledWith('select');
   });
 

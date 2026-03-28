@@ -635,6 +635,27 @@ describe('useCanvasHandlers', () => {
       expect(state.setSelectedKeyframeId).toHaveBeenCalledWith('kf-2');
       expect(state.setCurrentPositions).toHaveBeenCalled();
     });
+
+    it('broadcasts via collab.setActiveKeyframe in collaborative mode', () => {
+      const collab = makeCollab();
+      collab.isConnected = true;
+      (collab as Record<string, unknown>).setActiveKeyframe = vi.fn();
+      const kf2Positions = new Map<string, Position>([['p1', makePosition(80, 80)]]);
+      const formation = makeFormation({
+        keyframes: [
+          { id: 'kf-1', timestamp: 0, positions: new Map([['p1', makePosition(20, 20)]]) },
+          { id: 'kf-2', timestamp: 1000, positions: kf2Positions },
+        ],
+      });
+      const { handlers, state } = renderHandlers({
+        formation,
+        isCollaborativeEnabled: true,
+        collab,
+      });
+      act(() => { handlers.current.handleKeyframeSelect('kf-2'); });
+      expect(state.setSelectedKeyframeId).toHaveBeenCalledWith('kf-2');
+      expect((collab as Record<string, unknown>).setActiveKeyframe).toHaveBeenCalledWith('kf-2');
+    });
   });
 
   describe('handleKeyframeAdd', () => {
