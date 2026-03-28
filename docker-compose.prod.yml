@@ -42,12 +42,12 @@ services:
       timeout: 10s
       retries: 3
 
-  # Auth Service
-  auth-service:
+  # Unified Backend Service
+  backend:
     build:
       context: .
-      dockerfile: Dockerfile.auth
-    container_name: fluxstudio_auth
+      dockerfile: Dockerfile.backend
+    container_name: fluxstudio_backend
     environment:
       NODE_ENV: production
       PORT: 3001
@@ -87,39 +87,6 @@ services:
       timeout: 10s
       retries: 3
 
-  # Messaging Service
-  messaging-service:
-    build:
-      context: .
-      dockerfile: Dockerfile.messaging
-    container_name: fluxstudio_messaging
-    environment:
-      NODE_ENV: production
-      PORT: 3004
-      DATABASE_URL: postgresql://${POSTGRES_USER:-fluxstudio}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-fluxstudio}
-      REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379
-      JWT_SECRET: ${JWT_SECRET}
-      CORS_ORIGINS: ${CORS_ORIGINS}
-    ports:
-      - "3004:3004"
-    volumes:
-      - ./logs:/app/logs
-    depends_on:
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-      auth-service:
-        condition: service_healthy
-    restart: unless-stopped
-    networks:
-      - fluxstudio-network
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3004/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-
   # Nginx Reverse Proxy with SSL
   nginx:
     image: nginx:alpine
@@ -133,8 +100,7 @@ services:
       - ./nginx/dhparam.pem:/etc/nginx/dhparam.pem
       - ./static:/var/www/static
     depends_on:
-      - auth-service
-      - messaging-service
+      - backend
     restart: unless-stopped
     networks:
       - fluxstudio-network

@@ -6,8 +6,8 @@
 module.exports = {
   apps: [
     {
-      name: 'flux-auth',
-      script: './server-auth.js',
+      name: 'flux-unified',
+      script: './server-unified.js',
       instances: 1,
       exec_mode: 'cluster',
       autorestart: true,
@@ -21,37 +21,9 @@ module.exports = {
         NODE_ENV: 'production',
         PORT: 3001
       },
-      error_file: './logs/auth-error.log',
-      out_file: './logs/auth-out.log',
-      log_file: './logs/auth-combined.log',
-      time: true,
-      merge_logs: true,
-      log_date_format: 'YYYY-MM-DD HH:mm:ss Z',
-      // Health check configuration
-      min_uptime: '10s',
-      listen_timeout: 3000,
-      kill_timeout: 5000,
-      restart_delay: 4000
-    },
-    {
-      name: 'flux-messaging',
-      script: './server-messaging.js',
-      instances: 1,
-      exec_mode: 'cluster',
-      autorestart: true,
-      watch: false,
-      max_memory_restart: '500M',
-      env: {
-        NODE_ENV: 'development',
-        MESSAGING_PORT: 3004
-      },
-      env_production: {
-        NODE_ENV: 'production',
-        MESSAGING_PORT: 3004
-      },
-      error_file: './logs/messaging-error.log',
-      out_file: './logs/messaging-out.log',
-      log_file: './logs/messaging-combined.log',
+      error_file: './logs/unified-error.log',
+      out_file: './logs/unified-out.log',
+      log_file: './logs/unified-combined.log',
       time: true,
       merge_logs: true,
       log_date_format: 'YYYY-MM-DD HH:mm:ss Z',
@@ -96,7 +68,7 @@ module.exports = {
     production: {
       user: 'root',
       host: '167.172.208.61',
-      ref: 'origin/master',
+      ref: 'origin/main',
       repo: 'git@github.com:yourusername/fluxstudio.git',
       path: '/var/www/fluxstudio',
       'post-deploy': 'npm install && pm2 reload ecosystem.config.js --env production',
