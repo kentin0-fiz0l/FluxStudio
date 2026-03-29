@@ -316,11 +316,6 @@
       host: true, // Allow access from external IPs (also needed for Tauri webview)
       open: !isTauri, // Don't auto-open browser when launched via Tauri
       proxy: {
-        '/api/messaging': {
-          target: 'http://localhost:3004',
-          changeOrigin: true,
-          secure: false,
-        },
         '/api': {
           target: 'http://localhost:3001',
           changeOrigin: true,

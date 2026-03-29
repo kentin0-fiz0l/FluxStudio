@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import { createLogger } from '../utils/logger';
+import { validateContentAccess } from '../services/access-validator';
 
 const logger = createLogger('auth-middleware');
 const JWT_SECRET = process.env.JWT_SECRET;
@@ -47,9 +48,15 @@ export const validateSubscriptionTier = async (req: Request, res: Response, next
     const userId = (req as any).user?.id;
     const contentId = req.query.contentId || req.params.contentId;
 
-    // TODO: Implement actual tier validation
-    // For now, allow all authenticated users
-    logger.debug('Subscription tier validation', { userId, contentId });
+    if (!userId || !contentId) {
+      return res.status(400).json({ error: 'Missing user or content ID' });
+    }
+
+    const hasAccess = await validateContentAccess(userId, String(contentId));
+    if (!hasAccess) {
+      return res.status(403).json({ error: 'Content access denied' });
+    }
+
     next();
   } catch (error) {
     logger.error('Subscription validation error', { error });

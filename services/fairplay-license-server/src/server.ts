@@ -3,6 +3,7 @@ import cors from 'cors';
 import helmet from 'helmet';
 import dotenv from 'dotenv';
 import { createLogger } from './utils/logger';
+import { db } from './utils/database';
 import { handleLicenseRequest } from './handlers/license-handler';
 import { authenticateToken } from './middleware/auth';
 import { errorHandler } from './middleware/error-handler';
@@ -87,14 +88,19 @@ app.get('/license/:contentId', authenticateToken, async (req: Request, res: Resp
     const { contentId } = req.params;
     const userId = (req as any).user?.id;
 
-    // TODO: Fetch license info from database
-    res.json({
-      contentId,
-      userId,
-      status: 'active',
-      issuedAt: new Date().toISOString(),
-      expiresAt: new Date(Date.now() + 3600000).toISOString()
-    });
+    const result = await db.query(
+      `SELECT content_id, user_id, status, issued_at, expires_at
+       FROM media_licenses
+       WHERE content_id = $1 AND user_id = $2
+       ORDER BY issued_at DESC LIMIT 1`,
+      [contentId, userId]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'No license found' });
+    }
+
+    res.json(result.rows[0]);
   } catch (error) {
     next(error);
   }

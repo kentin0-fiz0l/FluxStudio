@@ -321,7 +321,7 @@ jobs:
         run: pnpm --filter @fluxstudio/database db:generate
 
       - name: Run migrations
-        run: npx knex migrate:latest
+        run: node database/run-migrations.js
 
       - name: Run integration tests
         run: npm run test:integration

@@ -23,6 +23,7 @@ const jwt = require('jsonwebtoken');
 const { createLogger } = require('../lib/logger');
 const { validateSocketPayload, checkSocketRateLimit, cleanupSocket } = require('../lib/socketValidation');
 const schemas = require('../lib/schemas/sockets');
+const { checkProjectAccess } = require('../lib/collaboration/auth');
 const log = createLogger('PrintingSocket');
 
 /**
@@ -196,11 +197,10 @@ module.exports = (namespace, JWT_SECRET) => {
       projectId = validatedId;
 
       try {
-        // TODO: Implement project access check when database is available
-        // For now, we trust that the user is authenticated (verified by middleware)
-        // In production, you should check:
-        // const hasAccess = await checkProjectAccess(socket.userId, projectId);
-        // if (!hasAccess) { return socket.emit('error', { message: 'Unauthorized' }); }
+        const role = await checkProjectAccess(socket.userId, projectId);
+        if (!role) {
+          return socket.emit('error', { message: 'Unauthorized', code: 'PROJECT_ACCESS_DENIED' });
+        }
 
         const room = `project:${projectId}`;
         socket.join(room);

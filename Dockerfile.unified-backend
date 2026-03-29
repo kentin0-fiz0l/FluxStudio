@@ -1,0 +1,41 @@
+# Backend service for FluxStudio unified API
+FROM node:18-alpine
+
+# Set working directory
+WORKDIR /app
+
+# Install dependencies
+COPY package*.json ./
+RUN npm ci --only=production && \
+    npm cache clean --force
+
+# Copy backend source
+COPY server-unified.js ./
+COPY health-check.js ./
+COPY routes/ ./routes/
+COPY middleware/ ./middleware/
+COPY lib/ ./lib/
+COPY database/ ./database/
+COPY services/ ./services/
+COPY config/ ./config/
+COPY sockets/ ./sockets/
+
+# Copy data files
+COPY *.json ./
+
+# Create logs directory
+RUN mkdir -p /app/logs /app/uploads
+
+# Set environment
+ENV NODE_ENV=production
+ENV PORT=3001
+
+# Expose port
+EXPOSE 3001
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=10s --retries=3 \
+  CMD node health-check.js || exit 1
+
+# Start server
+CMD ["node", "server-unified.js"]

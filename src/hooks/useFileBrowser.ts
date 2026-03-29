@@ -1,5 +1,6 @@
 import React from 'react';
 import { apiService } from '@/services/apiService';
+import { toast } from '@/lib/toast';
 import type { Project } from '@/components/printing/file-browser/utils';
 import type { GCodeFile } from '@/types/printing';
 
@@ -79,7 +80,7 @@ export function useFileBrowser({ files, onUpload, onDelete, onAddToQueue }: UseF
       setFileToLink(null);
     } catch (err) {
       console.error('Failed to link file:', err);
-      alert(err instanceof Error ? err.message : 'Failed to link file to project');
+      toast.error(err instanceof Error ? err.message : 'Failed to link file to project');
     } finally {
       setLinkingFile(null);
     }
@@ -94,7 +95,7 @@ export function useFileBrowser({ files, onUpload, onDelete, onAddToQueue }: UseF
       setProjectFiles(newMap);
     } catch (err) {
       console.error('Failed to unlink file:', err);
-      alert(err instanceof Error ? err.message : 'Failed to unlink file');
+      toast.error(err instanceof Error ? err.message : 'Failed to unlink file');
     } finally {
       setLinkingFile(null);
     }
@@ -131,7 +132,7 @@ export function useFileBrowser({ files, onUpload, onDelete, onAddToQueue }: UseF
     );
 
     if (invalidFiles.length > 0) {
-      alert('Only .gcode files are allowed');
+      toast.warning('Only .gcode files are allowed');
       return;
     }
 
@@ -153,7 +154,7 @@ export function useFileBrowser({ files, onUpload, onDelete, onAddToQueue }: UseF
       setTimeout(() => setUploadProgress(null), 1000);
     } catch (err) {
       console.error('Upload error:', err);
-      alert('Failed to upload files');
+      toast.error('Failed to upload files');
       setUploadProgress(null);
     }
 
@@ -170,7 +171,7 @@ export function useFileBrowser({ files, onUpload, onDelete, onAddToQueue }: UseF
       await onDelete(filename);
     } catch (err) {
       console.error('Delete error:', err);
-      alert('Failed to delete file');
+      toast.error('Failed to delete file');
     } finally {
       setDeleteFile(null);
     }
@@ -184,7 +185,7 @@ export function useFileBrowser({ files, onUpload, onDelete, onAddToQueue }: UseF
       await onAddToQueue(filename);
     } catch (err) {
       console.error('Add to queue error:', err);
-      alert('Failed to add file to queue');
+      toast.error('Failed to add file to queue');
     } finally {
       setAddingFile(null);
     }

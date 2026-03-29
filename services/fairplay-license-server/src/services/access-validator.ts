@@ -142,9 +142,14 @@ async function checkSubscriptionAccess(
   contentId: string
 ): Promise<boolean> {
   try {
-    // Placeholder - implement actual subscription logic
-    // For now, return true for all authenticated users
-    return true;
+    const result = await db.query(
+      `SELECT id FROM user_subscriptions
+       WHERE user_id = $1 AND status = 'active'
+       AND (expires_at IS NULL OR expires_at > NOW())
+       LIMIT 1`,
+      [userId]
+    );
+    return result.rows.length > 0;
   } catch (error) {
     logger.error('Subscription check failed', { error });
     return false;

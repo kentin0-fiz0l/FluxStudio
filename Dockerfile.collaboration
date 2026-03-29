@@ -1,0 +1,32 @@
+# Collaboration service for FluxStudio (Yjs WebSocket)
+FROM node:18-alpine
+
+# Set working directory
+WORKDIR /app
+
+# Install dependencies
+COPY package*.json ./
+RUN npm ci --only=production && \
+    npm cache clean --force
+
+# Copy collaboration server source
+COPY server-collaboration.js ./
+COPY lib/ ./lib/
+COPY database/ ./database/
+
+# Create logs directory
+RUN mkdir -p /app/logs
+
+# Set environment
+ENV NODE_ENV=production
+ENV COLLAB_PORT=4000
+
+# Expose port
+EXPOSE 4000
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=10s --retries=3 \
+  CMD wget --no-verbose --tries=1 --spider http://localhost:4000/health || exit 1
+
+# Start server
+CMD ["node", "server-collaboration.js"]
