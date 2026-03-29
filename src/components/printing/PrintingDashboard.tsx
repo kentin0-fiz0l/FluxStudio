@@ -23,6 +23,7 @@ import CameraFeed from './CameraFeed';
 import PrintQueue from './PrintQueue';
 import FileBrowser from './FileBrowser';
 import PrintHistory from './PrintHistory';
+import { toast } from '@/lib/toast';
 import WebSocketStatus from './WebSocketStatus';
 import { cn } from '@/lib/utils';
 import { config } from '@/config/environment';
@@ -76,7 +77,7 @@ export const PrintingDashboard: React.FC<PrintingDashboardProps> = ({ className 
       await refetchStatus();
     } catch (err) {
       console.error('Preheat error:', err);
-      alert(`Failed to set ${target} temperature`);
+      toast.error(`Failed to set ${target} temperature`);
     }
   };
 

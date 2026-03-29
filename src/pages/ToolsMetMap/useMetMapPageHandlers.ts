@@ -8,6 +8,7 @@ import { detectBeatsWithCache } from '../../services/beatDetection';
 import { apiService } from '@/services/apiService';
 import { announceToScreenReader } from '../../utils/accessibility';
 import { useMetMapKeyboardShortcuts } from '../../hooks/metmap/useMetMapKeyboardShortcuts';
+import { confirmDialog } from '@/lib/confirm';
 
 interface UseMetMapPageHandlersConfig {
   navigate: NavigateFunction;
@@ -129,9 +130,9 @@ export function useMetMapPageHandlers(config: UseMetMapPageHandlersConfig) {
     }
   };
 
-  const handleSelectSong = (song: Song) => {
+  const handleSelectSong = async (song: Song) => {
     if (hasUnsavedChanges) {
-      if (!confirm('You have unsaved changes. Discard them?')) return;
+      if (!(await confirmDialog('You have unsaved changes. Discard them?', { destructive: true }))) return;
     }
     const params = new URLSearchParams();
     params.set('song', song.id);
@@ -145,7 +146,7 @@ export function useMetMapPageHandlers(config: UseMetMapPageHandlersConfig) {
 
   const handleDeleteSong = async () => {
     if (!currentSong) return;
-    if (!confirm(`Delete "${currentSong.title}"? This cannot be undone.`)) return;
+    if (!(await confirmDialog(`Delete "${currentSong.title}"? This cannot be undone.`, { destructive: true, confirmText: 'Delete' }))) return;
 
     const success = await deleteSong(currentSong.id);
     if (success) {

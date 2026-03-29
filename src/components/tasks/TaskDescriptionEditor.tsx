@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
+import { promptDialog } from '@/lib/confirm';
 
 // ============================================================================
 // Rich Text Editor Toolbar Component
@@ -104,8 +105,8 @@ const EditorToolbar: React.FC<EditorToolbarProps> = ({ editor }) => {
         type="button"
         variant="ghost"
         size="icon"
-        onClick={() => {
-          const url = window.prompt('Enter URL:');
+        onClick={async () => {
+          const url = await promptDialog('Enter URL:', { title: 'Insert Link' });
           if (url) {
             editor.chain().focus().setLink({ href: url }).run();
           }

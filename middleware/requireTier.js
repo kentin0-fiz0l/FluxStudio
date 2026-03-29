@@ -65,7 +65,7 @@ async function getUserTier(userId) {
 
       // Trial expired: downgrade to free (lazy cleanup)
       if (trialEndsAt && new Date(trialEndsAt) <= new Date() && planId === 'pro') {
-        query('UPDATE users SET plan_id = $1 WHERE id = $2 AND trial_ends_at IS NOT NULL AND trial_ends_at <= NOW()', ['free', userId]).catch(() => {});
+        query('UPDATE users SET plan_id = $1 WHERE id = $2 AND trial_ends_at IS NOT NULL AND trial_ends_at <= NOW()', ['free', userId]).catch(e => log.warn('Failed to downgrade expired trial user', { userId, error: e.message }));
         return 'free';
       }
 

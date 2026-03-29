@@ -9,6 +9,7 @@
  */
 
 import * as React from 'react';
+import { confirmDialog } from '@/lib/confirm';
 import {
   X,
   ClipboardCopy,
@@ -165,8 +166,8 @@ export function UserTestPanel({ isOpen, onClose }: UserTestPanelProps) {
     logEvent('usertest_json_downloaded');
   };
 
-  const handleReset = () => {
-    if (confirm('Are you sure you want to reset all test data? This cannot be undone.')) {
+  const handleReset = async () => {
+    if (await confirmDialog('Are you sure you want to reset all test data? This cannot be undone.', { destructive: true, confirmText: 'Reset' })) {
       resetAll();
       logEvent('usertest_data_reset');
     }

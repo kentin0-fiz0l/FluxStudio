@@ -7,6 +7,7 @@ import {
   ArrowRight
 } from 'lucide-react';
 import { ImageAnnotation } from '../../../types/messaging';
+import { promptDialog } from '@/lib/confirm';
 
 export interface AnnotationTool {
   id: string;
@@ -43,7 +44,7 @@ export function AnnotationCanvas({
   const [startPos, setStartPos] = useState<{ x: number; y: number } | null>(null);
   const [tempAnnotation, setTempAnnotation] = useState<Partial<ImageAnnotation> | null>(null);
 
-  const handleMouseDown = useCallback((e: React.MouseEvent) => {
+  const handleMouseDown = useCallback(async (e: React.MouseEvent) => {
     if (!canvasRef.current || activeTool === 'move') return;
 
     const rect = canvasRef.current.getBoundingClientRect();
@@ -65,7 +66,7 @@ export function AnnotationCanvas({
       setIsDrawing(false);
     } else if (activeTool === 'text') {
       // Text annotations need content input
-      const content = prompt('Enter annotation text:');
+      const content = await promptDialog('Enter annotation text:', { title: 'Add Annotation' });
       if (content) {
         onAnnotationAdd({
           x,

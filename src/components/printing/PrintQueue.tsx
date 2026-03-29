@@ -4,6 +4,7 @@
  */
 
 import React from 'react';
+import { confirmDialog } from '@/lib/confirm';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
@@ -225,7 +226,7 @@ export const PrintQueue: React.FC<PrintQueueProps> = ({
    * Handle clear all
    */
   const handleClearAll = async () => {
-    if (!onRemoveFromQueue || !confirm('Clear all queued items?')) return;
+    if (!onRemoveFromQueue || !(await confirmDialog('Clear all queued items?', { destructive: true, confirmText: 'Clear All' }))) return;
 
     setClearingAll(true);
     try {

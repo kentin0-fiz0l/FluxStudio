@@ -4,6 +4,7 @@
  */
 
 import React from 'react';
+import { confirmDialog } from '@/lib/confirm';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
@@ -98,7 +99,7 @@ export const PrinterStatusCard: React.FC<PrinterStatusCardProps> = ({
    * Handle cancel button click
    */
   const handleCancel = async () => {
-    if (!status || !confirm('Are you sure you want to cancel this print job?')) return;
+    if (!status || !(await confirmDialog('Are you sure you want to cancel this print job?', { destructive: true, confirmText: 'Cancel Job' }))) return;
 
     setIsCancelling(true);
     try {

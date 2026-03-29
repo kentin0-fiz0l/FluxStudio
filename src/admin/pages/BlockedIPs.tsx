@@ -7,6 +7,8 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useAdminApi } from '../hooks/useAdminAuth';
+import { toast } from '@/lib/toast';
+import { confirmDialog, promptDialog } from '@/lib/confirm';
 
 interface BlockedIP {
   ip: string;
@@ -60,7 +62,7 @@ export function BlockedIPs() {
   }, [loadBlockedIPs]);
 
   const handleUnblock = async (ip: string) => {
-    if (!confirm(`Are you sure you want to unblock ${ip}?`)) return;
+    if (!(await confirmDialog(`Are you sure you want to unblock ${ip}?`))) return;
 
     try {
       setActionLoading(ip);
@@ -69,14 +71,14 @@ export function BlockedIPs() {
       });
       await loadBlockedIPs();
     } catch (error) {
-      alert(`Failed to unblock IP: ${error}`);
+      toast.error(`Failed to unblock IP: ${error}`);
     } finally {
       setActionLoading(null);
     }
   };
 
   const handleWhitelist = async (ip: string) => {
-    const duration = prompt('Enter whitelist duration in days (leave empty for permanent):', '30');
+    const duration = await promptDialog('Enter whitelist duration in days (leave empty for permanent):', { defaultValue: '30' });
     if (duration === null) return;
 
     try {
@@ -89,7 +91,7 @@ export function BlockedIPs() {
       });
       await loadBlockedIPs();
     } catch (error) {
-      alert(`Failed to whitelist IP: ${error}`);
+      toast.error(`Failed to whitelist IP: ${error}`);
     } finally {
       setActionLoading(null);
     }

@@ -7,6 +7,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useAdminApi } from '../hooks/useAdminAuth';
+import { toast } from '@/lib/toast';
 
 interface SecurityEvent {
   id: string;
@@ -113,7 +114,7 @@ export function Events() {
         window.URL.revokeObjectURL(url);
       }
     } catch (error) {
-      alert(`Failed to export events: ${error}`);
+      toast.error(`Failed to export events: ${error}`);
     } finally {
       setExportLoading(false);
     }

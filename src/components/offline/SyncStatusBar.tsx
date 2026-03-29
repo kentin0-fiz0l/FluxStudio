@@ -20,6 +20,7 @@ import {
 } from 'lucide-react';
 import { useSyncStatus, useOffline } from '@/store';
 import { db } from '@/services/db';
+import { confirmDialog } from '@/lib/confirm';
 
 interface SyncStatusBarProps {
   className?: string;
@@ -75,7 +76,7 @@ export function SyncStatusBar({ className = '', collapsible = true }: SyncStatus
   };
 
   const handleClearPending = async () => {
-    if (!confirm('Are you sure you want to discard all pending changes?')) return;
+    if (!(await confirmDialog('Are you sure you want to discard all pending changes?', { destructive: true, confirmText: 'Discard' }))) return;
 
     await db.pendingMutations.clear();
     offline.clearPending();

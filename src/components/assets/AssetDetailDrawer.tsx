@@ -14,6 +14,7 @@ import { useAssets, AssetRecord, AssetVersion, AssetRelation, AssetMetadata, Ass
 import { useFilesOptional } from '../../contexts/FilesContext';
 import { useNotifications } from '@/store/slices/notificationSlice';
 import { createLogger } from '@/services/logging';
+import { confirmDialog } from '@/lib/confirm';
 
 import { AssetPreview } from './AssetPreview';
 import { AssetInfo, TagsEditor, MetadataEditor } from './AssetMetadataPanel';
@@ -124,7 +125,7 @@ export function AssetDetailDrawer({ asset, onClose, onDelete }: AssetDetailDrawe
   };
 
   const handleRevert = async (versionNumber: number) => {
-    if (!confirm(`Revert to version ${versionNumber}? This will create a new version.`)) return;
+    if (!(await confirmDialog(`Revert to version ${versionNumber}? This will create a new version.`, { confirmText: 'Revert' }))) return;
     try {
       await revertToVersion(asset.id, versionNumber);
       const v = await getVersions(asset.id); setVersions(v);

@@ -7,6 +7,8 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { useAdminApi } from '../hooks/useAdminAuth';
+import { toast } from '@/lib/toast';
+import { promptDialog } from '@/lib/confirm';
 
 interface Token {
   id: string;
@@ -96,7 +98,7 @@ export function Tokens() {
       ? 'Are you sure you want to revoke ALL tokens for this user?'
       : 'Are you sure you want to revoke this token?';
 
-    const reason = prompt(confirmMessage + '\n\nEnter reason for revocation:', '');
+    const reason = await promptDialog('Enter reason for revocation:', { title: confirmMessage });
     if (reason === null) return;
 
     try {
@@ -110,7 +112,7 @@ export function Tokens() {
       });
       await Promise.all([loadTokens(), loadStats()]);
     } catch (error) {
-      alert(`Failed to revoke token: ${error}`);
+      toast.error(`Failed to revoke token: ${error}`);
     } finally {
       setActionLoading(null);
     }

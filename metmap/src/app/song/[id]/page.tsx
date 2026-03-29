@@ -1,5 +1,6 @@
 'use client';
 
+import { confirmDialog } from '@/lib/confirm';
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
@@ -119,8 +120,8 @@ export default function SongEditorPage() {
     setIsEditing(false);
   };
 
-  const handleDeleteSong = () => {
-    if (confirm(`Delete "${song.title}"? This cannot be undone.`)) {
+  const handleDeleteSong = async () => {
+    if (await confirmDialog(`Delete "${song.title}"? This cannot be undone.`, { destructive: true, confirmText: 'Delete' })) {
       deleteSong(songId);
       router.push('/');
     }
@@ -310,8 +311,8 @@ export default function SongEditorPage() {
                 isEditing={editingSectionId === section.id}
                 onEdit={() => setEditingSectionId(section.id)}
                 onClose={() => setEditingSectionId(null)}
-                onDelete={() => {
-                  if (confirm(`Delete "${section.name}"?`)) {
+                onDelete={async () => {
+                  if (await confirmDialog(`Delete "${section.name}"?`, { destructive: true, confirmText: 'Delete' })) {
                     deleteSection(songId, section.id);
                   }
                 }}

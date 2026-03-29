@@ -13,6 +13,7 @@ import { Button } from '../ui/button';
 import { Card } from '../ui/card';
 import { UniversalEmptyState } from '../ui/UniversalEmptyState';
 import { useFormations } from '../../hooks/formation/useFormations';
+import { confirmDialog } from '@/lib/confirm';
 
 interface FormationsTabProps {
   projectId: string;
@@ -56,7 +57,7 @@ export function FormationsTab({ projectId }: FormationsTabProps) {
   const handleDeleteFormation = async (e: React.MouseEvent, formationId: string) => {
     e.stopPropagation();
 
-    if (!confirm(t('formation.confirmDelete', 'Are you sure you want to delete this formation?'))) {
+    if (!(await confirmDialog(t('formation.confirmDelete', 'Are you sure you want to delete this formation?'), { destructive: true, confirmText: 'Delete' }))) {
       return;
     }
 

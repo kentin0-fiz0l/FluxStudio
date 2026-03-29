@@ -47,6 +47,7 @@ import { Alert, AlertDescription } from '../ui/alert';
 import { cn } from '@/lib/utils';
 import type { QuickPrintConfig } from '@/types/printing';
 import { useProjectFiles } from '@/hooks/project/useProjectFiles';
+import { confirmDialog } from '@/lib/confirm';
 import { toast } from '@/lib/toast';
 import { apiService } from '@/services/apiService';
 import { config } from '@/config/environment';
@@ -375,8 +376,8 @@ export const ProjectFilesTab: React.FC<ProjectFilesTabProps> = ({ project, class
     toast.success(`Downloading ${file.name}`);
   };
 
-  const handleDelete = (file: ProjectFile) => {
-    if (!confirm(`Are you sure you want to delete "${file.name}"?`)) {
+  const handleDelete = async (file: ProjectFile) => {
+    if (!(await confirmDialog(`Are you sure you want to delete "${file.name}"?`, { destructive: true, confirmText: 'Delete' }))) {
       return;
     }
 

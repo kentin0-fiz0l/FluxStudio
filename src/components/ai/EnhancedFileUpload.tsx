@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { Badge } from '../ui/badge';
 import { cn } from '../../lib/utils';
+import { toast } from '@/lib/toast';
 import { analyzeFile, FileAnalysisResult } from '../../services/aiAnalysis/fileAnalyzer';
 import { FileUploadItem } from './file-upload/FileUploadItem';
 import { FileAnalysisPanel } from './file-upload/FileAnalysisPanel';
@@ -34,7 +35,7 @@ export function EnhancedFileUpload({
 
       // Check max files
       if (uploadedFiles.length + acceptedFiles.length > maxFiles) {
-        alert(`Maximum ${maxFiles} files allowed`);
+        toast.warning(`Maximum ${maxFiles} files allowed`);
         return;
       }
 

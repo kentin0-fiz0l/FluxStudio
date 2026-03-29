@@ -23,6 +23,7 @@ import { pluginRegistry, PluginInstance } from '@/services/plugins/PluginRegistr
 import { pluginMarketplace, MarketplacePlugin } from '@/services/plugins/PluginMarketplace';
 import { PluginPermissionDialog } from './PluginPermissionDialog';
 import { cn } from '@/lib/utils';
+import { confirmDialog } from '@/lib/confirm';
 import type { TabType, ViewMode } from './pluginManagerHelpers';
 import { PLUGIN_GRID_ROW_HEIGHT, PLUGIN_LIST_ROW_HEIGHT } from './pluginManagerHelpers';
 import { InstalledPluginRow } from './InstalledPluginCard';
@@ -101,7 +102,7 @@ export function PluginManager() {
   };
 
   const handleUninstall = async (pluginId: string) => {
-    if (!confirm('Are you sure you want to uninstall this plugin?')) return;
+    if (!(await confirmDialog('Are you sure you want to uninstall this plugin?', { destructive: true, confirmText: 'Uninstall' }))) return;
     try {
       await pluginRegistry.uninstall(pluginId);
     } catch (error) {

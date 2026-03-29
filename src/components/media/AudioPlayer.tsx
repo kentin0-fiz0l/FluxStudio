@@ -13,6 +13,7 @@ import {
   Share,
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
+import { promptDialog } from '@/lib/confirm';
 
 interface AudioPlayerProps {
   src: string;
@@ -249,8 +250,8 @@ export function AudioPlayer({
     setPlaybackRate(rate);
   };
 
-  const addBookmark = () => {
-    const label = prompt('Bookmark label:');
+  const addBookmark = async () => {
+    const label = await promptDialog('Bookmark label:', { title: 'Add Bookmark' });
     if (label) {
       setBookmarks([...bookmarks, { time: currentTime, label }]);
     }

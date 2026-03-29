@@ -1,5 +1,6 @@
 'use client';
 
+import { confirmDialog } from '@/lib/confirm';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useSession, signOut } from 'next-auth/react';
@@ -26,10 +27,11 @@ export default function SettingsPage() {
     await signOut({ callbackUrl: '/' });
   };
 
-  const handleClearData = () => {
+  const handleClearData = async () => {
     if (
-      confirm(
-        'Are you sure you want to clear all local data? This cannot be undone. If you have synced data, you can restore it by signing in again.'
+      await confirmDialog(
+        'Are you sure you want to clear all local data? This cannot be undone. If you have synced data, you can restore it by signing in again.',
+        { destructive: true, confirmText: 'Clear Data' }
       )
     ) {
       clearAllData();

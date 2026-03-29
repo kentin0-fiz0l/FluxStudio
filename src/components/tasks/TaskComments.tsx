@@ -29,6 +29,7 @@ import * as React from 'react';
 import { MessageCircle, Send, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
+import { promptDialog } from '@/lib/confirm';
 import {
   useCommentsQuery,
   useCreateCommentMutation,
@@ -279,7 +280,7 @@ export const TaskComments: React.FC<TaskCommentsProps> = ({
   // Markdown Toolbar Actions
   // ============================================================================
 
-  const insertMarkdown = (syntax: string, placeholder: string) => {
+  const insertMarkdown = async (syntax: string, placeholder: string) => {
     if (!textareaRef.current) return;
 
     const textarea = textareaRef.current;
@@ -305,7 +306,7 @@ export const TaskComments: React.FC<TaskCommentsProps> = ({
         cursorOffset = selectedText ? 1 : text.length + 1;
         break;
       case 'link': {
-        const url = window.prompt('Enter URL:');
+        const url = await promptDialog('Enter URL:', { title: 'Insert Link' });
         if (url) {
           newText = inputValue.slice(0, start) + `[${text}](${url})` + inputValue.slice(end);
           cursorOffset = selectedText ? 1 : text.length + 1;
