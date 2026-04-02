@@ -85,7 +85,8 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
 });
 
 // Tool execution handler
-server.setRequestHandler(CallToolRequestSchema, async (request) => {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+server.setRequestHandler(CallToolRequestSchema, (async (request: any, _extra: any) => {
   const { name, arguments: args } = request.params;
 
   try {
@@ -156,7 +157,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       `Tool execution failed: ${errorMessage}`
     );
   }
-});
+}) as any);
 
 // Start server
 async function main() {
