@@ -36,13 +36,22 @@ const dbConfig = (() => {
   }
 
   // Use individual environment variables (legacy/local development)
+  const isProduction = process.env.NODE_ENV === 'production';
+
+  if (isProduction && !process.env.DB_PASSWORD) {
+    throw new Error(
+      'DB_PASSWORD environment variable is required in production. ' +
+      'Set DB_PASSWORD or use DATABASE_URL for managed database connections.'
+    );
+  }
+
   return {
     host: process.env.DB_HOST || 'localhost',
     port: process.env.DB_PORT || 5432,
     database: process.env.DB_NAME || 'fluxstudio_db',
     user: process.env.DB_USER || 'postgres',
-    password: process.env.DB_PASSWORD || 'password',
-    ssl: process.env.NODE_ENV === 'production'
+    password: process.env.DB_PASSWORD || (isProduction ? undefined : 'password'),
+    ssl: isProduction
       ? {
           rejectUnauthorized: false, // DigitalOcean uses self-signed certs
           sslmode: 'require'

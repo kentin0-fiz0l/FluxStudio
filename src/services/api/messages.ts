@@ -12,6 +12,17 @@ import {
   EditMessageInput,
   addReactionSchema,
   AddReactionInput,
+  createConversationSchema,
+  CreateConversationInput,
+  updateConversationSchema,
+  UpdateConversationInput,
+  createMessageSchema,
+  CreateMessageInput,
+  addMemberSchema,
+  AddMemberInput,
+  markAsReadSchema,
+  MarkAsReadInput,
+  muteConversationSchema,
 } from '../apiValidation';
 
 export function messagesApi(service: ApiService) {
@@ -48,17 +59,19 @@ export function messagesApi(service: ApiService) {
       return service.makeRequest(buildApiUrl(`/api/conversations/${id}`));
     },
 
-    createConversation(data: { name?: string; isGroup?: boolean; memberUserIds?: string[]; organizationId?: string; projectId?: string }) {
+    createConversation(data: CreateConversationInput) {
+      const validated = validate(createConversationSchema, data);
       return service.makeRequest(buildApiUrl('/api/conversations'), {
         method: 'POST',
-        body: JSON.stringify(data),
+        body: JSON.stringify(validated),
       });
     },
 
-    updateConversation(id: string, data: { name?: string; isGroup?: boolean }) {
+    updateConversation(id: string, data: UpdateConversationInput) {
+      const validated = validate(updateConversationSchema, data);
       return service.makeRequest(buildApiUrl(`/api/conversations/${id}`), {
         method: 'PATCH',
-        body: JSON.stringify(data),
+        body: JSON.stringify(validated),
       });
     },
 
@@ -74,10 +87,11 @@ export function messagesApi(service: ApiService) {
       return service.makeRequest(buildApiUrl(`/api/conversations/${conversationId}/messages${qs ? `?${qs}` : ''}`));
     },
 
-    createMessage(conversationId: string, data: { text?: string; assetId?: string; replyToMessageId?: string; projectId?: string }) {
+    createMessage(conversationId: string, data: CreateMessageInput) {
+      const validated = validate(createMessageSchema, data);
       return service.makeRequest(buildApiUrl(`/api/conversations/${conversationId}/messages`), {
         method: 'POST',
-        body: JSON.stringify(data),
+        body: JSON.stringify(validated),
       });
     },
 
@@ -141,10 +155,11 @@ export function messagesApi(service: ApiService) {
     // Read Receipts
     // ========================================================================
 
-    markAsRead(conversationId: string, data: { lastReadMessageId: string }) {
+    markAsRead(conversationId: string, data: MarkAsReadInput) {
+      const validated = validate(markAsReadSchema, data);
       return service.makeRequest(buildApiUrl(`/api/conversations/${conversationId}/read`), {
         method: 'POST',
-        body: JSON.stringify(data),
+        body: JSON.stringify(validated),
       });
     },
 
@@ -168,10 +183,11 @@ export function messagesApi(service: ApiService) {
     // Members
     // ========================================================================
 
-    addMember(conversationId: string, data: { userId: string; role?: string }) {
+    addMember(conversationId: string, data: AddMemberInput) {
+      const validated = validate(addMemberSchema, data);
       return service.makeRequest(buildApiUrl(`/api/conversations/${conversationId}/members`), {
         method: 'POST',
-        body: JSON.stringify(data),
+        body: JSON.stringify(validated),
       });
     },
 
@@ -192,9 +208,10 @@ export function messagesApi(service: ApiService) {
     // ========================================================================
 
     muteConversation(conversationId: string, data?: { duration?: number }) {
+      const validated = data ? validate(muteConversationSchema, data) : {};
       return service.makeRequest(buildApiUrl(`/api/conversations/${conversationId}/mute`), {
         method: 'POST',
-        body: JSON.stringify(data ?? {}),
+        body: JSON.stringify(validated),
       });
     },
 

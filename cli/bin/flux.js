@@ -5,6 +5,7 @@ import { registerAuthCommands } from '../commands/auth.js';
 import { registerProjectsCommands } from '../commands/projects.js';
 import { registerAgentCommands } from '../commands/agent.js';
 import { registerFilesCommands } from '../commands/files.js';
+import { registerAiCommands } from '../commands/ai.js';
 
 const program = new Command();
 
@@ -47,5 +48,6 @@ registerAuthCommands(program);
 registerProjectsCommands(program);
 registerAgentCommands(program);
 registerFilesCommands(program);
+registerAiCommands(program);
 
 program.parse();

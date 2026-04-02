@@ -27,7 +27,7 @@
         strategies: 'injectManifest',
         srcDir: 'src',
         filename: 'sw-custom.ts',
-        registerType: 'prompt',
+        registerType: 'autoUpdate',
         injectRegister: false, // We register manually in main.tsx
         injectManifest: {
           globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],

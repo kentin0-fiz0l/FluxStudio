@@ -30,6 +30,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     checkAuth();
 
     const handleUnauthorized = async () => {
+      const { isAuthenticated } = useStore.getState().auth;
+      if (!isAuthenticated) return;
       // The Zustand slice handles token refresh internally via checkAuth
       // If we get here, session is truly expired
       const publicAuthPaths = ['/login', '/signup', '/forgot-password', '/reset-password', '/auth/callback', '/landing'];

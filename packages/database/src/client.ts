@@ -49,7 +49,7 @@ if (process.env.NODE_ENV !== "production") {
 export async function connectDatabase(): Promise<void> {
   try {
     await prisma.$connect();
-    console.log("[Database] Connected successfully");
+    console.warn("[Database] Connected successfully");
   } catch (error) {
     console.error("[Database] Connection failed:", error);
     throw error;
@@ -64,7 +64,7 @@ export async function connectDatabase(): Promise<void> {
 export async function disconnectDatabase(): Promise<void> {
   try {
     await prisma.$disconnect();
-    console.log("[Database] Disconnected successfully");
+    console.warn("[Database] Disconnected successfully");
   } catch (error) {
     console.error("[Database] Disconnect failed:", error);
     throw error;

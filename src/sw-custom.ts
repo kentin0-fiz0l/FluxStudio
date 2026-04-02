@@ -14,6 +14,17 @@ import { CacheableResponsePlugin } from 'workbox-cacheable-response';
 precacheAndRoute(self.__WB_MANIFEST);
 cleanupOutdatedCaches();
 
+// Force new service worker to activate immediately on install.
+// This ensures critical fixes (like auth redirects) reach users
+// without waiting for them to click "Update now".
+self.addEventListener('install', () => {
+  self.skipWaiting();
+});
+
+self.addEventListener('activate', (event) => {
+  event.waitUntil(self.clients.claim());
+});
+
 // ============================================================
 // Runtime caching strategies
 // ============================================================

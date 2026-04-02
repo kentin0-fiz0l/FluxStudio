@@ -4,6 +4,29 @@
 
 import { buildApiUrl } from '../../config/environment';
 import type { ApiService } from './base';
+import {
+  validate,
+  createFormationSchema,
+  updateFormationSchema,
+  saveFormationSchema,
+  uploadAudioSchema,
+  addPerformerSchema,
+  updatePerformerSchema,
+  keyframeSchema,
+  setPositionSchema,
+  createSceneObjectSchema,
+  updateSceneObjectSchema,
+  type CreateFormationInput,
+  type UpdateFormationInput,
+  type SaveFormationInput,
+  type UploadAudioInput,
+  type AddPerformerInput,
+  type UpdatePerformerInput,
+  type KeyframeInput,
+  type SetPositionInput,
+  type CreateSceneObjectInput,
+  type UpdateSceneObjectInput,
+} from '../apiValidation';
 
 export function formationsApi(service: ApiService) {
   return {
@@ -18,31 +41,19 @@ export function formationsApi(service: ApiService) {
       return service.makeRequest(buildApiUrl(`/formations/formations/${formationId}`));
     },
 
-    createFormation(projectId: string, data: {
-      name: string;
-      description?: string;
-      stageWidth?: number;
-      stageHeight?: number;
-      gridSize?: number;
-    }) {
+    createFormation(projectId: string, data: CreateFormationInput) {
+      const validated = validate(createFormationSchema, data);
       return service.makeRequest(buildApiUrl(`/formations/projects/${projectId}/formations`), {
         method: 'POST',
-        body: JSON.stringify(data),
+        body: JSON.stringify(validated),
       });
     },
 
-    updateFormation(formationId: string, data: {
-      name?: string;
-      description?: string;
-      stageWidth?: number;
-      stageHeight?: number;
-      gridSize?: number;
-      isArchived?: boolean;
-      audioTrack?: object | null;
-    }) {
+    updateFormation(formationId: string, data: UpdateFormationInput) {
+      const validated = validate(updateFormationSchema, data);
       return service.makeRequest(buildApiUrl(`/formations/formations/${formationId}`), {
         method: 'PATCH',
-        body: JSON.stringify(data),
+        body: JSON.stringify(validated),
       });
     },
 
@@ -52,26 +63,19 @@ export function formationsApi(service: ApiService) {
       });
     },
 
-    saveFormation(formationId: string, data: {
-      name?: string;
-      performers?: Array<object>;
-      keyframes?: Array<object>;
-    }) {
+    saveFormation(formationId: string, data: SaveFormationInput) {
+      const validated = validate(saveFormationSchema, data);
       return service.makeRequest(buildApiUrl(`/formations/formations/${formationId}/save`), {
         method: 'PUT',
-        body: JSON.stringify(data),
+        body: JSON.stringify(validated),
       });
     },
 
-    uploadAudio(formationId: string, data: {
-      id?: string;
-      url: string;
-      filename: string;
-      duration?: number;
-    }) {
+    uploadAudio(formationId: string, data: UploadAudioInput) {
+      const validated = validate(uploadAudioSchema, data);
       return service.makeRequest(buildApiUrl(`/formations/formations/${formationId}/audio`), {
         method: 'POST',
-        body: JSON.stringify(data),
+        body: JSON.stringify(validated),
       });
     },
 
@@ -81,27 +85,19 @@ export function formationsApi(service: ApiService) {
       });
     },
 
-    addPerformer(formationId: string, data: {
-      name: string;
-      label?: string;
-      color?: string;
-      groupName?: string;
-    }) {
+    addPerformer(formationId: string, data: AddPerformerInput) {
+      const validated = validate(addPerformerSchema, data);
       return service.makeRequest(buildApiUrl(`/formations/formations/${formationId}/performers`), {
         method: 'POST',
-        body: JSON.stringify(data),
+        body: JSON.stringify(validated),
       });
     },
 
-    updatePerformer(formationId: string, performerId: string, data: {
-      name?: string;
-      label?: string;
-      color?: string;
-      groupName?: string;
-    }) {
+    updatePerformer(formationId: string, performerId: string, data: UpdatePerformerInput) {
+      const validated = validate(updatePerformerSchema, data);
       return service.makeRequest(buildApiUrl(`/formations/formations/${formationId}/performers/${performerId}`), {
         method: 'PATCH',
-        body: JSON.stringify(data),
+        body: JSON.stringify(validated),
       });
     },
 
@@ -111,25 +107,19 @@ export function formationsApi(service: ApiService) {
       });
     },
 
-    addKeyframe(formationId: string, data: {
-      timestampMs?: number;
-      transition?: string;
-      duration?: number;
-    }) {
+    addKeyframe(formationId: string, data: KeyframeInput) {
+      const validated = validate(keyframeSchema, data);
       return service.makeRequest(buildApiUrl(`/formations/formations/${formationId}/keyframes`), {
         method: 'POST',
-        body: JSON.stringify(data),
+        body: JSON.stringify(validated),
       });
     },
 
-    updateKeyframe(formationId: string, keyframeId: string, data: {
-      timestampMs?: number;
-      transition?: string;
-      duration?: number;
-    }) {
+    updateKeyframe(formationId: string, keyframeId: string, data: KeyframeInput) {
+      const validated = validate(keyframeSchema, data);
       return service.makeRequest(buildApiUrl(`/formations/formations/${formationId}/keyframes/${keyframeId}`), {
         method: 'PATCH',
-        body: JSON.stringify(data),
+        body: JSON.stringify(validated),
       });
     },
 
@@ -139,14 +129,11 @@ export function formationsApi(service: ApiService) {
       });
     },
 
-    setPosition(formationId: string, keyframeId: string, performerId: string, data: {
-      x: number;
-      y: number;
-      rotation?: number;
-    }) {
+    setPosition(formationId: string, keyframeId: string, performerId: string, data: SetPositionInput) {
+      const validated = validate(setPositionSchema, data);
       return service.makeRequest(buildApiUrl(`/formations/formations/${formationId}/keyframes/${keyframeId}/positions/${performerId}`), {
         method: 'PUT',
-        body: JSON.stringify(data),
+        body: JSON.stringify(validated),
       });
     },
 
@@ -154,36 +141,19 @@ export function formationsApi(service: ApiService) {
       return service.makeRequest(buildApiUrl(`/formations/formations/${formationId}/scene-objects`));
     },
 
-    createSceneObject(formationId: string, data: {
-      id?: string;
-      name: string;
-      type: string;
-      position?: object;
-      source?: object;
-      attachedToPerformerId?: string;
-      visible?: boolean;
-      locked?: boolean;
-      layer?: number;
-    }) {
+    createSceneObject(formationId: string, data: CreateSceneObjectInput) {
+      const validated = validate(createSceneObjectSchema, data);
       return service.makeRequest(buildApiUrl(`/formations/formations/${formationId}/scene-objects`), {
         method: 'POST',
-        body: JSON.stringify(data),
+        body: JSON.stringify(validated),
       });
     },
 
-    updateSceneObject(formationId: string, objectId: string, data: {
-      name?: string;
-      type?: string;
-      position?: object;
-      source?: object;
-      attachedToPerformerId?: string;
-      visible?: boolean;
-      locked?: boolean;
-      layer?: number;
-    }) {
+    updateSceneObject(formationId: string, objectId: string, data: UpdateSceneObjectInput) {
+      const validated = validate(updateSceneObjectSchema, data);
       return service.makeRequest(buildApiUrl(`/formations/formations/${formationId}/scene-objects/${objectId}`), {
         method: 'PATCH',
-        body: JSON.stringify(data),
+        body: JSON.stringify(validated),
       });
     },
 
@@ -193,7 +163,7 @@ export function formationsApi(service: ApiService) {
       });
     },
 
-    bulkSyncSceneObjects(formationId: string, objects: Array<object>) {
+    bulkSyncSceneObjects(formationId: string, objects: Array<Record<string, unknown>>) {
       return service.makeRequest(buildApiUrl(`/formations/formations/${formationId}/scene-objects`), {
         method: 'PUT',
         body: JSON.stringify({ objects }),

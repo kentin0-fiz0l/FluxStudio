@@ -72,6 +72,29 @@ module.exports = {
       tools: ['git_status', 'git_diff', 'git_log', 'git_commit'],
       maxRetries: 2,
       timeout: 15000
+    },
+
+    /**
+     * FluxStudio Domain MCP Server
+     * Exposes project structure, routes, components, AI tasks, and coverage
+     */
+    fluxstudio: {
+      enabled: process.env.MCP_FLUXSTUDIO_ENABLED === 'true',
+      command: 'python',
+      args: ['-m', 'fluxstudio_agents.mcp_server'],
+      env: { FLUXSTUDIO_ROOT: process.cwd() },
+      description: 'FluxStudio domain model and tooling',
+      tools: [
+        'flux.list_routes',
+        'flux.get_route_schema',
+        'flux.list_components',
+        'flux.get_store_slice',
+        'flux.list_ai_tasks',
+        'flux.get_formation_tools',
+        'flux.get_test_coverage'
+      ],
+      maxRetries: 2,
+      timeout: 15000
     }
   },
 

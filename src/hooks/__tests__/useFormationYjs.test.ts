@@ -304,6 +304,44 @@ vi.mock('y-indexeddb', () => ({
   IndexeddbPersistence: vi.fn(() => mockPersistence),
 }));
 
+// Provide a synchronous batching manager that flushes immediately
+// (the real BatchingManager uses requestAnimationFrame which doesn't fire in jsdom).
+vi.mock('@/services/formation/yjs/batchingManager', () => ({
+  createBatchingManager: (doc: MockYDoc) => {
+    const POSITIONS_KEY = 'formation:positions';
+    const KEYFRAMES_KEY = 'formation:keyframes';
+
+    function applyUpdate(keyframeId: string, performerId: string, position: { x: number; y: number; rotation: number }) {
+      const keyframes = doc.getArray(KEYFRAMES_KEY);
+      for (let i = 0; i < keyframes.length; i++) {
+        const yKf = keyframes.get(i) as MockYMap;
+        if (yKf.get('id') === keyframeId) {
+          const yPositions = yKf.get(POSITIONS_KEY) as MockYMap;
+          if (yPositions) {
+            yPositions.set(performerId, position);
+          }
+          break;
+        }
+      }
+    }
+
+    return {
+      enqueue: (keyframeId: string, performerId: string, position: { x: number; y: number; rotation: number }) => {
+        doc.transact(() => applyUpdate(keyframeId, performerId, position));
+      },
+      enqueueBatch: (keyframeId: string, positions: Map<string, { x: number; y: number; rotation: number }>) => {
+        doc.transact(() => {
+          positions.forEach((pos, pid) => applyUpdate(keyframeId, pid, pos));
+        });
+      },
+      flush: () => {},
+      destroy: () => {},
+      setCollaboratorCount: () => {},
+    };
+  },
+  BatchingManager: vi.fn(),
+}));
+
 vi.mock('@/store/slices/authSlice', () => ({
   useAuth: vi.fn(() => ({
     user: {

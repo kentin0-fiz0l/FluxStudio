@@ -20,6 +20,9 @@ let fetchPromise: Promise<FlagMap> | null = null;
 const listeners = new Set<Listener>();
 
 async function fetchFlags(): Promise<FlagMap> {
+  if (!localStorage.getItem('auth_token')) {
+    return flags; // Not authenticated — skip server call
+  }
   try {
     const result = await apiService.get<FlagMap>('/admin/flags/evaluate');
     flags = result.data as FlagMap;

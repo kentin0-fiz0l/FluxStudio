@@ -12,7 +12,7 @@ const { authenticateToken } = require('../../lib/auth/middleware');
 const { requireConversationAccess } = require('../../middleware/requireConversationAccess');
 const { zodValidate } = require('../../middleware/zodValidate');
 const { sanitizeRichText } = require('../../middleware/security');
-const { createMessageSchema } = require('../../lib/schemas/messaging');
+const { createMessageSchema, editMessageSchema } = require('../../lib/schemas/messaging');
 const messagingConversationsAdapter = require('../../database/messaging-conversations-adapter');
 const { query } = require('../../database/config');
 const { asyncHandler } = require('../../middleware/errorHandler');
@@ -230,14 +230,10 @@ router.get('/:conversationId/threads/:threadRootMessageId/summary', authenticate
  * PUT /api/conversations/:conversationId/messages/:messageId
  * Edit a message (only by original author within time limit)
  */
-router.put('/:conversationId/messages/:messageId', authenticateToken, requireConversationAccess(), asyncHandler(async (req, res) => {
+router.put('/:conversationId/messages/:messageId', authenticateToken, requireConversationAccess(), zodValidate(editMessageSchema), asyncHandler(async (req, res) => {
   const userId = req.user.id;
   const { conversationId, messageId } = req.params;
   const { text } = req.body;
-
-  if (!text || typeof text !== 'string' || text.trim().length === 0) {
-    return res.status(400).json({ success: false, error: 'Text content is required', code: 'MESSAGING_MISSING_CONTENT' });
-  }
 
   // Verify user is in conversation
   const conversation = await messagingConversationsAdapter.getConversationById({

@@ -14,10 +14,10 @@ function createMockSocket(id = 'test-socket-1') {
     userId: 'user-1',
     userEmail: 'user@test.com',
     userName: 'Test User',
-    emit: jest.fn((event, data) => emitted.push({ event, data })),
-    join: jest.fn(),
-    leave: jest.fn(),
-    to: jest.fn(() => ({ emit: jest.fn() })),
+    emit: vi.fn((event, data) => emitted.push({ event, data })),
+    join: vi.fn(),
+    leave: vi.fn(),
+    to: vi.fn(() => ({ emit: vi.fn() })),
     _emitted: emitted,
   };
 }

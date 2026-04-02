@@ -1,29 +1,15 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { create } from 'zustand';
 import { immer } from 'zustand/middleware/immer';
 
 vi.mock('../store', () => ({ useStore: vi.fn() }));
 
-const mockApiService = vi.hoisted(() => ({
-  get: vi.fn(),
-  post: vi.fn(),
-  delete: vi.fn(),
-  patch: vi.fn(),
-  login: vi.fn(),
-  signup: vi.fn(),
-  loginWithGoogle: vi.fn(),
-  logout: vi.fn(),
-  getMe: vi.fn(),
-}));
-
-vi.mock('../../services/apiService', () => ({
-  apiService: mockApiService,
-}));
-
 import { createNotificationSlice, type NotificationSlice } from '../slices/notificationSlice';
 import { createAuthSlice, type AuthSlice } from '../slices/authSlice';
 
 type TestStore = NotificationSlice & AuthSlice;
+
+const mockFetch = vi.fn();
 
 function createTestStore() {
   return create<TestStore>()(
@@ -34,18 +20,35 @@ function createTestStore() {
   );
 }
 
+/** Helper: mock a successful JSON fetch response */
+function mockJsonResponse(data: unknown) {
+  return { ok: true, json: () => Promise.resolve(data) };
+}
+
+/** Helper: mock a CSRF token fetch followed by a real response */
+function mockWithCsrf(data: unknown) {
+  mockFetch
+    .mockResolvedValueOnce(mockJsonResponse({ csrfToken: 'test-csrf' }))
+    .mockResolvedValueOnce(mockJsonResponse(data));
+}
+
+
 describe('notificationSlice', () => {
   let store: ReturnType<typeof createTestStore>;
+  const originalFetch = global.fetch;
 
   beforeEach(() => {
     store = createTestStore();
     localStorage.clear();
     vi.clearAllMocks();
+    mockFetch.mockReset();
+    global.fetch = mockFetch;
     vi.useFakeTimers();
   });
 
   afterEach(() => {
     vi.useRealTimers();
+    global.fetch = originalFetch;
   });
 
   describe('initial state', () => {
@@ -83,7 +86,6 @@ describe('notificationSlice', () => {
 
   describe('addNotification', () => {
     it('should add notification with generated id and update counts', () => {
-      // Need a user for addNotification
       store.getState().auth.setUser({ id: 'u1', email: 'a@b.com' } as any);
 
       store.getState().notifications.addNotification({
@@ -150,7 +152,8 @@ describe('notificationSlice', () => {
         { id: 'n1', isRead: false, title: 'A', userId: 'u1', type: 'info', readAt: null, createdAt: '' },
       ] as any[]);
 
-      mockApiService.post.mockResolvedValueOnce({ success: true });
+      // markAsRead uses POST, needs CSRF
+      mockWithCsrf({ success: true });
 
       await store.getState().notifications.markAsRead('n1');
 
@@ -161,17 +164,27 @@ describe('notificationSlice', () => {
     });
 
     it('should revert on API failure', async () => {
+      // Use real timers for this async test to avoid timeout interference
+      vi.useRealTimers();
+
       store.getState().notifications.setNotifications([
         { id: 'n1', isRead: false, title: 'A', userId: 'u1', type: 'info', readAt: null, createdAt: '' },
       ] as any[]);
 
-      mockApiService.post.mockRejectedValueOnce(new Error('Failed'));
+      // CSRF fetch fails (silently caught), then POST also fails
+      mockFetch
+        .mockRejectedValueOnce(new Error('CSRF failed'))
+        .mockRejectedValueOnce(new Error('Server error'));
 
       await store.getState().notifications.markAsRead('n1');
 
       const n = store.getState().notifications.notifications[0];
       expect(n.isRead).toBe(false);
       expect(store.getState().notifications.unreadCount).toBe(1);
+
+      // Reset to avoid leaking
+      mockFetch.mockReset();
+      vi.useFakeTimers();
     });
   });
 
@@ -182,7 +195,7 @@ describe('notificationSlice', () => {
         { id: 'n2', isRead: false, title: 'B', userId: 'u1', type: 'info', readAt: null, createdAt: '' },
       ] as any[]);
 
-      mockApiService.post.mockResolvedValueOnce({ success: true });
+      mockWithCsrf({ success: true });
 
       await store.getState().notifications.markAllAsRead();
 
@@ -197,7 +210,8 @@ describe('notificationSlice', () => {
         { id: 'n1', isRead: false, title: 'A', userId: 'u1', type: 'info', readAt: null, createdAt: '' },
       ] as any[]);
 
-      mockApiService.delete.mockResolvedValueOnce({ success: true });
+      // DELETE needs CSRF
+      mockWithCsrf({ success: true });
 
       await store.getState().notifications.deleteNotification('n1');
 

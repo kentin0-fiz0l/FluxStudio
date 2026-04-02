@@ -153,10 +153,9 @@ describe('CoordinateSheetView', () => {
       />,
     );
 
-    // The last set should show em dashes for step size, direction, and difficulty
-    const rows = screen.getAllByRole('button');
-    const lastRow = rows[rows.length - 1];
-    expect(lastRow).toHaveTextContent('\u2014'); // em dash
+    // The last set (Set 3) has stepToNext: null, so step size/direction/difficulty show em dashes
+    const lastDataRow = screen.getByLabelText(/navigate to set 3/i);
+    expect(lastDataRow).toHaveTextContent('\u2014'); // em dash
   });
 
   test('clicking a row calls onNavigateToSet with the set ID', async () => {
@@ -169,7 +168,7 @@ describe('CoordinateSheetView', () => {
     );
 
     // Click the row for Set 2
-    const set2Row = screen.getByRole('button', { name: /navigate to set 2/i });
+    const set2Row = screen.getByLabelText(/navigate to set 2/i);
     await user.click(set2Row);
 
     expect(onNavigateToSet).toHaveBeenCalledWith('s2');
@@ -184,7 +183,7 @@ describe('CoordinateSheetView', () => {
       />,
     );
 
-    const set1Row = screen.getByRole('button', { name: /navigate to set 1/i });
+    const set1Row = screen.getByLabelText(/navigate to set 1/i);
     set1Row.focus();
 
     // Simulate keydown Enter

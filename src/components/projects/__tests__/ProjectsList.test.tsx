@@ -7,6 +7,12 @@ vi.mock('../../molecules', () => ({
   ProjectCard: ({ project }: any) => <div data-testid="project-card">{project.name}</div>,
 }));
 
+// Mock useLazyLoad to always return visible (no IntersectionObserver in jsdom)
+vi.mock('../../../hooks/usePerformance', () => ({
+  useLazyLoad: () => [{ current: null }, true],
+  useStableCallback: (fn: any) => fn,
+}));
+
 vi.mock('../../common/EmptyState', () => ({
   EmptyState: ({ title }: any) => <div>{title}</div>,
   emptyStateConfigs: { projects: { title: 'No projects', description: '', primaryCtaLabel: 'Create', learnMoreItems: [] } },

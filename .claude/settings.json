@@ -4,6 +4,7 @@
       "Bash(npm:*)",
       "Bash(npx:*)",
       "Bash(node:*)",
+      "Bash(pnpm:*)",
       "Read(./src/**)",
       "Read(./apps/**)",
       "Read(./packages/**)",

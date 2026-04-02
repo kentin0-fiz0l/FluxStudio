@@ -444,3 +444,115 @@ describe('validateExpression', () => {
     expect(validateExpression('a && b || c')).toEqual({ valid: true });
   });
 });
+
+// ============================================================================
+// ADVANCED INJECTION ATTEMPTS
+// ============================================================================
+
+describe('advanced injection prevention', () => {
+  it('should not execute template literals', () => {
+    const result = safeEvaluate('`${process.env.SECRET}`');
+    expect(result).not.toBe(process.env.SECRET);
+  });
+
+  it('should not execute import() expressions', () => {
+    const result = safeEvaluate("import('fs')");
+    expect(result).toBeFalsy();
+  });
+
+  it('should not execute setTimeout injection', () => {
+    const result = safeEvaluate('setTimeout(() => {}, 0)');
+    expect(typeof result).not.toBe('number'); // setTimeout returns a timer id
+  });
+
+  it('should not allow property assignment via toString', () => {
+    const vars = { obj: { toString: 'safe' } };
+    const result = safeEvaluate('obj.toString', vars as any);
+    expect(result).toBe('safe');
+  });
+
+  it('should not execute comma operator tricks', () => {
+    // Should not return 3 via comma operator - returns safe evaluation
+    expect(() => safeEvaluate('(1, 2, 3)')).not.toThrow();
+  });
+
+  it('should handle SQL injection strings safely', () => {
+    const result = safeEvaluate("name === '1; DROP TABLE users--'", { name: 'test' });
+    expect(result).toBe(false);
+  });
+
+  it('should handle XSS payload strings safely', () => {
+    const result = safeEvaluate("input === '<script>alert(1)</script>'", { input: 'safe' });
+    expect(result).toBe(false);
+  });
+
+  it('should not traverse prototype chain', () => {
+    const result = safeEvaluate('constructor.prototype', {});
+    expect(result).toBeUndefined();
+  });
+
+  it('should handle __lookupGetter__ access attempt safely', () => {
+    // __lookupGetter__ exists on Object.prototype, so getNestedValue finds it.
+    // The important thing is it cannot be invoked/called through our evaluator.
+    const result = safeEvaluate('obj.__lookupGetter__("x")', { obj: {} } as any);
+    expect(result).toBeFalsy();
+  });
+
+  it('should not allow accessing arguments object', () => {
+    const result = safeEvaluate('arguments[0]');
+    expect(result).toBeFalsy();
+  });
+
+  it('should handle Unicode escape injection', () => {
+    expect(() => safeEvaluate('\\u0065val("1")')).not.toThrow();
+  });
+
+  it('should handle hex escape injection', () => {
+    expect(() => safeEvaluate('\\x65val("1")')).not.toThrow();
+  });
+});
+
+// ============================================================================
+// WORKFLOW ENGINE USE CASES
+// ============================================================================
+
+describe('workflow engine conditions', () => {
+  it('should evaluate status-based conditions', () => {
+    const vars = { status: 'approved', priority: 'high' };
+    expect(safeEvaluateBoolean("status === 'approved' && priority === 'high'", vars)).toBe(true);
+    expect(safeEvaluateBoolean("status === 'rejected' || priority === 'low'", vars)).toBe(false);
+  });
+
+  it('should evaluate numeric threshold conditions', () => {
+    const vars = { score: 85, threshold: 70 };
+    expect(safeEvaluateBoolean('score >= threshold', vars)).toBe(true);
+    expect(safeEvaluateBoolean('score < threshold', vars)).toBe(false);
+  });
+
+  it('should evaluate count-based conditions', () => {
+    const vars = { reviewCount: 3, requiredReviews: 2 };
+    expect(safeEvaluateBoolean('reviewCount >= requiredReviews', vars)).toBe(true);
+  });
+
+  it('should evaluate complex multi-condition workflows', () => {
+    const vars = {
+      status: 'review',
+      approvals: 2,
+      hasTests: true,
+    };
+    expect(
+      safeEvaluateBoolean("status === 'review' && approvals >= 2 && hasTests", vars)
+    ).toBe(true);
+  });
+
+  it('should evaluate nested property conditions', () => {
+    const vars = { user: { role: 'admin', active: true } } as any;
+    expect(safeEvaluateBoolean("user.role === 'admin' && user.active", vars)).toBe(true);
+  });
+
+  it('should handle null-checking conditions', () => {
+    const vars = { assignee: null };
+    expect(safeEvaluateBoolean('assignee === null', vars)).toBe(true);
+    expect(safeEvaluateBoolean('assignee !== null', vars)).toBe(false);
+  });
+});

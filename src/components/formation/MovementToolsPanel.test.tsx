@@ -78,12 +78,13 @@ describe('MovementToolsPanel', () => {
     expect(screen.getByText('Face to Point')).toBeInTheDocument();
   });
 
-  test('shows "Coming soon" for category with no tools', async () => {
+  test('clicking Sequential category shows Sequential Push and Follow the Leader', async () => {
     const { user } = render(<MovementToolsPanel {...defaultProps} />);
 
     await user.click(screen.getByText('Sequential'));
 
-    expect(screen.getByText('Coming soon')).toBeInTheDocument();
+    expect(screen.getByText('Sequential Push')).toBeInTheDocument();
+    expect(screen.getByText('Follow the Leader')).toBeInTheDocument();
   });
 
   test('clicking Special category shows Spiral and Stagger', async () => {

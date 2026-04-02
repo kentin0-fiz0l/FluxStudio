@@ -82,6 +82,135 @@ export type CreateProjectInput = z.infer<typeof createProjectSchema>;
 export type UpdateProjectInput = z.infer<typeof updateProjectSchema>;
 
 // ============================================================================
+// Formation Schemas
+// ============================================================================
+
+export const createFormationSchema = z.object({
+  name: z.string().min(1, 'Name is required').max(200, 'Name too long'),
+  description: z.string().max(2000, 'Description too long').optional(),
+  stageWidth: z.number().int().min(100).max(10000).optional(),
+  stageHeight: z.number().int().min(100).max(10000).optional(),
+  gridSize: z.number().int().min(1).max(200).optional(),
+});
+
+export const updateFormationSchema = z.object({
+  name: z.string().min(1).max(200).optional(),
+  description: z.string().max(2000).optional(),
+  stageWidth: z.number().int().min(100).max(10000).optional(),
+  stageHeight: z.number().int().min(100).max(10000).optional(),
+  gridSize: z.number().int().min(1).max(200).optional(),
+  isArchived: z.boolean().optional(),
+  audioTrack: z.object({
+    id: z.string().optional(),
+    url: z.string().url(),
+    filename: z.string(),
+    duration: z.number().min(0).optional(),
+  }).nullable().optional(),
+});
+
+export const saveFormationSchema = z.object({
+  name: z.string().min(1).max(200).optional(),
+  performers: z.array(z.record(z.unknown())).optional(),
+  keyframes: z.array(z.record(z.unknown())).optional(),
+});
+
+export const uploadAudioSchema = z.object({
+  id: z.string().optional(),
+  url: z.string().url('Invalid audio URL'),
+  filename: z.string().min(1, 'Filename required').max(255, 'Filename too long'),
+  duration: z.number().min(0).optional(),
+});
+
+export const addPerformerSchema = z.object({
+  name: z.string().min(1, 'Name is required').max(100, 'Name too long'),
+  label: z.string().max(50).optional(),
+  color: z.string().regex(/^#[0-9a-fA-F]{6}$/, 'Invalid hex color').optional(),
+  groupName: z.string().max(100).optional(),
+});
+
+export const updatePerformerSchema = addPerformerSchema.partial();
+
+export const keyframeSchema = z.object({
+  timestampMs: z.number().int().min(0).optional(),
+  transition: z.string().max(50).optional(),
+  duration: z.number().min(0).optional(),
+});
+
+export const setPositionSchema = z.object({
+  x: z.number(),
+  y: z.number(),
+  rotation: z.number().min(-360).max(360).optional(),
+});
+
+export const createSceneObjectSchema = z.object({
+  id: z.string().optional(),
+  name: z.string().min(1, 'Name is required').max(200, 'Name too long'),
+  type: z.string().min(1, 'Type is required').max(50),
+  position: z.record(z.unknown()).optional(),
+  source: z.record(z.unknown()).optional(),
+  attachedToPerformerId: z.string().optional(),
+  visible: z.boolean().optional(),
+  locked: z.boolean().optional(),
+  layer: z.number().int().min(0).optional(),
+});
+
+export const updateSceneObjectSchema = createSceneObjectSchema.partial();
+
+export type CreateFormationInput = z.infer<typeof createFormationSchema>;
+export type UpdateFormationInput = z.infer<typeof updateFormationSchema>;
+export type SaveFormationInput = z.infer<typeof saveFormationSchema>;
+export type UploadAudioInput = z.infer<typeof uploadAudioSchema>;
+export type AddPerformerInput = z.infer<typeof addPerformerSchema>;
+export type UpdatePerformerInput = z.infer<typeof updatePerformerSchema>;
+export type KeyframeInput = z.infer<typeof keyframeSchema>;
+export type SetPositionInput = z.infer<typeof setPositionSchema>;
+export type CreateSceneObjectInput = z.infer<typeof createSceneObjectSchema>;
+export type UpdateSceneObjectInput = z.infer<typeof updateSceneObjectSchema>;
+
+// ============================================================================
+// Conversation Schemas
+// ============================================================================
+
+export const createConversationSchema = z.object({
+  name: z.string().max(200).optional(),
+  isGroup: z.boolean().optional(),
+  memberUserIds: z.array(z.string().uuid()).optional(),
+  organizationId: z.string().uuid().optional(),
+  projectId: z.string().uuid().optional(),
+});
+
+export const updateConversationSchema = z.object({
+  name: z.string().max(200).optional(),
+  isGroup: z.boolean().optional(),
+});
+
+export const createMessageSchema = z.object({
+  text: z.string().max(10000).optional(),
+  assetId: z.string().optional(),
+  replyToMessageId: z.string().uuid().optional(),
+  projectId: z.string().uuid().optional(),
+});
+
+export const addMemberSchema = z.object({
+  userId: z.string().uuid('Invalid user ID'),
+  role: z.string().max(50).optional(),
+});
+
+export const markAsReadSchema = z.object({
+  lastReadMessageId: z.string().uuid('Invalid message ID'),
+});
+
+export const muteConversationSchema = z.object({
+  duration: z.number().int().min(0).optional(),
+});
+
+export type CreateConversationInput = z.infer<typeof createConversationSchema>;
+export type UpdateConversationInput = z.infer<typeof updateConversationSchema>;
+export type CreateMessageInput = z.infer<typeof createMessageSchema>;
+export type AddMemberInput = z.infer<typeof addMemberSchema>;
+export type MarkAsReadInput = z.infer<typeof markAsReadSchema>;
+
+// ============================================================================
 // File Schemas
 // ============================================================================
 

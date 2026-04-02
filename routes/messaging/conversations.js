@@ -10,7 +10,15 @@ const log = createLogger('Messaging');
 const { authenticateToken } = require('../../lib/auth/middleware');
 const { requireConversationAccess } = require('../../middleware/requireConversationAccess');
 const { zodValidate } = require('../../middleware/zodValidate');
-const { createConversationSchema } = require('../../lib/schemas/messaging');
+const {
+  createConversationSchema,
+  updateConversationSchema,
+  addMemberSchema,
+  markAsReadSchema,
+  muteConversationSchema,
+  archiveConversationSchema,
+  markAsReadV2Schema,
+} = require('../../lib/schemas/messaging');
 const messagingConversationsAdapter = require('../../database/messaging-conversations-adapter');
 const presenceAdapter = require('../../database/messaging/presence');
 const { query } = require('../../database/config');
@@ -108,7 +116,7 @@ router.get('/:id', authenticateToken, asyncHandler(async (req, res) => {
  * PATCH /api/conversations/:id
  * Update conversation metadata
  */
-router.patch('/:id', authenticateToken, asyncHandler(async (req, res) => {
+router.patch('/:id', authenticateToken, zodValidate(updateConversationSchema), asyncHandler(async (req, res) => {
   const userId = req.user.id;
   const conversationId = req.params.id;
   const { name, isGroup } = req.body;
@@ -137,7 +145,7 @@ router.patch('/:id', authenticateToken, asyncHandler(async (req, res) => {
  * POST /api/conversations/:id/mute
  * Mute a conversation for the current user
  */
-router.post('/:id/mute', authenticateToken, asyncHandler(async (req, res) => {
+router.post('/:id/mute', authenticateToken, zodValidate(muteConversationSchema), asyncHandler(async (req, res) => {
   const userId = req.user.id;
   const conversationId = req.params.id;
   const { duration } = req.body; // hours
@@ -190,7 +198,7 @@ router.get('/:id/mute', authenticateToken, asyncHandler(async (req, res) => {
  * PATCH /api/conversations/:id/archive
  * Archive a conversation
  */
-router.patch('/:id/archive', authenticateToken, asyncHandler(async (req, res) => {
+router.patch('/:id/archive', authenticateToken, zodValidate(archiveConversationSchema), asyncHandler(async (req, res) => {
   const userId = req.user.id;
   const conversationId = req.params.id;
   const archived = req.body.archived !== false; // default true
@@ -243,13 +251,9 @@ router.delete('/:id/members/me', authenticateToken, asyncHandler(async (req, res
  * POST /api/conversations/:id/members
  * Add a member to conversation
  */
-router.post('/:id/members', authenticateToken, asyncHandler(async (req, res) => {
+router.post('/:id/members', authenticateToken, zodValidate(addMemberSchema), asyncHandler(async (req, res) => {
   const conversationId = req.params.id;
   const { userId: memberUserId, role } = req.body;
-
-  if (!memberUserId) {
-    return res.status(400).json({ success: false, error: 'userId is required', code: 'MESSAGING_MISSING_USER_ID' });
-  }
 
   const member = await messagingConversationsAdapter.addMember({
     conversationId,
@@ -280,14 +284,10 @@ router.delete('/:id/members/:userId', authenticateToken, asyncHandler(async (req
  * POST /api/conversations/:id/read
  * Update last-read message for user
  */
-router.post('/:id/read', authenticateToken, asyncHandler(async (req, res) => {
+router.post('/:id/read', authenticateToken, zodValidate(markAsReadSchema), asyncHandler(async (req, res) => {
   const userId = req.user.id;
   const conversationId = req.params.id;
   const { messageId } = req.body;
-
-  if (!messageId) {
-    return res.status(400).json({ success: false, error: 'messageId is required', code: 'MESSAGING_MISSING_MESSAGE_ID' });
-  }
 
   const updated = await messagingConversationsAdapter.setLastRead({
     conversationId,
@@ -329,14 +329,10 @@ router.get('/:conversationId/read-states', authenticateToken, requireConversatio
  * POST /api/conversations/:conversationId/read
  * Mark conversation as read (with WebSocket broadcast)
  */
-router.post('/:conversationId/read', authenticateToken, asyncHandler(async (req, res) => {
+router.post('/:conversationId/read', authenticateToken, zodValidate(markAsReadV2Schema), asyncHandler(async (req, res) => {
   const userId = req.user.id;
   const { conversationId } = req.params;
   const { lastReadMessageId } = req.body;
-
-  if (!lastReadMessageId) {
-    return res.status(400).json({ success: false, error: 'lastReadMessageId is required', code: 'MESSAGING_MISSING_MESSAGE_ID' });
-  }
 
   const conversation = await messagingConversationsAdapter.getConversationById({
     conversationId,

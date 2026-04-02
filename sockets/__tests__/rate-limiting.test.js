@@ -9,7 +9,7 @@ const { checkSocketRateLimit, cleanupSocket } = require('../../lib/socketValidat
 function createMockSocket(id = 'test-socket-1') {
   return {
     id,
-    emit: jest.fn(),
+    emit: vi.fn(),
   };
 }
 

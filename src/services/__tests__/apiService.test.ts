@@ -50,6 +50,7 @@ describe('ApiService', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    mockFetch.mockReset();
     global.fetch = mockFetch;
     localStorage.clear();
     // Reset apiService internal state to prevent test pollution
@@ -332,8 +333,8 @@ describe('ApiService', () => {
 
         const result = await apiService.createProject({
           name: 'New Project',
-          type: 'development',
-          organizationId: 'org-1',
+          type: 'other',
+          organizationId: '00000000-0000-0000-0000-000000000001',
         });
 
         expect(result.success).toBe(true);
@@ -427,7 +428,7 @@ describe('ApiService', () => {
         const result = await apiService.getMessages();
 
         expect(mockFetch).toHaveBeenCalledWith(
-          'http://localhost:3001/api/messaging/messages',
+          'http://localhost:3004/api/messages',
           expect.any(Object)
         );
         expect(result.success).toBe(true);
@@ -443,7 +444,7 @@ describe('ApiService', () => {
         await apiService.getMessages('channel-1');
 
         expect(mockFetch).toHaveBeenCalledWith(
-          'http://localhost:3001/api/messaging/messages?channelId=channel-1',
+          'http://localhost:3004/api/messages?channelId=channel-1',
           expect.any(Object)
         );
       });
@@ -460,7 +461,7 @@ describe('ApiService', () => {
           .mockResolvedValueOnce(mockResponse);
 
         const result = await apiService.sendMessage({
-          conversationId: 'conv-1',
+          conversationId: '00000000-0000-0000-0000-000000000001',
           content: 'Test message',
         });
 
@@ -503,7 +504,7 @@ describe('ApiService', () => {
       });
       window.dispatchEvent = vi.fn();
 
-      await expect(apiService.getMe()).rejects.toThrow('Authentication required');
+      await expect(apiService.getMe()).rejects.toThrow('Authentication required. Please sign in again.');
 
       // Cleanup
       (window as { location: Location }).location = originalLocation;
@@ -515,14 +516,10 @@ describe('ApiService', () => {
       let capturedSignal: AbortSignal | undefined;
       mockFetch.mockImplementationOnce((_url: string, options: RequestInit) => {
         capturedSignal = options.signal ?? undefined;
-        return new Promise((_resolve, reject) => {
-          // Simulate abort after a short delay
-          setTimeout(() => {
-            const error = new Error('The operation was aborted');
-            error.name = 'AbortError';
-            reject(error);
-          }, 10);
-        });
+        // Immediately reject with AbortError to simulate a timeout
+        const error = new Error('The operation was aborted');
+        error.name = 'AbortError';
+        return Promise.reject(error);
       });
 
       await expect(apiService.healthCheck()).rejects.toThrow('Request timeout');

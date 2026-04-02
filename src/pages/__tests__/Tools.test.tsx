@@ -89,16 +89,9 @@ describe('Tools', () => {
     expect(screen.getByText('Assets')).toBeInTheDocument();
   });
 
-  test('displays coming soon section', () => {
-    renderTools();
-    expect(screen.getByText('Coming Soon')).toBeInTheDocument();
-  });
-
-  test('displays coming soon tools', () => {
+  test('displays AI Design Assistant as active tool', () => {
     renderTools();
     expect(screen.getByText('AI Design Assistant')).toBeInTheDocument();
-    expect(screen.getByText('Asset Library')).toBeInTheDocument();
-    expect(screen.getByText('Analytics Dashboard')).toBeInTheDocument();
   });
 
   test('displays MetMap stats', () => {

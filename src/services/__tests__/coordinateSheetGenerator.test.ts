@@ -418,8 +418,8 @@ describe('generateDrillBookPages', () => {
     ];
 
     const pages = generateDrillBookPages(formation, 'p1', sets);
-    // 1 cover + 2 charts + 1 coordinates + 1 summary = 5
-    expect(pages).toHaveLength(5);
+    // 1 cover + 1 TOC + 2 charts + 1 coordinates + 1 summary = 6
+    expect(pages).toHaveLength(6);
   });
 
   it('all pages reference the correct performer', () => {

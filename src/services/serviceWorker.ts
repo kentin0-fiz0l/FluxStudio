@@ -36,6 +36,12 @@ export function registerSW() {
     wb.register().catch(() => {
       // SW registration can fail (stale SW, IndexedDB issues) — non-critical, skip silently
     });
+
+    // When a new SW activates via skipWaiting(), reload so the browser
+    // fetches fresh assets from the new precache.
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+      window.location.reload();
+    });
   } catch {
     // Workbox constructor or event binding failed — non-critical
   }

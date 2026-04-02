@@ -17,6 +17,10 @@ function defaultProps(overrides: Partial<Parameters<typeof ExportDialog>[0]> = {
   return {
     isOpen: true,
     formationName: 'My Show',
+    performers: [
+      { id: 'p1', name: 'Alice', label: 'A', color: '#FF0000' },
+      { id: 'p2', name: 'Bob', label: 'B', color: '#00FF00' },
+    ],
     onClose: vi.fn(),
     onExport: vi.fn(() => Promise.resolve()),
     ...overrides,

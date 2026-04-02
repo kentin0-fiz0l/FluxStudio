@@ -13,6 +13,25 @@ import { ChatMessageList } from '../ChatMessageList';
 import type { ChatMessageListProps } from '../ChatMessageList';
 import type { Message, MessageUser } from '../types';
 
+// Mock react-virtuoso to render items directly (no virtualization in jsdom)
+vi.mock('react-virtuoso', () => {
+  const React = require('react');
+  return {
+    Virtuoso: React.forwardRef(function MockVirtuoso(props: any, ref: any) {
+      React.useImperativeHandle(ref, () => ({ scrollToIndex: vi.fn() }));
+      const items = [];
+      for (let i = 0; i < (props.totalCount ?? 0); i++) {
+        items.push(
+          <div key={i} data-virtuoso-index={i}>
+            {props.itemContent?.(i)}
+          </div>
+        );
+      }
+      return <div data-testid="virtuoso-list">{items}{props.components?.Footer?.()}</div>;
+    }),
+  };
+});
+
 // Mock ChatAvatar
 vi.mock('../ChatMessageBubble', () => ({
   ChatAvatar: vi.fn(({ user }: { user: MessageUser }) => (

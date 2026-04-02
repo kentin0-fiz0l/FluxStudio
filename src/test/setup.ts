@@ -1,5 +1,8 @@
 import '@testing-library/jest-dom'
 
+// Initialize Zustand store so components that use useAuth/useStore work in tests
+import '../store/store'
+
 // Mock window.matchMedia
 Object.defineProperty(window, 'matchMedia', {
   writable: true,
