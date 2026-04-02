@@ -475,6 +475,8 @@ export const createAuthSlice: StateCreator<
         if (response.success && response.data) {
           set((state) => {
             state.auth.user = response.data as User;
+            state.auth.isAuthenticated = true;
+            state.auth.token = token;
           });
         }
       } catch (err) {
