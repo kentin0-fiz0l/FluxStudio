@@ -90,7 +90,7 @@ static_sites:
       repo: kentin0-fiz0l/FluxStudio
       branch: main
       deploy_on_push: true
-    build_command: corepack enable && pnpm install --frozen-lockfile && pnpm build
+    build_command: corepack enable && NPM_CONFIG_PRODUCTION=false pnpm install --frozen-lockfile && pnpm build
     output_dir: build
     environment_slug: node-js
     catchall_document: index.html
