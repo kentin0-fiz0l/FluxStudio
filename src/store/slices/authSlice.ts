@@ -567,15 +567,22 @@ export function useAuthInit() {
     checkAuth();
 
     const handleUnauthorized = async () => {
-      // Don't redirect while initial auth check is still in progress —
-      // checkAuth() handles its own 401s (e.g. token refresh). Parallel API
-      // calls that fire before auth resolves should not race to logout.
       const store = getUseStore() as { getState: () => FluxStore };
-      const { isLoading } = store.getState().auth;
+      const { isLoading, isAuthenticated } = store.getState().auth;
+
+      // Skip while initial auth check is in progress — checkAuth()
+      // handles its own 401s (e.g. token refresh).
       if (isLoading) return;
 
-      const publicAuthPaths = ['/', '/login', '/signup', '/forgot-password', '/reset-password', '/auth/callback', '/landing'];
-      const isPublicAuthPage = publicAuthPaths.some(path => window.location.pathname.includes(path));
+      // If we're already unauthenticated (e.g. stale token cleared by
+      // checkAuth, or user on landing page), there's nothing to expire.
+      // This prevents spurious 401s from lazy API calls (feature flags,
+      // observability) from redirecting public pages like "/".
+      if (!isAuthenticated) return;
+
+      const publicAuthPaths = ['/login', '/signup', '/forgot-password', '/reset-password', '/auth/callback', '/landing'];
+      const isPublicAuthPage = window.location.pathname === '/' ||
+        publicAuthPaths.some(path => window.location.pathname.startsWith(path));
       if (!isPublicAuthPage) {
         await logout();
         window.location.href = '/login?reason=session_expired';

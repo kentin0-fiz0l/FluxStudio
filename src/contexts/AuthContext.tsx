@@ -32,8 +32,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const handleUnauthorized = async () => {
       // The Zustand slice handles token refresh internally via checkAuth
       // If we get here, session is truly expired
-      const publicAuthPaths = ['/login', '/signup', '/forgot-password', '/reset-password'];
-      const isPublicAuthPage = publicAuthPaths.some(path => window.location.pathname.includes(path));
+      const publicAuthPaths = ['/login', '/signup', '/forgot-password', '/reset-password', '/auth/callback', '/landing'];
+      const isPublicAuthPage = window.location.pathname === '/' ||
+        publicAuthPaths.some(path => window.location.pathname.startsWith(path));
       if (!isPublicAuthPage) {
         await logout();
         window.location.href = '/login?reason=session_expired';
