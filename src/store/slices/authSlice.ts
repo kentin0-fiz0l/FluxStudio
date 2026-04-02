@@ -449,18 +449,39 @@ export const createAuthSlice: StateCreator<
     setAuthToken: async (token: string, refreshToken?: string): Promise<void> => {
       localStorage.setItem(ACCESS_TOKEN_KEY, token);
       if (refreshToken) localStorage.setItem(REFRESH_TOKEN_KEY, refreshToken);
+
+      // Decode JWT to set minimal user data immediately.
+      // This ensures isAuthenticated=true even if getMe() fails,
+      // preventing the OAuth redirect loop.
+      try {
+        const payload = JSON.parse(atob(token.split('.')[1]));
+        set((state) => {
+          state.auth.user = {
+            id: payload.id,
+            email: payload.email,
+            userType: payload.userType || 'client',
+          } as User;
+          state.auth.isAuthenticated = true;
+          state.auth.token = token;
+        });
+      } catch {
+        // Malformed token — can't decode, fall through to getMe()
+      }
+
+      // Fetch full user profile to get name, avatar, etc.
       try {
         const { apiService } = await import('../../services/apiService');
         const response = await apiService.getMe();
         if (response.success && response.data) {
           set((state) => {
             state.auth.user = response.data as User;
-            state.auth.isAuthenticated = true;
-            state.auth.token = token;
           });
-          startTokenRefresh();
         }
-      } catch { /* ignore */ }
+      } catch (err) {
+        console.error('[Auth] Failed to fetch user profile after setAuthToken:', err);
+      }
+
+      startTokenRefresh();
     },
 
     setUser: (user: User | null) => {
@@ -553,7 +574,7 @@ export function useAuthInit() {
       const { isLoading } = store.getState().auth;
       if (isLoading) return;
 
-      const publicAuthPaths = ['/login', '/signup', '/forgot-password', '/reset-password', '/auth/callback'];
+      const publicAuthPaths = ['/', '/login', '/signup', '/forgot-password', '/reset-password', '/auth/callback', '/landing'];
       const isPublicAuthPage = publicAuthPaths.some(path => window.location.pathname.includes(path));
       if (!isPublicAuthPage) {
         await logout();

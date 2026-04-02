@@ -167,18 +167,15 @@ const { Component: NotFound } = lazyLoadWithRetry(() => import('./pages/NotFound
 
 // Root redirect component - redirects authenticated users to Projects
 function RootRedirect() {
-  const { user, isLoading } = useAuth();
-
-  if (isLoading) {
-    return <DefaultLoadingFallback />;
-  }
+  const { user } = useAuth();
 
   // If authenticated, redirect to Projects (the primary hub)
   if (user) {
     return <Navigate to="/projects" replace />;
   }
 
-  // If not authenticated, show the landing page
+  // If not authenticated (or still checking), show the landing page immediately.
+  // Once checkAuth resolves and sets `user`, this re-renders and redirects above.
   return <LandingPage />;
 }
 
