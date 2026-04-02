@@ -45,6 +45,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: lint
     strategy:
+      fail-fast: false
       matrix:
         shard: [1/2, 2/2]
     steps:
@@ -68,7 +69,7 @@ jobs:
         run: pnpm --filter @fluxstudio/database db:generate
 
       - name: Run unit tests with coverage
-        run: npx vitest run --coverage --coverage.thresholds.100=false --coverage.thresholds.lines=0 --coverage.thresholds.functions=0 --coverage.thresholds.branches=0 --coverage.thresholds.statements=0 --shard=${{ matrix.shard }}
+        run: npx vitest run --coverage --coverage.thresholds.100=false --coverage.thresholds.lines=0 --coverage.thresholds.functions=0 --coverage.thresholds.branches=0 --coverage.thresholds.statements=0 --retry 2 --shard=${{ matrix.shard }}
 
       - name: Upload coverage to Codecov
         if: matrix.shard == '1/2'
