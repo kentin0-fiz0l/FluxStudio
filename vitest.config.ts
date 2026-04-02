@@ -44,7 +44,7 @@ export default defineConfig({
       'lib/**/__tests__/**',  // Backend lib tests require database
     ],
     coverage: {
-      reporter: ['text', 'json', 'html'],
+      reporter: ['text', 'json', 'html', 'lcov'],
       include: [
         'src/**/*'
       ],
