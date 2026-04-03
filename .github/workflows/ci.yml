@@ -68,25 +68,9 @@ jobs:
       - name: Generate Prisma Client
         run: pnpm --filter @fluxstudio/database db:generate
 
-      - name: Run unit tests with coverage
-        run: npx vitest run --coverage --coverage.thresholds.100=false --coverage.thresholds.lines=0 --coverage.thresholds.functions=0 --coverage.thresholds.branches=0 --coverage.thresholds.statements=0 --shard=${{ matrix.shard }}
-        timeout-minutes: 15
-
-      - name: Upload coverage to Codecov
-        if: matrix.shard == '1/2'
-        uses: codecov/codecov-action@v4
-        with:
-          files: ./coverage/lcov.info
-          fail_ci_if_error: false
-          verbose: true
-          flags: shard-${{ strategy.job-index }}
-
-      - name: Comment coverage on PR
-        if: github.event_name == 'pull_request' && matrix.shard == '1/2'
-        uses: codecov/codecov-action@v4
-        with:
-          files: ./coverage/lcov.info
-          fail_ci_if_error: false
+      - name: Run unit tests
+        run: npx vitest run --shard=${{ matrix.shard }}
+        timeout-minutes: 10
 
   build:
     name: Build
