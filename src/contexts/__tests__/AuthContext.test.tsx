@@ -4,30 +4,28 @@ import { render } from '@testing-library/react';
 const mockCheckAuth = vi.fn();
 const mockLogout = vi.fn();
 
+const mockState = () => ({
+  auth: {
+    checkAuth: mockCheckAuth,
+    logout: mockLogout,
+    isAuthenticated: true,
+  },
+});
+
+const createMockStore = () => {
+  const fn = vi.fn((selector: (state: any) => any) => selector(mockState()));
+  (fn as any).getState = () => mockState();
+  return fn;
+};
+
 // Mock the store module that AuthContext imports as '../store'
 vi.mock('../../store/store', () => ({
-  useStore: vi.fn((selector: (state: any) => any) => {
-    const state = {
-      auth: {
-        checkAuth: mockCheckAuth,
-        logout: mockLogout,
-      },
-    };
-    return selector(state);
-  }),
+  useStore: createMockStore(),
 }));
 
 // Also mock the barrel export
 vi.mock('../../store', () => ({
-  useStore: vi.fn((selector: (state: any) => any) => {
-    const state = {
-      auth: {
-        checkAuth: mockCheckAuth,
-        logout: mockLogout,
-      },
-    };
-    return selector(state);
-  }),
+  useStore: createMockStore(),
 }));
 
 import { AuthProvider } from '../AuthContext';

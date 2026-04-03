@@ -23,10 +23,17 @@ describe('featureFlagService', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.resetModules();
+    // featureFlagService skips fetch when no auth_token is present
+    vi.stubGlobal('localStorage', {
+      getItem: vi.fn((key: string) => key === 'auth_token' ? 'mock-token' : null),
+      setItem: vi.fn(),
+      removeItem: vi.fn(),
+    });
   });
 
   afterEach(() => {
     vi.restoreAllMocks();
+    vi.unstubAllGlobals();
   });
 
   it('fetches flags from API and caches them', async () => {
