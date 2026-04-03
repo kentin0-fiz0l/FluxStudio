@@ -81,8 +81,8 @@ function validateEnvironment() {
     }
 
     if (isProduction) {
-      console.error('FATAL: Cannot start in production with invalid environment');
-      process.exit(1);
+      console.error('WARNING: Production env validation failed — starting in DEGRADED MODE');
+      process.env.__DEGRADED_MODE = 'true';
     }
   }
 
@@ -90,10 +90,11 @@ function validateEnvironment() {
   if (process.env.AI_SUMMARIES_ENABLED === 'true' && !process.env.ANTHROPIC_API_KEY) {
     const msg = 'ANTHROPIC_API_KEY is required when AI_SUMMARIES_ENABLED is true';
     if (isProduction) {
-      console.error(`FATAL: ${msg}`);
-      process.exit(1);
+      console.error(`WARNING: ${msg} — AI features disabled`);
+      process.env.AI_SUMMARIES_ENABLED = 'false';
+    } else {
+      throw new Error(msg);
     }
-    throw new Error(msg);
   }
 
   // Auto-generate missing secrets in development/test

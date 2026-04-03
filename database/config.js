@@ -39,10 +39,11 @@ const dbConfig = (() => {
   const isProduction = process.env.NODE_ENV === 'production';
 
   if (isProduction && !process.env.DB_PASSWORD) {
-    throw new Error(
-      'DB_PASSWORD environment variable is required in production. ' +
-      'Set DB_PASSWORD or use DATABASE_URL for managed database connections.'
+    log.warn(
+      'DB_PASSWORD not set and no DATABASE_URL — database features disabled. ' +
+      'Set DATABASE_URL or DB_PASSWORD to enable database.'
     );
+    return null;
   }
 
   return {
@@ -61,7 +62,7 @@ const dbConfig = (() => {
 })();
 
 // Merge with pool configuration
-const poolConfig = {
+const poolConfig = dbConfig ? {
   ...dbConfig,
 
   // Enhanced connection pool configuration
@@ -85,52 +86,60 @@ const poolConfig = {
 
   // Application name for monitoring
   application_name: `fluxstudio-${process.env.NODE_ENV || 'development'}`
-};
+} : null;
 
-// Create connection pool
-const pool = new Pool(poolConfig);
+// Create connection pool (null if database is not configured)
+const pool = poolConfig ? new Pool(poolConfig) : null;
 
 // Enhanced connection pool monitoring and error handling
-pool.on('error', (err, client) => {
-  log.error('Unexpected error on idle database client', err, {
-    code: err.code,
-    totalCount: pool.totalCount,
-    idleCount: pool.idleCount,
-    waitingCount: pool.waitingCount
+if (pool) {
+  pool.on('error', (err, client) => {
+    log.error('Unexpected error on idle database client', err, {
+      code: err.code,
+      totalCount: pool.totalCount,
+      idleCount: pool.idleCount,
+      waitingCount: pool.waitingCount
+    });
+
+    // Don't exit the process in production, log and monitor instead
+    if (process.env.NODE_ENV !== 'production') {
+      process.exit(-1);
+    }
   });
 
-  // Don't exit the process in production, log and monitor instead
-  if (process.env.NODE_ENV !== 'production') {
-    process.exit(-1);
-  }
-});
-
-pool.on('connect', (client) => {
-  log.debug('New database client connected', {
-    totalCount: pool.totalCount,
-    idleCount: pool.idleCount,
-    waitingCount: pool.waitingCount
+  pool.on('connect', (client) => {
+    log.debug('New database client connected', {
+      totalCount: pool.totalCount,
+      idleCount: pool.idleCount,
+      waitingCount: pool.waitingCount
+    });
   });
-});
 
-pool.on('acquire', (client) => {
-  log.debug('Database client acquired from pool', {
-    totalCount: pool.totalCount,
-    idleCount: pool.idleCount,
-    waitingCount: pool.waitingCount
+  pool.on('acquire', (client) => {
+    log.debug('Database client acquired from pool', {
+      totalCount: pool.totalCount,
+      idleCount: pool.idleCount,
+      waitingCount: pool.waitingCount
+    });
   });
-});
 
-pool.on('remove', (client) => {
-  log.debug('Database client removed from pool', {
-    totalCount: pool.totalCount,
-    idleCount: pool.idleCount,
-    waitingCount: pool.waitingCount
+  pool.on('remove', (client) => {
+    log.debug('Database client removed from pool', {
+      totalCount: pool.totalCount,
+      idleCount: pool.idleCount,
+      waitingCount: pool.waitingCount
+    });
   });
-});
+} else {
+  log.warn('Database pool not created — database features are unavailable');
+}
 
 // Database connection test
 async function testConnection() {
+  if (!pool) {
+    log.warn('Database not configured — skipping connection test');
+    return false;
+  }
   try {
     const client = await pool.connect();
     const result = await client.query('SELECT NOW()');
@@ -145,6 +154,9 @@ async function testConnection() {
 
 // Enhanced query helper function with performance monitoring
 async function query(text, params = [], options = {}) {
+  if (!pool) {
+    throw new Error('Database not configured — set DATABASE_URL to enable database features');
+  }
   const start = process.hrtime.bigint();
   const queryId = Math.random().toString(36).substr(2, 9);
   const isSlowQueryLogging = options.logSlowQueries !== false;
@@ -210,6 +222,9 @@ async function query(text, params = [], options = {}) {
 
 // Transaction helper with configurable timeout
 async function transaction(callback, timeoutMs = 30000) {
+  if (!pool) {
+    throw new Error('Database not configured — set DATABASE_URL to enable database features');
+  }
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
@@ -612,6 +627,9 @@ const messagingQueries = {
 
 // Database performance monitoring
 async function getPoolStats() {
+  if (!pool) {
+    return { status: 'not_configured', timestamp: new Date().toISOString() };
+  }
   return {
     totalCount: pool.totalCount,
     idleCount: pool.idleCount,
@@ -628,6 +646,9 @@ async function getPoolStats() {
 
 // Connection health check with detailed metrics
 async function healthCheck() {
+  if (!pool) {
+    return { status: 'not_configured', timestamp: new Date().toISOString() };
+  }
   try {
     const start = process.hrtime.bigint();
     const result = await pool.query('SELECT NOW() as server_time, version() as server_version');
@@ -656,6 +677,7 @@ async function healthCheck() {
 
 // Cleanup function
 async function closePool() {
+  if (!pool) return;
   try {
     await pool.end();
     log.info('Database pool closed');

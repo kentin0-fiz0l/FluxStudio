@@ -472,6 +472,26 @@ app.use('/uploads', express.static(UPLOADS_DIR, {
 // Additional helpers available via dataHelpers object if needed
 
 // ==============================================
+// DEGRADED MODE — block API routes when backend is not fully configured
+// ==============================================
+if (process.env.__DEGRADED_MODE === 'true') {
+  log.warn('DEGRADED MODE active — API routes will return 503');
+  app.use((req, res, next) => {
+    // Allow health, beta-status, and static assets through
+    if (req.path === '/health' || req.path === '/api/health' ||
+        req.path === '/flags/beta-status' || req.path === '/api/flags/beta-status' ||
+        req.method === 'OPTIONS') {
+      return next();
+    }
+    res.status(503).json({
+      success: false,
+      error: 'Service temporarily unavailable — backend not fully configured',
+      degraded: true,
+    });
+  });
+}
+
+// ==============================================
 // ROUTE MODULES
 // ==============================================
 
