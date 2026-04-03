@@ -15,28 +15,13 @@ region: nyc
 ingress:
   rules:
     # API + Socket.IO routes → unified-backend
+    # CORS handled by Express middleware (middleware/security.js)
+    # Required: Google OAuth redirect POST sends Origin: null, which DO ingress rejects
     - component:
         name: unified-backend
       match:
         path:
           prefix: /api
-      cors:
-        allow_origins:
-          - exact: https://fluxstudio.art
-          - exact: https://www.fluxstudio.art
-        allow_methods:
-          - GET
-          - POST
-          - PUT
-          - DELETE
-          - PATCH
-          - OPTIONS
-        allow_headers:
-          - Content-Type
-          - Authorization
-          - Upgrade
-          - Connection
-        allow_credentials: true
     # Yjs Collaboration WebSocket → collaboration service
     - component:
         name: collaboration

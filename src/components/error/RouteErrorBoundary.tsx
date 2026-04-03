@@ -34,9 +34,9 @@ export function RouteErrorBoundary() {
             </p>
             <div className="flex gap-3 justify-center">
               <Button onClick={() => window.history.back()}>Go Back</Button>
-              <Button variant="outline" onClick={() => { window.location.href = '/dashboard'; }}>
+              <Button variant="outline" onClick={() => { window.location.href = '/'; }}>
                 <Home className="h-4 w-4 mr-2" aria-hidden="true" />
-                Dashboard
+                Home
               </Button>
             </div>
           </CardContent>
@@ -63,9 +63,9 @@ export function RouteErrorBoundary() {
               <RefreshCw className="h-4 w-4 mr-2" aria-hidden="true" />
               Reload
             </Button>
-            <Button variant="outline" onClick={() => { window.location.href = '/dashboard'; }}>
+            <Button variant="outline" onClick={() => { window.location.href = '/'; }}>
               <Home className="h-4 w-4 mr-2" aria-hidden="true" />
-              Dashboard
+              Home
             </Button>
           </div>
         </CardContent>

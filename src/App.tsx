@@ -60,8 +60,9 @@ import { getSkipLinkProps } from './utils/accessibility';
 //   () => import('./pages/SimpleHomePage').then(m => ({ default: m.SimpleHomePage })) as Promise<{ default: React.ComponentType<Record<string, unknown>> }>
 // );
 
-// Landing page - synthesized from best sections of 3 design variants
-const { Component: LandingPage } = lazyLoadWithRetry(() => import('./pages/landing/LandingPage'));
+// Landing page — eagerly loaded (not lazy) because it's the first thing
+// visitors see. Prevents chunk-load failures from ever showing a login page.
+import LandingPage from './pages/landing/LandingPage';
 
 const { Component: Login } = lazyLoadWithRetry(
   () => import('./pages/Login').then(m => ({ default: m.Login })) as Promise<{ default: React.ComponentType<Record<string, unknown>> }>

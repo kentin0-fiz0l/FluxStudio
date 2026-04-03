@@ -135,7 +135,7 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
   };
 
   private handleGoHome = () => {
-    window.location.href = '/dashboard';
+    window.location.href = '/';
   };
 
   render() {
