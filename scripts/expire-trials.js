@@ -12,7 +12,7 @@
 
 require('dotenv').config();
 
-const { query } = require('../database/config');
+const { query, pool } = require('../database/config');
 const { emailService } = require('../lib/email/emailService');
 const { createLogger } = require('../lib/logger');
 const log = createLogger('ExpireTrials');
@@ -20,6 +20,10 @@ const log = createLogger('ExpireTrials');
 const DRY_RUN = process.argv.includes('--dry-run');
 
 async function expireTrials() {
+  if (!pool) {
+    log.warn('DATABASE_URL not set — skipping trial expiry job');
+    return;
+  }
   log.info('Starting trial expiry job', { dryRun: DRY_RUN });
 
   // 1. Expire overdue trials — revert to free plan

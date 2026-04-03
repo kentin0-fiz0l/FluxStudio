@@ -100,6 +100,11 @@ async function main() {
 
   console.log(`[weekly-digest] Starting${DRY_RUN ? ' (DRY RUN)' : ''}...`);
 
+  if (!pool) {
+    console.log('[weekly-digest] DATABASE_URL not set — skipping weekly digest');
+    return;
+  }
+
   if (!DRY_RUN && !emailService.isConfigured()) {
     console.error('[weekly-digest] Email service is not configured. Set SMTP or SendGrid env vars.');
     process.exitCode = 1;
@@ -194,7 +199,7 @@ main()
   })
   .finally(async () => {
     try {
-      await pool.end();
+      if (pool) await pool.end();
     } catch (_) {
       // ignore pool close errors
     }
