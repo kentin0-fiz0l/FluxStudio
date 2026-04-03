@@ -69,7 +69,7 @@ jobs:
         run: pnpm --filter @fluxstudio/database db:generate
 
       - name: Run unit tests
-        run: npx vitest run --pool threads --exclude '**/SearchWidget.test.*' --shard=${{ matrix.shard }}
+        run: npx vitest run --exclude '**/SearchWidget.test.*' --shard=${{ matrix.shard }}
         timeout-minutes: 10
 
   build:
