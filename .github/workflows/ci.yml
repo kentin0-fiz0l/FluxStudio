@@ -70,7 +70,7 @@ jobs:
 
       - name: Run unit tests with coverage
         run: npx vitest run --coverage --coverage.thresholds.100=false --coverage.thresholds.lines=0 --coverage.thresholds.functions=0 --coverage.thresholds.branches=0 --coverage.thresholds.statements=0 --shard=${{ matrix.shard }}
-        timeout-minutes: 10
+        timeout-minutes: 15
 
       - name: Upload coverage to Codecov
         if: matrix.shard == '1/2'

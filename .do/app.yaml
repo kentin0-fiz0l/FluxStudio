@@ -90,7 +90,7 @@ static_sites:
       repo: kentin0-fiz0l/FluxStudio
       branch: main
       deploy_on_push: true
-    build_command: corepack enable && NPM_CONFIG_PRODUCTION=false pnpm install --frozen-lockfile && pnpm build
+    build_command: export CI=true && corepack enable && NPM_CONFIG_PRODUCTION=false pnpm install --frozen-lockfile && pnpm build
     output_dir: build
     environment_slug: node-js
     catchall_document: index.html
@@ -124,7 +124,7 @@ jobs:
       repo: kentin0-fiz0l/FluxStudio
       branch: main
       deploy_on_push: true
-    build_command: corepack enable && pnpm install --frozen-lockfile
+    build_command: export CI=true && corepack enable && pnpm install --frozen-lockfile
     run_command: node database/run-migrations.js && node database/verify-schema.js
     environment_slug: node-js
     kind: PRE_DEPLOY
@@ -140,7 +140,7 @@ jobs:
     github:
       repo: kentin0-fiz0l/FluxStudio
       branch: main
-    build_command: corepack enable && pnpm install --frozen-lockfile
+    build_command: export CI=true && corepack enable && pnpm install --frozen-lockfile
     run_command: node scripts/send-weekly-digest.js
     environment_slug: node-js
     kind: POST_DEPLOY
@@ -170,7 +170,7 @@ jobs:
     github:
       repo: kentin0-fiz0l/FluxStudio
       branch: main
-    build_command: corepack enable && pnpm install --frozen-lockfile
+    build_command: export CI=true && corepack enable && pnpm install --frozen-lockfile
     run_command: node scripts/expire-trials.js
     environment_slug: node-js
     kind: POST_DEPLOY
@@ -188,7 +188,7 @@ services:
       repo: kentin0-fiz0l/FluxStudio
       branch: main
       deploy_on_push: true
-    build_command: corepack enable && pnpm install --frozen-lockfile
+    build_command: export CI=true && corepack enable && pnpm install --frozen-lockfile
     run_command: node server-unified.js
     environment_slug: node-js
     http_port: 3001
@@ -361,7 +361,7 @@ services:
       repo: kentin0-fiz0l/FluxStudio
       branch: main
       deploy_on_push: true
-    build_command: corepack enable && pnpm install --frozen-lockfile
+    build_command: export CI=true && corepack enable && pnpm install --frozen-lockfile
     run_command: node server-collaboration.js
     environment_slug: node-js
     http_port: 4000
