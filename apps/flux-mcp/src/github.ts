@@ -19,7 +19,13 @@ export class GitHubClient {
     this.workflowFile = process.env.GITHUB_WORKFLOW_FILE || 'deploy.yml';
 
     if (!this.token || !this.owner || !this.repo) {
-      throw new Error('Missing required environment variables: GITHUB_TOKEN, GITHUB_OWNER, GITHUB_REPO');
+      console.warn('[MCP] GitHub env vars not fully configured (GITHUB_TOKEN, GITHUB_OWNER, GITHUB_REPO). Build tools will be unavailable.');
+    }
+  }
+
+  private ensureConfigured() {
+    if (!this.token || !this.owner || !this.repo) {
+      throw new Error('GitHub not configured: missing GITHUB_TOKEN, GITHUB_OWNER, or GITHUB_REPO');
     }
   }
 
@@ -36,6 +42,7 @@ export class GitHubClient {
    * Trigger workflow dispatch for a given branch
    */
   async createPreview(branch: string, payload?: Record<string, any>): Promise<PreviewResponse> {
+    this.ensureConfigured();
     const url = `${GITHUB_API_BASE}/repos/${this.owner}/${this.repo}/actions/workflows/${this.workflowFile}/dispatches`;
 
     console.log(`[GitHub] Dispatching workflow for branch: ${branch}`);
@@ -96,6 +103,7 @@ export class GitHubClient {
    * Get detailed status and logs information for a workflow run
    */
   async tailLogs(runId: number): Promise<LogsResponse> {
+    this.ensureConfigured();
     const url = `${GITHUB_API_BASE}/repos/${this.owner}/${this.repo}/actions/runs/${runId}`;
 
     console.log(`[GitHub] Fetching run info for: ${runId}`);
