@@ -355,7 +355,12 @@ app.use('/embed', (req, res, next) => {
   );
   next();
 });
-app.use(cors);
+app.use((req, res, next) => {
+  if (req.path.match(/\/(api\/)?auth\/(google|github|figma|slack)\/callback/)) {
+    return oauthCors(req, res, next);
+  }
+  return cors(req, res, next);
+});
 app.use(auditLogger);
 app.use(advancedRateLimiter.middleware());
 
@@ -622,15 +627,6 @@ authRoutes.setAuthHelper({
   generateAuthResponse
 });
 
-// Apply broader CORS for OAuth callback routes (allows Origin: null and provider origins)
-app.use('/auth/google/callback', oauthCors);
-app.use('/api/auth/google/callback', oauthCors);
-app.use('/auth/github/callback', oauthCors);
-app.use('/api/auth/github/callback', oauthCors);
-app.use('/auth/figma/callback', oauthCors);
-app.use('/api/auth/figma/callback', oauthCors);
-app.use('/auth/slack/callback', oauthCors);
-app.use('/api/auth/slack/callback', oauthCors);
 
 // Mount auth routes at both paths for compatibility
 app.use('/auth', authRoutes);

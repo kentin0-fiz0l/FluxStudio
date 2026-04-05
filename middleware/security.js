@@ -100,7 +100,10 @@ const corsOptions = {
     const allowedOrigins = (process.env.CORS_ORIGINS || 'http://localhost:3000,http://localhost:5173,https://fluxstudio.art').split(',');
 
     // Allow requests with no origin (mobile apps, curl, same-origin)
-    if (!origin) return callback(null, true);
+    // Also allow origin "null" — sent by cross-origin redirects (OAuth callbacks),
+    // sandboxed iframes, and privacy contexts. Safe because CORS is browser-enforced
+    // only; all protected endpoints still require JWT authentication.
+    if (!origin || origin === 'null') return callback(null, true);
 
     if (allowedOrigins.indexOf(origin) !== -1) {
       callback(null, true);
