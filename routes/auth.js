@@ -642,41 +642,54 @@ router.post('/google/callback', asyncHandler(async (req, res) => {
       return res.redirect(`${config.FRONTEND_URL || 'https://fluxstudio.art'}/login?error=email_not_verified`);
     }
 
-    // Check if user already exists
-    const users = await authHelper.getUsers();
-    let user = Array.isArray(users) ? users.find(u => u.email === email) : null;
+    // Build user object from Google profile
+    let user = {
+      id: uuidv4(),
+      email,
+      name,
+      googleId,
+      userType: 'client',
+      createdAt: new Date().toISOString()
+    };
 
-    if (user) {
-      // User exists, update Google ID if not set
-      if (!user.googleId) {
-        user.googleId = googleId;
+    // Try database path, fall back to simple auth if DB is unavailable
+    let authResponse;
+    try {
+      const users = await authHelper.getUsers();
+      const existingUser = Array.isArray(users) ? users.find(u => u.email === email) : null;
+
+      if (existingUser) {
+        user = existingUser;
+        if (!user.googleId) {
+          user.googleId = googleId;
+          await authHelper.saveUsers(users);
+        }
+      } else {
+        users.push(user);
         await authHelper.saveUsers(users);
       }
-    } else {
-      // Create new user
-      user = {
-        id: uuidv4(),
-        email,
-        name,
-        googleId,
-        userType: 'client',
-        createdAt: new Date().toISOString()
-      };
-      users.push(user);
-      await authHelper.saveUsers(users);
+
+      authResponse = USE_DATABASE
+        ? await generateAuthResponse(user, req)
+        : simpleAuthResponse(user);
+    } catch (dbError) {
+      log.warn('Database unavailable during OAuth, falling back to simple auth', {
+        error: dbError.message,
+        email
+      });
+      authResponse = simpleAuthResponse(user);
     }
 
-    // Generate JWT token
-    const authResponse = USE_DATABASE
-      ? await generateAuthResponse(user, req)
-      : simpleAuthResponse(user);
-
     // Log successful OAuth authentication
-    await securityLogger.logOAuthSuccess(user.id, 'google', req, {
-      email: user.email,
-      name: user.name,
-      flow: 'redirect'
-    });
+    try {
+      await securityLogger.logOAuthSuccess(user.id, 'google', req, {
+        email: user.email,
+        name: user.name,
+        flow: 'redirect'
+      });
+    } catch (logError) {
+      log.warn('Failed to log OAuth success', { error: logError.message });
+    }
 
     // Redirect to frontend with tokens
     const frontendUrl = config.FRONTEND_URL || 'https://fluxstudio.art';
