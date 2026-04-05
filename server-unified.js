@@ -482,11 +482,11 @@ app.use('/uploads', express.static(UPLOADS_DIR, {
 if (process.env.__DEGRADED_MODE === 'true') {
   log.warn('DEGRADED MODE active — API routes will return 503');
   app.use((req, res, next) => {
-    // Allow health, beta-status, OAuth callbacks, and static assets through
-    if (req.path === '/health' || req.path === '/api/health' ||
-        req.path === '/flags/beta-status' || req.path === '/api/flags/beta-status' ||
+    // Allow health, auth routes, and static assets through degraded mode
+    const allowedInDegraded = ['/health', '/api/health', '/flags/beta-status', '/api/flags/beta-status'];
+    if (allowedInDegraded.includes(req.path) ||
         req.method === 'OPTIONS' ||
-        req.path.match(/\/(api\/)?auth\/(google|github|figma|slack)\/callback/)) {
+        req.path.match(/\/(api\/)?(auth|csrf-token)/) ) {
       return next();
     }
     res.status(503).json({

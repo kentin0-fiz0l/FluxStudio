@@ -455,15 +455,22 @@ router.post('/login',
 
 // Get current user endpoint
 router.get('/me', requireAuth, asyncHandler(async (req, res) => {
-  const users = await authHelper.getUsers();
-  const user = users.find(u => u.id === req.user.id);
+  try {
+    const users = await authHelper.getUsers();
+    const user = users.find(u => u.id === req.user.id);
 
-  if (!user) {
-    return res.status(404).json({ success: false, error: 'User not found', code: 'AUTH_USER_NOT_FOUND' });
+    if (!user) {
+      // User not in DB but has valid JWT — return JWT claims
+      return res.json({ id: req.user.id, email: req.user.email, userType: req.user.userType, name: req.user.name });
+    }
+
+    const { password: _, ...userWithoutPassword } = user;
+    res.json(userWithoutPassword);
+  } catch (dbError) {
+    // DB unavailable — return user info from the verified JWT
+    log.warn('Database unavailable for /me, returning JWT claims', { error: dbError.message });
+    res.json({ id: req.user.id, email: req.user.email, userType: req.user.userType, name: req.user.name });
   }
-
-  const { password: _, ...userWithoutPassword } = user;
-  res.json(userWithoutPassword);
 }));
 
 // Logout endpoint
