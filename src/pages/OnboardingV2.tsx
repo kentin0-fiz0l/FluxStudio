@@ -279,7 +279,7 @@ export function OnboardingV2() {
     try {
       const res = await fetch('/api/payments/start-trial', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${localStorage.getItem('token')}` },
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${localStorage.getItem('auth_token')}` },
       });
       if (res.ok) {
         eventTracker.trackEvent('trial_started', { source: 'onboarding_v2' });
@@ -319,6 +319,7 @@ export function OnboardingV2() {
       // Mark onboarding complete
       completeWelcome();
       completeOnboarding();
+      eventTracker.trackEvent('onboarding_v2_completed', { templateId, userRole });
 
       // Store selected template for the editor to pick up
       if (templateId) {

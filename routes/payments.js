@@ -117,6 +117,24 @@ router.post('/create-checkout-session', paymentsRateLimit, requireAuth, zodValid
       stripeCustomerId = customer.id;
     }
 
+    // Derive planId from priceId for metadata (used by handleCheckoutCompleted)
+    const planId = metadata.planId || (
+      priceId === process.env.STRIPE_PRICE_TEAM_MONTHLY || priceId === process.env.STRIPE_PRICE_TEAM_YEARLY
+        ? 'team' : 'pro'
+    );
+
+    // Check if user is eligible for a Stripe-native trial (14 days, no CC required for server trial)
+    let trialDays = 0;
+    if (mode === 'subscription' && metadata.withTrial) {
+      const trialCheck = await query(
+        'SELECT trial_ends_at FROM users WHERE id = $1',
+        [userId]
+      );
+      if (trialCheck.rows[0] && !trialCheck.rows[0].trial_ends_at) {
+        trialDays = 14;
+      }
+    }
+
     // Create checkout session (wrapped with circuit breaker)
     const session = await stripeBreaker.execute(() =>
       paymentService.stripe.checkout.sessions.create({
@@ -127,8 +145,12 @@ router.post('/create-checkout-session', paymentsRateLimit, requireAuth, zodValid
         cancel_url: cancelUrl || `${process.env.FRONTEND_URL || 'https://fluxstudio.art'}/checkout/cancel`,
         metadata: {
           userId,
+          planId,
           ...metadata
         },
+        ...(trialDays > 0 && {
+          subscription_data: { trial_period_days: trialDays }
+        }),
         allow_promotion_codes: true,
         billing_address_collection: 'required'
       })

@@ -10,6 +10,7 @@ import { ArrowLeft, ChevronDown, ChevronUp } from 'lucide-react';
 import { SaaSPricingTable } from '../components/payments/SaaSPricingTable';
 import { useAuth } from '@/store/slices/authSlice';
 import { fetchLimits } from '../services/usageService';
+import { SEOHead } from '../components/SEOHead';
 import type { PlanId } from '../config/plans';
 
 const FAQ_ITEMS = [
@@ -23,7 +24,7 @@ const FAQ_ITEMS = [
   },
   {
     q: 'Is there a free trial for paid plans?',
-    a: 'The Free plan lets you explore FluxStudio with no time limit. When you are ready for more, upgrade to Pro or Team and get full access immediately.',
+    a: 'Yes! You can start a 14-day free trial of the Pro plan with no credit card required. You get full access to all Pro features during the trial. When it ends, you can subscribe to keep your access or continue on the Free plan.',
   },
   {
     q: 'How does team pricing work?',
@@ -46,6 +47,11 @@ export function Pricing() {
 
   return (
     <div className="min-h-screen bg-white dark:bg-neutral-900">
+      <SEOHead
+        title="Pricing"
+        description="Choose the FluxStudio plan that fits your creative workflow. Free, Pro ($19/mo), and Team ($49/mo) plans with a 14-day free trial."
+        canonicalUrl="https://fluxstudio.art/pricing"
+      />
       {/* Header */}
       <header className="border-b border-neutral-200 dark:border-neutral-800">
         <div className="max-w-6xl mx-auto px-4 py-6 flex items-center justify-between">

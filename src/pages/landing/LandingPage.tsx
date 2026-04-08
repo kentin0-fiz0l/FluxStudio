@@ -350,6 +350,10 @@ function StickyCtaBar({ heroRef }: { heroRef: React.RefObject<HTMLElement | null
 export default function LandingPage() {
   const heroRef = useRef<HTMLElement>(null);
 
+  useEffect(() => {
+    eventTracker.trackEvent('landing_page_view', { source: window.location.search });
+  }, []);
+
   return (
     <div className="min-h-screen bg-neutral-950 text-white">
       <a

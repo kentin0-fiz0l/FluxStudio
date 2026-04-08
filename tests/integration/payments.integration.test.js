@@ -58,6 +58,18 @@ jest.mock('../../lib/payments', () => {
 });
 
 // Mock lib/auth/tokenService for auth middleware
+// Mock analytics/funnelTracker (used by start-trial)
+jest.mock('../../lib/analytics/funnelTracker', () => ({
+  ingestEvent: jest.fn().mockResolvedValue(undefined)
+}));
+
+// Mock email service (used by start-trial)
+jest.mock('../../lib/email/emailService', () => ({
+  emailService: {
+    sendTrialStartedEmail: jest.fn().mockResolvedValue(true)
+  }
+}));
+
 jest.mock('../../lib/auth/tokenService', () => ({
   verifyAccessToken: jest.fn((token) => {
     try {
@@ -82,9 +94,24 @@ function createApp() {
   const app = express();
   app.use(express.json());
   const paymentRoutes = require('../../routes/payments');
-  // The payments route uses a lazy auth helper; set it up
-  const { authenticateToken } = require('../../lib/auth/middleware');
-  paymentRoutes.setAuthHelper({ authenticateToken });
+  // Use a simple auth helper that skips the real middleware's trial expiry DB check.
+  // This prevents the auth middleware from consuming mock query calls.
+  paymentRoutes.setAuthHelper({
+    authenticateToken: (req, res, next) => {
+      const authHeader = req.headers['authorization'];
+      const token = authHeader && authHeader.split(' ')[1];
+      if (!token) {
+        return res.status(401).json({ error: 'Unauthorized', message: 'No token provided' });
+      }
+      try {
+        const decoded = jwt.verify(token, JWT_SECRET);
+        req.user = decoded;
+        next();
+      } catch {
+        return res.status(401).json({ error: 'Unauthorized', message: 'Invalid token' });
+      }
+    }
+  });
   app.use('/api/payments', paymentRoutes);
   return app;
 }
@@ -137,8 +164,10 @@ describe('Payments Integration Tests', () => {
     });
 
     it('should return no subscription when none exists', async () => {
-      query.mockResolvedValueOnce({ rows: [] }); // subscription query
-      query.mockResolvedValueOnce({ rows: [] }); // trial check query
+      // Query 1: trial check from users table
+      query.mockResolvedValueOnce({ rows: [{ plan_id: 'free', trial_ends_at: null }] });
+      // Query 2: subscription check
+      query.mockResolvedValueOnce({ rows: [] });
 
       const res = await request(app)
         .get('/api/payments/subscription')
@@ -151,6 +180,9 @@ describe('Payments Integration Tests', () => {
     });
 
     it('should return active subscription when one exists', async () => {
+      // Query 1: trial check from users table
+      query.mockResolvedValueOnce({ rows: [{ plan_id: 'pro', trial_ends_at: null }] });
+      // Query 2: active subscription found
       query.mockResolvedValueOnce({
         rows: [{
           stripe_subscription_id: 'sub_abc123',
@@ -172,10 +204,12 @@ describe('Payments Integration Tests', () => {
     });
 
     it('should return canTrial:false for user who used trial', async () => {
-      query.mockResolvedValueOnce({ rows: [] }); // no active subscription
+      // Query 1: trial check — user has expired trial_ends_at (trial was used)
       query.mockResolvedValueOnce({
-        rows: [{ trial_used_at: '2025-06-01T00:00:00Z' }]
-      }); // trial was used
+        rows: [{ plan_id: 'free', trial_ends_at: '2025-06-01T00:00:00Z' }]
+      });
+      // Query 2: no active subscription
+      query.mockResolvedValueOnce({ rows: [] });
 
       const res = await request(app)
         .get('/api/payments/subscription')
@@ -188,6 +222,9 @@ describe('Payments Integration Tests', () => {
     });
 
     it('should return cancelled subscription details', async () => {
+      // Query 1: trial check from users table
+      query.mockResolvedValueOnce({ rows: [{ plan_id: 'pro', trial_ends_at: null }] });
+      // Query 2: subscription with cancellation
       query.mockResolvedValueOnce({
         rows: [{
           stripe_subscription_id: 'sub_cancelled_456',
@@ -364,7 +401,7 @@ describe('Payments Integration Tests', () => {
         .send({})
         .expect(400);
 
-      expect(res.body.error).toBe('Invalid signature');
+      expect(res.body.error).toBe('Webhook verification failed');
     });
 
     it('should handle subscription webhook events', async () => {
@@ -641,6 +678,283 @@ describe('Payments Integration Tests', () => {
 
       expect(paymentService.createCustomer).toHaveBeenCalled();
       expect(res.body.paymentIntentId).toBe('pi_new');
+    });
+  });
+
+  // =========================================================================
+  // POST /api/payments/start-trial
+  // =========================================================================
+  describe('POST /api/payments/start-trial', () => {
+    it('should return 401 without auth token', async () => {
+      await request(app)
+        .post('/api/payments/start-trial')
+        .send({})
+        .expect(401);
+    });
+
+    it('should start a 14-day trial for eligible user', async () => {
+      // Query 1: SELECT plan_id, trial_ends_at FROM users
+      query.mockResolvedValueOnce({
+        rows: [{ plan_id: 'free', trial_ends_at: null }]
+      });
+      // Query 2: SELECT trial_used_at FROM subscriptions (no prior trial)
+      query.mockResolvedValueOnce({ rows: [] });
+      // Query 3: UPDATE users SET plan_id, trial_ends_at
+      query.mockResolvedValueOnce({ rowCount: 1 });
+      // Query 4: INSERT INTO subscriptions
+      query.mockResolvedValueOnce({ rowCount: 1 });
+      // Query 5: SELECT email, name for trial email
+      query.mockResolvedValueOnce({
+        rows: [{ email: 'test@example.com', name: 'Test User' }]
+      });
+
+      const res = await request(app)
+        .post('/api/payments/start-trial')
+        .set('Authorization', `Bearer ${token}`)
+        .send({})
+        .expect(200);
+
+      expect(res.body.success).toBe(true);
+      expect(res.body.trial.plan).toBe('pro');
+      expect(res.body.trial.daysRemaining).toBe(14);
+      expect(res.body.trial.trialEndsAt).toBeDefined();
+
+      // Verify the trial_ends_at is ~14 days from now
+      const trialEnd = new Date(res.body.trial.trialEndsAt);
+      const daysDiff = (trialEnd - new Date()) / (1000 * 60 * 60 * 24);
+      expect(daysDiff).toBeGreaterThan(13);
+      expect(daysDiff).toBeLessThanOrEqual(14.1);
+    });
+
+    it('should return 400 if user already has an active subscription (pro)', async () => {
+      query.mockResolvedValueOnce({
+        rows: [{ plan_id: 'pro', trial_ends_at: null }]
+      });
+
+      const res = await request(app)
+        .post('/api/payments/start-trial')
+        .set('Authorization', `Bearer ${token}`)
+        .send({})
+        .expect(400);
+
+      expect(res.body.error).toContain('already have an active subscription');
+      expect(res.body.code).toBe('PAYMENT_ALREADY_SUBSCRIBED');
+    });
+
+    it('should return 400 if user already has a team plan', async () => {
+      query.mockResolvedValueOnce({
+        rows: [{ plan_id: 'team', trial_ends_at: null }]
+      });
+
+      const res = await request(app)
+        .post('/api/payments/start-trial')
+        .set('Authorization', `Bearer ${token}`)
+        .send({})
+        .expect(400);
+
+      expect(res.body.code).toBe('PAYMENT_ALREADY_SUBSCRIBED');
+    });
+
+    it('should return 400 if user already used their free trial (via users.trial_ends_at)', async () => {
+      query.mockResolvedValueOnce({
+        rows: [{ plan_id: 'free', trial_ends_at: '2025-03-01T00:00:00Z' }]
+      });
+
+      const res = await request(app)
+        .post('/api/payments/start-trial')
+        .set('Authorization', `Bearer ${token}`)
+        .send({})
+        .expect(400);
+
+      expect(res.body.error).toContain('already used your free trial');
+      expect(res.body.code).toBe('PAYMENT_TRIAL_USED');
+    });
+
+    it('should return 400 if user already used trial (via subscriptions table)', async () => {
+      // User: free plan, no trial_ends_at on users table
+      query.mockResolvedValueOnce({
+        rows: [{ plan_id: 'free', trial_ends_at: null }]
+      });
+      // Subscriptions table check: trial_used_at found
+      query.mockResolvedValueOnce({
+        rows: [{ trial_used_at: '2025-02-15T00:00:00Z' }]
+      });
+
+      const res = await request(app)
+        .post('/api/payments/start-trial')
+        .set('Authorization', `Bearer ${token}`)
+        .send({})
+        .expect(400);
+
+      expect(res.body.code).toBe('PAYMENT_TRIAL_USED');
+    });
+
+    it('should return 404 when user not found', async () => {
+      query.mockResolvedValueOnce({ rows: [] });
+
+      const res = await request(app)
+        .post('/api/payments/start-trial')
+        .set('Authorization', `Bearer ${token}`)
+        .send({})
+        .expect(404);
+
+      expect(res.body.error).toBe('User not found');
+      expect(res.body.code).toBe('PAYMENT_USER_NOT_FOUND');
+    });
+
+    it('should handle database errors gracefully', async () => {
+      query.mockRejectedValueOnce(new Error('Connection refused'));
+
+      const res = await request(app)
+        .post('/api/payments/start-trial')
+        .set('Authorization', `Bearer ${token}`)
+        .send({})
+        .expect(500);
+
+      expect(res.body.error).toBe('Failed to start trial');
+      expect(res.body.code).toBe('PAYMENT_TRIAL_ERROR');
+    });
+  });
+
+  // =========================================================================
+  // POST /api/payments/create-checkout-session — Trial support
+  // =========================================================================
+  describe('POST /api/payments/create-checkout-session — trial support', () => {
+    it('should include subscription_data.trial_period_days when withTrial is set and user is eligible', async () => {
+      // User lookup
+      query.mockResolvedValueOnce({
+        rows: [{ stripe_customer_id: 'cus_trial', email: 'trial@example.com', name: 'Trial User' }]
+      });
+      // Trial eligibility check
+      query.mockResolvedValueOnce({
+        rows: [{ trial_ends_at: null }]
+      });
+
+      paymentService.stripe.checkout.sessions.create.mockResolvedValueOnce({
+        id: 'cs_trial_123',
+        url: 'https://checkout.stripe.com/pay/cs_trial_123'
+      });
+
+      // Note: metadata values must be strings (Zod schema: z.record(z.string()))
+      const res = await request(app)
+        .post('/api/payments/create-checkout-session')
+        .set('Authorization', `Bearer ${token}`)
+        .send({
+          priceId: 'price_pro_monthly',
+          mode: 'subscription',
+          metadata: { withTrial: 'true' }
+        })
+        .expect(200);
+
+      expect(res.body.sessionId).toBe('cs_trial_123');
+
+      // Verify trial_period_days was passed to Stripe
+      expect(paymentService.stripe.checkout.sessions.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          subscription_data: { trial_period_days: 14 }
+        })
+      );
+    });
+
+    it('should NOT include trial_period_days when user already used a trial', async () => {
+      // User lookup
+      query.mockResolvedValueOnce({
+        rows: [{ stripe_customer_id: 'cus_used', email: 'used@example.com', name: 'Used User' }]
+      });
+      // Trial eligibility check — already has trial_ends_at
+      query.mockResolvedValueOnce({
+        rows: [{ trial_ends_at: '2025-06-01T00:00:00Z' }]
+      });
+
+      paymentService.stripe.checkout.sessions.create.mockResolvedValueOnce({
+        id: 'cs_no_trial',
+        url: 'https://checkout.stripe.com/pay/cs_no_trial'
+      });
+
+      await request(app)
+        .post('/api/payments/create-checkout-session')
+        .set('Authorization', `Bearer ${token}`)
+        .send({
+          priceId: 'price_pro_monthly',
+          mode: 'subscription',
+          metadata: { withTrial: 'true' }
+        })
+        .expect(200);
+
+      // subscription_data should NOT have been included
+      const createCall = paymentService.stripe.checkout.sessions.create.mock.calls[0][0];
+      expect(createCall.subscription_data).toBeUndefined();
+    });
+
+    it('should include planId in checkout session metadata', async () => {
+      query.mockResolvedValueOnce({
+        rows: [{ stripe_customer_id: 'cus_meta', email: 'meta@example.com', name: 'Meta User' }]
+      });
+
+      paymentService.stripe.checkout.sessions.create.mockResolvedValueOnce({
+        id: 'cs_meta_plan',
+        url: 'https://checkout.stripe.com/pay/cs_meta_plan'
+      });
+
+      await request(app)
+        .post('/api/payments/create-checkout-session')
+        .set('Authorization', `Bearer ${token}`)
+        .send({ priceId: 'price_pro_monthly' })
+        .expect(200);
+
+      const createCall = paymentService.stripe.checkout.sessions.create.mock.calls[0][0];
+      expect(createCall.metadata).toBeDefined();
+      expect(createCall.metadata.userId).toBe('test-user-123');
+      expect(createCall.metadata.planId).toBeDefined();
+    });
+  });
+
+  // =========================================================================
+  // GET /api/payments/subscription — Active trial status
+  // =========================================================================
+  describe('GET /api/payments/subscription — trial status', () => {
+    it('should return trial status when user has active trial but no subscription', async () => {
+      const futureDate = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(); // 7 days from now
+
+      // First query: trial check from users table
+      query.mockResolvedValueOnce({
+        rows: [{ plan_id: 'pro', trial_ends_at: futureDate }]
+      });
+      // Second query: subscription check — no active subscription
+      query.mockResolvedValueOnce({ rows: [] });
+
+      const res = await request(app)
+        .get('/api/payments/subscription')
+        .set('Authorization', `Bearer ${token}`)
+        .expect(200);
+
+      expect(res.body.hasSubscription).toBe(true);
+      expect(res.body.subscription.status).toBe('trialing');
+      expect(res.body.subscription.plan).toBe('pro');
+      expect(res.body.subscription.trialEndsAt).toBe(futureDate);
+      expect(res.body.subscription.daysRemaining).toBeGreaterThan(0);
+      expect(res.body.subscription.daysRemaining).toBeLessThanOrEqual(7);
+      expect(res.body.canTrial).toBe(false);
+    });
+
+    it('should return expired trial as no subscription with canTrial false', async () => {
+      const pastDate = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(); // yesterday
+
+      // First query: trial check — expired
+      query.mockResolvedValueOnce({
+        rows: [{ plan_id: 'pro', trial_ends_at: pastDate }]
+      });
+      // Second query: no active subscription
+      query.mockResolvedValueOnce({ rows: [] });
+
+      const res = await request(app)
+        .get('/api/payments/subscription')
+        .set('Authorization', `Bearer ${token}`)
+        .expect(200);
+
+      // Expired trial should not count as active
+      expect(res.body.hasSubscription).toBe(false);
+      expect(res.body.canTrial).toBe(false);
     });
   });
 });

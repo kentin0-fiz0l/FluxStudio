@@ -22,13 +22,17 @@ This document outlines the disaster recovery (DR) procedures for FluxStudio prod
 - Retention: 7 days
 - Location: DigitalOcean NYC region
 
+**Point-in-Time Recovery**
+- DigitalOcean managed PostgreSQL supports restoring to any point within the backup window
+- Use the DO dashboard: Databases → `49f4dc39` → Backups → Restore
+
 **Manual Backups**
 ```bash
 # Create manual backup
 ./scripts/backup-database.sh
 
 # List available backups
-doctl databases backups list <database-id>
+doctl databases backups list 49f4dc39-3d91-4bce-aa7a-7784c8e32a66
 ```
 
 ### Application Backups
@@ -36,6 +40,13 @@ doctl databases backups list <database-id>
 - **Code**: GitHub repository with branch protection
 - **Configuration**: `.do/app.yaml` in version control
 - **Secrets**: DigitalOcean dashboard (manually documented)
+
+### Redis Cache
+
+- **DigitalOcean Managed Redis**: No persistent backup (cache-only)
+- Rate limiter state, session cache, and Socket.IO adapter state are ephemeral
+- **Recovery**: Redis restarts with empty state; clients reconnect automatically
+- No data loss risk — all authoritative data lives in PostgreSQL
 
 ### File Storage Backups
 
@@ -51,11 +62,11 @@ doctl databases backups list <database-id>
 **Steps**:
 1. Check DigitalOcean App Platform logs
    ```bash
-   doctl apps logs <app-id> --type=run
+   doctl apps logs bd400c99-683f-4d84-ac17-e7130fef0781 --type=run
    ```
 2. If code issue, rollback to previous deployment
    ```bash
-   doctl apps create-deployment <app-id> --force-rebuild
+   doctl apps create-deployment bd400c99-683f-4d84-ac17-e7130fef0781 --force-rebuild
    ```
 3. If infrastructure issue, contact DigitalOcean support
 
@@ -66,21 +77,23 @@ doctl databases backups list <database-id>
 **Steps**:
 1. Stop application to prevent further damage
    ```bash
-   doctl apps update <app-id> --spec disable-app.yaml
+   doctl apps update bd400c99-683f-4d84-ac17-e7130fef0781 --spec disable-app.yaml
    ```
 2. List available backups
    ```bash
-   doctl databases backups list <database-id>
+   doctl databases backups list 49f4dc39-3d91-4bce-aa7a-7784c8e32a66
    ```
 3. Restore from backup
    ```bash
-   doctl databases restore <database-id> --backup-id <backup-id>
+   doctl databases restore 49f4dc39-3d91-4bce-aa7a-7784c8e32a66 --backup-id <backup-id>
    ```
 4. Verify data integrity
    ```bash
    psql $DATABASE_URL -c "SELECT COUNT(*) FROM users;"
+   psql $DATABASE_URL -c "SELECT COUNT(*) FROM subscriptions WHERE status = 'active';"
    ```
-5. Restart application
+5. Re-sync Stripe subscription state (see Scenario 5 below)
+6. Restart application
 
 ### Scenario 3: Complete Environment Loss
 
@@ -113,6 +126,38 @@ doctl databases backups list <database-id>
 4. Review access logs
 5. Notify affected users per legal requirements
 
+### Scenario 5: Stripe Subscription Drift After DB Restore
+
+**Symptoms**: Database restored from backup but subscriptions are out of sync with Stripe (e.g., user paid after backup was taken but DB shows old state)
+
+**Steps**:
+1. List active Stripe subscriptions
+   ```bash
+   # Use Stripe CLI or dashboard to export active subscriptions
+   stripe subscriptions list --status=active --limit=100
+   ```
+2. Compare against local `subscriptions` table
+   ```sql
+   SELECT user_id, stripe_subscription_id, status, current_period_end
+   FROM subscriptions WHERE status = 'active';
+   ```
+3. For each discrepancy, update the local record to match Stripe
+   ```sql
+   UPDATE subscriptions
+   SET status = 'active', current_period_end = '<stripe_period_end>'
+   WHERE stripe_subscription_id = '<sub_id>';
+   ```
+4. Re-sync customer IDs on `users` table
+   ```sql
+   -- Verify stripe_customer_id matches Stripe records
+   SELECT id, email, stripe_customer_id FROM users
+   WHERE stripe_customer_id IS NOT NULL;
+   ```
+5. Replay any missed webhooks from the Stripe dashboard
+   - Dashboard → Developers → Webhooks → select endpoint → Resend events
+
+**Prevention**: Stripe is the source of truth for payment state. After any DB restore, always re-sync subscriptions before re-enabling the app.
+
 ## Secret Rotation Procedure
 
 ### Required Secrets
@@ -122,9 +167,12 @@ doctl databases backups list <database-id>
 | JWT_SECRET | Quarterly | DigitalOcean dashboard |
 | SESSION_SECRET | Quarterly | DigitalOcean dashboard |
 | OAUTH_ENCRYPTION_KEY | Annually | DigitalOcean dashboard |
+| STRIPE_SECRET_KEY | On breach only | Stripe Dashboard → API keys |
+| STRIPE_WEBHOOK_SECRET | On breach only | Stripe Dashboard → Webhooks → Signing secret |
 | GOOGLE_CLIENT_SECRET | On breach only | Google Cloud Console |
 | GITHUB_CLIENT_SECRET | On breach only | GitHub Settings |
 | DATABASE_URL | On breach only | Create new credentials |
+| REDIS_URL | On breach only | Create new credentials |
 
 ### Rotation Steps
 
@@ -167,11 +215,19 @@ doctl databases backups list <database-id>
 
 | Test Type | Frequency | Last Tested | Next Due |
 |-----------|-----------|-------------|----------|
-| Backup restore | Quarterly | - | TBD |
-| Failover | Annually | - | TBD |
-| Secret rotation | Quarterly | - | TBD |
+| Backup restore | Quarterly | - | 2026-Q2 |
+| Stripe sync drill | Quarterly | - | 2026-Q2 |
+| Failover | Annually | - | 2026-Q4 |
+| Secret rotation | Quarterly | - | 2026-Q3 |
 
 ## Appendix
+
+### Resource IDs
+
+| Resource | ID |
+|----------|----|
+| App | `bd400c99-683f-4d84-ac17-e7130fef0781` |
+| Database (PostgreSQL) | `49f4dc39-3d91-4bce-aa7a-7784c8e32a66` |
 
 ### Database Connection String Format
 ```
@@ -184,14 +240,17 @@ postgresql://user:password@host:port/database?sslmode=require
 doctl apps list
 
 # Get app details
-doctl apps get <app-id>
+doctl apps get bd400c99-683f-4d84-ac17-e7130fef0781
 
 # View logs
-doctl apps logs <app-id> --type=run --follow
+doctl apps logs bd400c99-683f-4d84-ac17-e7130fef0781 --type=run --follow
 
 # List deployments
-doctl apps list-deployments <app-id>
+doctl apps list-deployments bd400c99-683f-4d84-ac17-e7130fef0781
 
 # Rollback to previous deployment
-doctl apps create-deployment <app-id> --force-rebuild
+doctl apps create-deployment bd400c99-683f-4d84-ac17-e7130fef0781 --force-rebuild
+
+# List database backups
+doctl databases backups list 49f4dc39-3d91-4bce-aa7a-7784c8e32a66
 ```
