@@ -101,6 +101,9 @@ static_sites:
       - key: VITE_MCP_AUTH_TOKEN
         scope: BUILD_TIME
         type: SECRET
+      - key: VITE_SENTRY_DSN
+        scope: BUILD_TIME
+        type: SECRET
 
 # Database Migration Job (runs before deployment)
 jobs:
@@ -345,6 +348,16 @@ services:
 
       # Anthropic API Key (for AI Agent features)
       - key: ANTHROPIC_API_KEY
+        scope: RUN_TIME
+        type: SECRET
+
+      # Sentry Error Tracking
+      - key: SENTRY_DSN
+        scope: RUN_TIME
+        type: SECRET
+
+      # Slack Feedback Webhook
+      - key: SLACK_FEEDBACK_WEBHOOK_URL
         scope: RUN_TIME
         type: SECRET
 
