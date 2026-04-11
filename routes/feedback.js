@@ -77,6 +77,18 @@ router.post('/', authenticateToken, zodValidate(submitFeedbackSchema), asyncHand
     ]
   );
 
+  // Forward to Slack webhook (non-blocking)
+  if (process.env.SLACK_FEEDBACK_WEBHOOK_URL) {
+    const emoji = type === 'bug' ? ':bug:' : type === 'feature' ? ':bulb:' : ':speech_balloon:';
+    fetch(process.env.SLACK_FEEDBACK_WEBHOOK_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        text: `${emoji} *New ${type} feedback* from ${req.user.email || 'user'}:\n>${message.trim().slice(0, 500)}${message.length > 500 ? '...' : ''}\n_Page: ${req.body.pageUrl || 'unknown'}_`,
+      }),
+    }).catch(err => log.warn('Slack feedback webhook failed', err.message));
+  }
+
   res.status(201).json({
     success: true,
     data: result.rows[0],

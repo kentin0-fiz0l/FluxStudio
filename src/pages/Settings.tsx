@@ -28,6 +28,7 @@ import {
   Clock,
   Camera,
   User,
+  Gift,
 } from 'lucide-react';
 const FigmaIntegration = React.lazy(() => import('@/components/organisms/FigmaIntegration').then(m => ({ default: m.FigmaIntegration })));
 const SlackIntegration = React.lazy(() => import('@/components/organisms/SlackIntegration').then(m => ({ default: m.SlackIntegration })));
@@ -743,6 +744,26 @@ function Settings() {
             >
               <Shield className="w-4 h-4" aria-hidden="true" />
               Privacy Settings
+            </Link>
+          </Card>
+
+          {/* Referrals */}
+          <Card className="p-4 md:p-6">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-lg bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
+                <Gift className="w-5 h-5 text-green-600" aria-hidden="true" />
+              </div>
+              <div>
+                <h2 className="text-lg font-semibold text-neutral-900 dark:text-neutral-100">Referrals</h2>
+                <p className="text-sm text-neutral-600 dark:text-neutral-300">Invite friends and earn 1 free month of Pro for each referral</p>
+              </div>
+            </div>
+            <Link
+              to="/referrals"
+              className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-primary-600 dark:text-primary-400 hover:bg-primary-50 dark:hover:bg-primary-900/20 rounded-lg transition-colors"
+            >
+              <Gift className="w-4 h-4" aria-hidden="true" />
+              View Referral Dashboard
             </Link>
           </Card>
         </div>

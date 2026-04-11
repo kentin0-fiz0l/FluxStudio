@@ -302,12 +302,36 @@ router.post('/', authenticateToken, validateInput.sanitizeInput, checkProjectQuo
     projectId: newProject.id,
   }, { ipAddress: req.ip, userAgent: req.get('user-agent') }).catch(() => {});
 
-  // Sprint 44: Mark referral as converted when user creates first project
+  // Sprint 44: Mark referral as converted and grant rewards when user creates first project
   query(
     `UPDATE referral_signups SET converted = TRUE, converted_at = NOW()
-     WHERE referred_user_id = $1 AND converted = FALSE`,
+     WHERE referred_user_id = $1 AND converted = FALSE
+     RETURNING referrer_user_id`,
     [req.user.id]
-  ).catch(() => {});
+  ).then(result => {
+    if (result.rows.length > 0 && result.rows[0].referrer_user_id) {
+      // Grant 1 free month of Pro to both referrer and referred user
+      const userIds = [result.rows[0].referrer_user_id, req.user.id];
+      for (const uid of userIds) {
+        query(
+          `UPDATE users
+           SET trial_ends_at = CASE
+                 WHEN trial_ends_at IS NOT NULL AND trial_ends_at > NOW()
+                   THEN trial_ends_at + INTERVAL '30 days'
+                 ELSE NOW() + INTERVAL '30 days'
+               END,
+               plan_id = CASE WHEN plan_id = 'free' THEN 'pro' ELSE plan_id END
+           WHERE id = $1`,
+          [uid]
+        ).catch(() => {});
+      }
+      query(
+        `UPDATE referral_signups SET rewarded_at = NOW()
+         WHERE referrer_user_id = $1 AND referred_user_id = $2`,
+        [result.rows[0].referrer_user_id, req.user.id]
+      ).catch(() => {});
+    }
+  }).catch(() => {});
 
   res.status(201).json({ success: true, project: newProject });
 }));
