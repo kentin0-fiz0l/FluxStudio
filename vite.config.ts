@@ -112,6 +112,14 @@
     build: {
       target: 'esnext',
       outDir: 'build',
+      modulePreload: {
+        // Disable automatic modulepreload for dynamic imports.
+        // Vite adds <link rel="modulepreload"> for ALL lazy chunks (2.6MB),
+        // causing the browser to eagerly fetch page-settings, feature-printing,
+        // etc. on first load even though they're behind React.lazy().
+        // With this disabled, chunks load on-demand when the route is visited.
+        resolveDependencies: () => [],
+      },
       rollupOptions: {
         output: {
           manualChunks: (id) => {

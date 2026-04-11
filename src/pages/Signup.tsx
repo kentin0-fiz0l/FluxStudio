@@ -20,6 +20,7 @@ export function Signup() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [inviteCode, setInviteCode] = useState(searchParams.get('invite') || '');
   const [showInviteField, setShowInviteField] = useState(!!searchParams.get('invite'));
+  const referralCode = searchParams.get('ref') || '';
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
@@ -87,8 +88,8 @@ export function Signup() {
     setIsLoading(true);
 
     try {
-      await signup(email, password, name, 'designer', undefined, inviteCode || undefined);
-      observability.analytics.track('signup_complete', { method: 'email' });
+      await signup(email, password, name, 'designer', referralCode || undefined, inviteCode || undefined);
+      observability.analytics.track('signup_complete', { method: 'email', ref: referralCode || undefined });
       navigate(callbackUrl);
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to create account';
