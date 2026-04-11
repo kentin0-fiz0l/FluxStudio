@@ -4,7 +4,10 @@
  * Sprint 11 - Phase 2: Document Persistence
  */
 
-require('dotenv').config();
+// Only load dotenv in development — production env vars are injected by the platform
+if (process.env.NODE_ENV !== 'production') {
+  require('dotenv').config();
+}
 const http = require('http');
 const WebSocket = require('ws');
 const Y = require('yjs');

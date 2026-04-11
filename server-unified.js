@@ -16,7 +16,10 @@
  * Note: server-collaboration.js remains separate (uses raw WebSocket with Yjs CRDT)
  */
 
-require('dotenv').config();
+// Only load dotenv in development — production env vars are injected by the platform
+if (process.env.NODE_ENV !== 'production') {
+  require('dotenv').config();
+}
 const express = require('express');
 const { createServer } = require('http');
 const { Server } = require('socket.io');
