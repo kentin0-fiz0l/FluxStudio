@@ -1,0 +1,47 @@
+{
+  "name": "fluxstudio-dev",
+  "version": "1.0.0",
+  "description": "FluxStudio development plugin for Claude Code. Provides skills for scaffolding routes, components, and tests, plus agents for drill design review and API auditing.",
+  "skills": [
+    {
+      "name": "scaffold-route",
+      "path": "skills/scaffold-route/SKILL.md",
+      "description": "Generate an Express route file following FluxStudio conventions"
+    },
+    {
+      "name": "scaffold-component",
+      "path": "skills/scaffold-component/SKILL.md",
+      "description": "Generate a React TypeScript component following FluxStudio conventions"
+    },
+    {
+      "name": "generate-tests",
+      "path": "skills/generate-tests/SKILL.md",
+      "description": "Auto-generate tests for existing source files"
+    },
+    {
+      "name": "formation-review",
+      "path": "skills/formation-review/SKILL.md",
+      "description": "Review drill formation data and AI tool calls"
+    },
+    {
+      "name": "debug-collab",
+      "path": "skills/debug-collab/SKILL.md",
+      "description": "Diagnose Yjs and WebSocket collaboration sync issues"
+    }
+  ],
+  "agents": [
+    {
+      "name": "drill-designer",
+      "path": "agents/drill-designer.md",
+      "description": "Marching arts formation specialist"
+    },
+    {
+      "name": "api-reviewer",
+      "path": "agents/api-reviewer.md",
+      "description": "API route review specialist"
+    }
+  ],
+  "hooks": {
+    "config": "hooks/hooks.json"
+  }
+}

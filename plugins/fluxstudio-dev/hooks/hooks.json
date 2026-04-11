@@ -1,0 +1,12 @@
+{
+  "hooks": [
+    {
+      "event": "post_write",
+      "pattern": "**/*.{ts,tsx,js,jsx}",
+      "command": "npx eslint --no-fix --format stylish \"$FILEPATH\"",
+      "description": "Run ESLint (read-only, no auto-fix) after writing TypeScript or JavaScript files",
+      "timeout_ms": 15000,
+      "on_failure": "warn"
+    }
+  ]
+}

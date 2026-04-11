@@ -1,0 +1,61 @@
+name: Claude Security Review
+
+on:
+  pull_request:
+    types: [opened, synchronize]
+    branches: [main, develop]
+    paths:
+      - "routes/auth.js"
+      - "routes/payments.js"
+      - "lib/auth/**"
+      - "lib/security/**"
+      - "middleware/security.js"
+      - "middleware/csrf.js"
+      - "middleware/adminAuth.js"
+      - "security/**"
+      - "database/migrations/**"
+      - "config/mcp-config.js"
+      - "config/environment.js"
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  security-review:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: anthropics/claude-code-action@v1
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          model: claude-opus-4-6
+          use_sticky_comment: true
+          allowed_tools: "Read,Glob,Grep"
+          custom_instructions: |
+            You are performing a thorough security review for FluxStudio.
+            This workflow only triggers when security-sensitive files are modified.
+
+            Perform OWASP Top 10 analysis on the changed files:
+
+            1. **Injection** (A03:2021): Check for SQL injection in Prisma queries, NoSQL injection,
+               command injection in any exec/spawn calls. Verify parameterized queries are used.
+            2. **Broken Authentication** (A07:2021): Review JWT handling in lib/auth/ — verify token
+               expiry, refresh token rotation, session invalidation. Check bcrypt cost factor.
+            3. **Sensitive Data Exposure** (A02:2021): Look for secrets, API keys, or PII in code.
+               Verify sensitive data is encrypted at rest and in transit.
+            4. **Broken Access Control** (A01:2021): Verify authenticateToken middleware on all
+               protected routes. Check RBAC enforcement, resource ownership validation.
+            5. **Security Misconfiguration** (A05:2021): Review CORS settings, CSP headers,
+               cookie flags (httpOnly, secure, sameSite). Check MCP config for over-permissive tool access.
+            6. **XSS** (A03:2021): Check for dangerouslySetInnerHTML, unsanitized user input in
+               templates, missing output encoding.
+            7. **CSRF**: Verify CSRF token validation on state-changing endpoints.
+            8. **Migration Safety**: Database migrations must be reversible, must not drop columns
+               with data, and must handle concurrent access.
+
+            For each finding, rate severity (Critical/High/Medium/Low) and suggest a fix.
+            If no issues found, confirm the changes look secure.

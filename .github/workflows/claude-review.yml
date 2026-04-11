@@ -1,0 +1,40 @@
+name: Claude PR Review
+
+on:
+  pull_request:
+    types: [opened, synchronize]
+    branches: [main, develop]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: anthropics/claude-code-action@v1
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          model: claude-sonnet-4-5-20250929
+          use_sticky_comment: true
+          allowed_tools: "Read,Glob,Grep"
+          custom_instructions: |
+            You are reviewing a PR for FluxStudio, a creative collaboration platform.
+
+            Tech stack: React 18/TypeScript, Express 5, PostgreSQL/Prisma, Yjs real-time,
+            Socket.IO, Zustand + TanStack Query, Radix UI + Tailwind, pnpm monorepo with turbo.
+
+            Review for:
+            1. Security: SQL injection, XSS, auth bypass, secrets in code
+            2. Performance: unnecessary re-renders, missing memoization, N+1 queries, bundle size impact
+            3. Pattern consistency: follow existing patterns in routes/ (authenticateToken, zodValidate, asyncHandler),
+               components (Radix UI primitives, Tailwind), and state management (Zustand stores, TanStack Query)
+            4. Test coverage: new features should have Vitest unit tests, integration-critical paths need Jest tests
+            5. Real-time: Yjs document changes must handle offline/reconnect, Socket.IO events need proper cleanup
+
+            Be concise. Flag only real issues, not style preferences.

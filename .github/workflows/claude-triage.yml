@@ -1,0 +1,59 @@
+name: Claude Issue Triage
+
+on:
+  issues:
+    types: [opened]
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  triage:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: anthropics/claude-code-action@v1
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          model: claude-sonnet-4-5-20250929
+          max_turns: 3
+          allowed_tools: "Read,Glob,Grep"
+          custom_instructions: |
+            You are triaging a new issue for FluxStudio. Your job is to:
+
+            1. Read the issue title and body
+            2. Apply exactly ONE area label from this list:
+               - `area:frontend` — React components, UI, styling, Radix UI, Tailwind
+               - `area:backend` — Express routes, API endpoints, server logic
+               - `area:ai-services` — AI assistant, design analysis, agent system
+               - `area:collaboration` — Yjs, real-time editing, Socket.IO, presence
+               - `area:formations` — Formation/layout system, design boards
+               - `area:auth` — Authentication, authorization, JWT, RBAC, OAuth
+               - `area:database` — Prisma, migrations, PostgreSQL, queries
+               - `area:printing` — 3D printing features, print queue
+               - `area:integrations` — Figma, Slack, GitHub, Stripe connectors
+               - `area:mcp` — MCP server, tool definitions, MCP config
+               - `area:cli` — CLI tools, automation scripts
+               - `area:docs` — Documentation, README, guides
+               - `area:devops` — CI/CD, Docker, deployment, monitoring
+
+            3. Apply ONE priority label:
+               - `priority:critical` — Security vulnerability, data loss, complete feature broken
+               - `priority:high` — Major feature broken, significant regression
+               - `priority:medium` — Feature partially broken, workaround exists
+               - `priority:low` — Minor issue, cosmetic, enhancement request
+
+            4. Apply ONE type label:
+               - `type:bug` — Something is broken
+               - `type:feature` — New feature request
+               - `type:enhancement` — Improvement to existing feature
+               - `type:docs` — Documentation change
+               - `type:chore` — Maintenance, dependencies, CI
+
+            5. If the issue is unclear or lacks reproduction steps, add the `needs:info` label
+               and post a comment asking for specific details.
+
+            Apply labels by posting a comment with your analysis, then use the GitHub API
+            to add the labels. Keep your comment brief — just the labels and a one-line rationale.

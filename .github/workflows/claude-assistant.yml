@@ -1,0 +1,56 @@
+name: Claude Assistant
+
+on:
+  issue_comment:
+    types: [created]
+  pull_request_review_comment:
+    types: [created]
+  issues:
+    types: [opened, labeled, assigned]
+
+permissions:
+  contents: read
+  pull-requests: write
+  issues: write
+
+jobs:
+  respond:
+    # Trigger on @claude mentions in comments, or issues labeled/assigned to claude
+    if: |
+      (github.event_name == 'issue_comment' && contains(github.event.comment.body, '@claude')) ||
+      (github.event_name == 'pull_request_review_comment' && contains(github.event.comment.body, '@claude')) ||
+      (github.event_name == 'issues' && github.event.action == 'labeled' && github.event.label.name == 'claude') ||
+      (github.event_name == 'issues' && github.event.action == 'assigned' && github.event.assignee.login == 'claude')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: anthropics/claude-code-action@v1
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          model: claude-sonnet-4-5-20250929
+          allowed_tools: "Read,Glob,Grep,Bash"
+          custom_instructions: |
+            You are an assistant for FluxStudio, a creative collaboration platform.
+
+            Tech stack: React 18/TypeScript, Express 5, PostgreSQL/Prisma, Yjs real-time,
+            Socket.IO, Zustand + TanStack Query, Radix UI + Tailwind, pnpm monorepo with turbo.
+
+            You can help with:
+            - Explaining how code works and tracing data flow
+            - Suggesting implementation approaches for features
+            - Debugging issues by reading relevant source files
+            - Finding where specific functionality is implemented
+            - Answering questions about the architecture
+
+            Key directories:
+            - src/components/ — React frontend components
+            - routes/ — Express API route handlers
+            - lib/ — Backend utilities (auth, security, monitoring)
+            - middleware/ — Express middleware
+            - database/ — Prisma schema and migrations
+            - config/ — Environment and MCP configuration
+
+            Be helpful and concise. Reference specific files and line numbers when possible.
