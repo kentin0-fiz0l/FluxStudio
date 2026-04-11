@@ -165,6 +165,18 @@ jobs:
       - key: DATABASE_URL
         scope: RUN_TIME
         type: SECRET
+      - key: SMTP_HOST
+        value: smtp.gmail.com
+      - key: SMTP_PORT
+        value: "587"
+      - key: SMTP_USER
+        scope: RUN_TIME
+        type: SECRET
+      - key: SMTP_PASSWORD
+        scope: RUN_TIME
+        type: SECRET
+      - key: EMAIL_FROM
+        value: noreply@fluxstudio.art
 
 # Unified Backend (Auth + Messaging consolidated)
 services:
