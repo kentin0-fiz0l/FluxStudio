@@ -1,6 +1,7 @@
 /**
  * FluxStudio Unified Backend Service
  * Combines Authentication + Messaging services into a single backend
+ * Deployed: 2026-04-11
  *
  * Architecture:
  * - Single Express server on port 3001
