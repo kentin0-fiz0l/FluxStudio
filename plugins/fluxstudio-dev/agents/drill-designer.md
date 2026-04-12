@@ -30,11 +30,9 @@ You work with two primary AI tools defined in `routes/ai.js`:
 - Creates formations from templates: `company_front`, `wedge`, `diamond`, `block`, `circle`, `arc`
 - Specify performer count and spacing parameters
 
-### MCP Tools (apps/flux-mcp/src/formation/)
-- `formationTools.ts` - Extended tool definitions for the MCP server
-- `formationAnalysis.ts` - Analyze formation quality and spacing
-- `formationBridge.ts` - Bridge MCP operations to FluxStudio state
-- `formationSchemas.ts` - Validation schemas for formation data
+### MCP Tools
+Formation tools are exposed via the FluxStudio MCP server (`automation/src/fluxstudio_agents/mcp_server.py`):
+- `flux_get_formation_tools` - Lists available formation endpoints from `routes/formations/`
 
 ## Design Principles
 

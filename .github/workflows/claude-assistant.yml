@@ -31,7 +31,7 @@ jobs:
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
           model: claude-sonnet-4-5-20250929
-          allowed_tools: "Read,Glob,Grep,Bash"
+          allowed_tools: "Read,Glob,Grep"
           custom_instructions: |
             You are an assistant for FluxStudio, a creative collaboration platform.
 

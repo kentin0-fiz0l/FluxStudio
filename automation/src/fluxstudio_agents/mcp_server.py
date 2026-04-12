@@ -26,6 +26,14 @@ def _project_path(*parts: str) -> Path:
     return PROJECT_ROOT.joinpath(*parts)
 
 
+def _safe_resolve(relative_path: str) -> Path:
+    """Resolve a relative path and verify it stays within PROJECT_ROOT."""
+    resolved = (PROJECT_ROOT / relative_path).resolve()
+    if not resolved.is_relative_to(PROJECT_ROOT.resolve()):
+        raise ValueError(f"Path escapes project root: {relative_path}")
+    return resolved
+
+
 # ---------------------------------------------------------------------------
 # Tools
 # ---------------------------------------------------------------------------
@@ -64,7 +72,10 @@ def flux_get_route_schema(route_file: str) -> str:
     Args:
         route_file: Relative path to the route file (e.g. routes/ai.js)
     """
-    path = _project_path(route_file)
+    try:
+        path = _safe_resolve(route_file)
+    except ValueError as e:
+        return json.dumps({"error": str(e)})
     if not path.is_file():
         return json.dumps({"error": f"File not found: {route_file}"})
 
@@ -105,6 +116,9 @@ def flux_get_store_slice(store_name: str) -> str:
     Args:
         store_name: Name of the store (e.g. 'project', 'auth', 'ui')
     """
+    # Validate store_name doesn't contain path traversal
+    if "/" in store_name or "\\" in store_name or ".." in store_name:
+        return json.dumps({"error": "Invalid store name"})
     src_dir = _project_path("src")
     pattern = f"*{store_name}*"
     matches = list(src_dir.rglob(pattern))
@@ -189,9 +203,7 @@ def flux_get_test_coverage() -> str:
         output = result.stdout
         if result.returncode != 0:
             return json.dumps({
-                "error": "Test run failed",
-                "stderr": result.stderr[:2000],
-                "stdout": output[:2000],
+                "error": "Test run failed. Check project configuration.",
             })
         return json.dumps({"coverage_output": output[:5000]})
     except subprocess.TimeoutExpired:

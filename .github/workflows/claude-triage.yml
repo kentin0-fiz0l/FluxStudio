@@ -13,13 +13,15 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - uses: anthropics/claude-code-action@v1
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
           model: claude-sonnet-4-5-20250929
           max_turns: 3
-          allowed_tools: "Read,Glob,Grep"
+          allowed_tools: "Read,Glob,Grep,Bash"
           custom_instructions: |
             You are triaging a new issue for FluxStudio. Your job is to:
 

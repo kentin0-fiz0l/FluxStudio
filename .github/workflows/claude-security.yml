@@ -5,17 +5,17 @@ on:
     types: [opened, synchronize]
     branches: [main, develop]
     paths:
-      - "routes/auth.js"
-      - "routes/payments.js"
-      - "lib/auth/**"
-      - "lib/security/**"
-      - "middleware/security.js"
-      - "middleware/csrf.js"
-      - "middleware/adminAuth.js"
-      - "security/**"
-      - "database/migrations/**"
-      - "config/mcp-config.js"
-      - "config/environment.js"
+      - "routes/auth.{js,ts}"
+      - "routes/payments.{js,ts}"
+      - "lib/auth/**/*.{js,ts}"
+      - "lib/security/**/*.{js,ts}"
+      - "middleware/security.{js,ts}"
+      - "middleware/csrf.{js,ts}"
+      - "middleware/adminAuth.{js,ts}"
+      - "security/**/*.{js,ts}"
+      - "database/migrations/**/*.{js,ts}"
+      - "config/mcp-config.{js,ts}"
+      - "config/environment.{js,ts}"
 
 permissions:
   contents: read

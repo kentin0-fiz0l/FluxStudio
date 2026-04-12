@@ -12,7 +12,6 @@ from __future__ import annotations
 import argparse
 import asyncio
 import os
-import sys
 
 from claude_code_sdk import query, ClaudeCodeOptions, Message
 

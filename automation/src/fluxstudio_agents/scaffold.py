@@ -12,7 +12,7 @@ from __future__ import annotations
 import argparse
 import asyncio
 import os
-import sys
+import re
 
 from claude_code_sdk import query, ClaudeCodeOptions, Message
 
@@ -70,9 +70,13 @@ async def scaffold(description: str) -> list[Message]:
         max_turns=20,
     )
 
+    # Sanitize user input
+    description = description[:500].strip()
+    description = re.sub(r'[^\x20-\x7E\n]', '', description)
+
     prompt = (
-        f"Scaffold a new feature for FluxStudio based on this description:\n\n"
-        f"{description}\n\n"
+        f"Scaffold a new feature for FluxStudio based on the user request below.\n\n"
+        f"<user-request>\n{description}\n</user-request>\n\n"
         f"Create all five files (route, schema, component, service, test). "
         f"Follow every convention in the system prompt exactly."
     )

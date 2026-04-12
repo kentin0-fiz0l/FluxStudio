@@ -2,10 +2,10 @@
   "hooks": [
     {
       "event": "post_write",
-      "pattern": "**/*.{ts,tsx,js,jsx}",
+      "pattern": "src/**/*.{ts,tsx,js,jsx}",
       "command": "npx eslint --no-fix --format stylish \"$FILEPATH\"",
-      "description": "Run ESLint (read-only, no auto-fix) after writing TypeScript or JavaScript files",
-      "timeout_ms": 15000,
+      "description": "Run ESLint (read-only, no auto-fix) after writing frontend source files",
+      "timeout_ms": 10000,
       "on_failure": "warn"
     }
   ]
