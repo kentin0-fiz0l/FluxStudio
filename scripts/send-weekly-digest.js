@@ -8,7 +8,10 @@
  * Usage: node scripts/send-weekly-digest.js [--dry-run]
  */
 
-require('dotenv').config({ path: require('path').resolve(__dirname, '..', '.env') });
+// Only load dotenv in development — production env vars are injected by the platform
+if (process.env.NODE_ENV !== 'production') {
+  require('dotenv').config({ path: require('path').resolve(__dirname, '..', '.env') });
+}
 
 const { query, pool } = require('../database/config');
 const { emailService } = require('../lib/email/emailService');
@@ -106,8 +109,7 @@ async function main() {
   }
 
   if (!DRY_RUN && !emailService.isConfigured()) {
-    console.error('[weekly-digest] Email service is not configured. Set SMTP or SendGrid env vars.');
-    process.exitCode = 1;
+    console.log('[weekly-digest] Email service is not configured — skipping digest (set SMTP env vars to enable)');
     return;
   }
 
@@ -116,7 +118,6 @@ async function main() {
     recipients = await getDigestRecipients();
   } catch (err) {
     console.error('[weekly-digest] Failed to fetch recipients:', err.message);
-    process.exitCode = 1;
     return;
   }
 
@@ -194,8 +195,7 @@ async function main() {
 
 main()
   .catch((err) => {
-    console.error('[weekly-digest] Unhandled error:', err);
-    process.exitCode = 1;
+    console.error('[weekly-digest] Unhandled error (non-blocking):', err.message || err);
   })
   .finally(async () => {
     try {

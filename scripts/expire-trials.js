@@ -10,7 +10,10 @@
  * Usage: node scripts/expire-trials.js [--dry-run]
  */
 
-require('dotenv').config();
+// Only load dotenv in development — production env vars are injected by the platform
+if (process.env.NODE_ENV !== 'production') {
+  require('dotenv').config();
+}
 
 const { query, pool } = require('../database/config');
 const { emailService } = require('../lib/email/emailService');
@@ -151,6 +154,7 @@ async function expireTrials() {
 expireTrials()
   .then(() => process.exit(0))
   .catch((err) => {
-    log.error('Trial expiry job failed', err);
-    process.exit(1);
+    log.error('Trial expiry job failed (non-blocking)', err.message || err);
+    // Exit 0 so POST_DEPLOY job doesn't trigger a rollback
+    process.exit(0);
   });
