@@ -5,7 +5,7 @@
 
 const express = require('express');
 const router = express.Router();
-const { pool } = require('../database/db');
+const { query } = require('../database/config');
 
 /**
  * GET /api/audioforge/plugins
@@ -15,20 +15,9 @@ router.get('/plugins', async (req, res) => {
     try {
         const { category, tag, search } = req.query;
 
-        let query = `
+        let sql = `
             SELECT
-                p.*,
-                (SELECT json_agg(json_build_object(
-                    'version', pv.version,
-                    'downloadUrlMac', pv.download_url_mac,
-                    'downloadUrlWindows', pv.download_url_windows,
-                    'downloadUrlLinux', pv.download_url_linux,
-                    'releasedAt', pv.released_at
-                ))
-                FROM plugin_versions pv
-                WHERE pv.plugin_id = p.id
-                ORDER BY pv.released_at DESC
-                LIMIT 5) as versions
+                p.*
             FROM plugins p
             WHERE p.is_published = true
         `;
@@ -37,19 +26,19 @@ router.get('/plugins', async (req, res) => {
         let paramIndex = 1;
 
         if (category) {
-            query += ` AND p.category = $${paramIndex}`;
+            sql += ` AND p.category = $${paramIndex}`;
             params.push(category);
             paramIndex++;
         }
 
         if (tag) {
-            query += ` AND p.tags @> $${paramIndex}::jsonb`;
+            sql += ` AND p.tags @> $${paramIndex}::jsonb`;
             params.push(JSON.stringify([tag]));
             paramIndex++;
         }
 
         if (search) {
-            query += ` AND (
+            sql += ` AND (
                 p.name ILIKE $${paramIndex} OR
                 p.description ILIKE $${paramIndex}
             )`;
@@ -57,9 +46,9 @@ router.get('/plugins', async (req, res) => {
             paramIndex++;
         }
 
-        query += ` ORDER BY p.download_count DESC, p.created_at DESC`;
+        sql += ` ORDER BY p.download_count DESC, p.created_at DESC`;
 
-        const result = await pool.query(query, params);
+        const result = await query(sql, params);
 
         res.json({
             success: true,
@@ -88,7 +77,7 @@ router.get('/plugins/:slug', async (req, res) => {
     try {
         const { slug } = req.params;
 
-        const result = await pool.query(
+        const result = await query(
             `SELECT
                 p.*,
                 (SELECT json_agg(json_build_object(
@@ -159,7 +148,7 @@ router.post('/plugins/:slug/download', async (req, res) => {
         const ipAddress = req.ip;
         const userAgent = req.get('user-agent');
 
-        const pluginResult = await pool.query(
+        const pluginResult = await query(
             'SELECT id FROM plugins WHERE slug = $1',
             [slug]
         );
@@ -173,14 +162,14 @@ router.post('/plugins/:slug/download', async (req, res) => {
 
         const pluginId = pluginResult.rows[0].id;
 
-        await pool.query(
+        await query(
             `INSERT INTO plugin_downloads
             (plugin_id, user_id, platform, ip_address, user_agent)
             VALUES ($1, NULL, $2, $3, $4)`,
             [pluginId, platform, ipAddress, userAgent]
         );
 
-        await pool.query(
+        await query(
             'UPDATE plugins SET download_count = download_count + 1 WHERE id = $1',
             [pluginId]
         );
@@ -204,7 +193,7 @@ router.post('/plugins/:slug/download', async (req, res) => {
  */
 router.get('/stats', async (req, res) => {
     try {
-        const result = await pool.query(
+        const result = await query(
             `SELECT
                 COUNT(*) as total_plugins,
                 SUM(download_count) as total_downloads,

@@ -63,7 +63,7 @@ CREATE TABLE IF NOT EXISTS plugin_versions (
 CREATE TABLE IF NOT EXISTS plugin_downloads (
     id SERIAL PRIMARY KEY,
     plugin_id INTEGER REFERENCES plugins(id) ON DELETE CASCADE,
-    user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+    user_id INTEGER, -- No FK constraint - users table may not exist
     platform VARCHAR(20), -- 'mac', 'windows', 'linux'
     ip_address VARCHAR(45),
     user_agent TEXT,
@@ -74,7 +74,7 @@ CREATE TABLE IF NOT EXISTS plugin_downloads (
 CREATE TABLE IF NOT EXISTS plugin_reviews (
     id SERIAL PRIMARY KEY,
     plugin_id INTEGER REFERENCES plugins(id) ON DELETE CASCADE,
-    user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+    user_id INTEGER, -- No FK constraint - users table may not exist
     rating INTEGER CHECK (rating >= 1 AND rating <= 5),
     review_text TEXT,
     is_verified_purchase BOOLEAN DEFAULT false,
