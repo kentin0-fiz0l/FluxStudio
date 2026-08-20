@@ -90,7 +90,7 @@ export function useMetMapPageEffects({
     if (practiceMode && playback.isPlaying && playback.currentBar === 1 && playback.currentBeat === 1) {
       setRepetitionCount((prev: number) => prev + 1);
     }
-  }, [practiceMode, playback.isPlaying, playback.currentBar, playback.currentBeat]);
+  }, [practiceMode, playback.isPlaying, playback.currentBar, playback.currentBeat, setRepetitionCount]);
 
   useEffect(() => { loadStats(); }, [loadStats]);
   useEffect(() => {

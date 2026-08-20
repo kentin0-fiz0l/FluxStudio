@@ -223,9 +223,10 @@ export const PresentationView: React.FC<PresentationViewProps> = ({
     };
     let raf: number;
 
-    if (audioRef.current) {
-      audioRef.current.currentTime = currentTime / 1000;
-      audioRef.current.play().catch(() => {});
+    const audioEl = audioRef.current;
+    if (audioEl) {
+      audioEl.currentTime = currentTime / 1000;
+      audioEl.play().catch(() => {});
     }
 
     const tick = () => {
@@ -254,7 +255,7 @@ export const PresentationView: React.FC<PresentationViewProps> = ({
     return () => {
       cancelAnimationFrame(raf);
       playbackRef.current = null;
-      if (audioRef.current) audioRef.current.pause();
+      if (audioEl) audioEl.pause();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isPlaying, duration, getInterpolatedPositions]);

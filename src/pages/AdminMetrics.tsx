@@ -115,7 +115,7 @@ function VitalsBadge({ value, good, poor, unit = 'ms' }: { value: number | null;
 
 export function AdminMetrics() {
   const navigate = useNavigate();
-  const { user, token } = useAuth();
+  const { user } = useAuth();
   const [data, setData] = useState<MetricsData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -131,7 +131,7 @@ export function AdminMetrics() {
     } finally {
       setLoading(false);
     }
-  }, [token]);
+  }, []);
 
   useEffect(() => {
     if (!user) { navigate('/login'); return; }

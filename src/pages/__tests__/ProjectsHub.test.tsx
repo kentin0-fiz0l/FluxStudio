@@ -81,6 +81,7 @@ vi.mock('date-fns', () => ({
   formatDistanceToNow: vi.fn(() => '2 hours ago'),
 }));
 
+import { useProjects } from '@/hooks/project/useProjects';
 import { ProjectsHub } from '../ProjectsHub';
 
 describe('ProjectsHub', () => {
@@ -124,8 +125,7 @@ describe('ProjectsHub', () => {
     expect(buttons.length).toBeGreaterThan(0);
   });
 
-  test('shows loading skeletons when loading', async () => {
-    const { useProjects } = await import('@/hooks/project/useProjects');
+  test('shows loading skeletons when loading', () => {
     vi.mocked(useProjects).mockReturnValue({
       projects: [],
       loading: true,

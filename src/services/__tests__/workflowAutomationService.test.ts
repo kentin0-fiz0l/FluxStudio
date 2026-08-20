@@ -87,14 +87,7 @@ function createContext(overrides: Partial<WorkflowContext> = {}): WorkflowContex
 
 describe('WorkflowAutomationService', () => {
   beforeEach(() => {
-    // Clear state between tests
-    workflowAutomationService.clearCache();
-    workflowAutomationService.getActiveTriggers().forEach(t => {
-      workflowAutomationService.removeTrigger(t.id);
-    });
-    (workflowAutomationService as any).automationHistory = [];
-    (workflowAutomationService as any).pendingTasks.clear();
-    (workflowAutomationService as any).scheduledReminders.clear();
+    workflowAutomationService._resetForTesting();
   });
 
   // ============================================================================

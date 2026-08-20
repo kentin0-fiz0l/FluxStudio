@@ -4,6 +4,7 @@
  * @file src/__tests__/components/ErrorBoundary.test.tsx
  */
 
+import React from 'react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
@@ -28,30 +29,30 @@ vi.mock('../../services/observability', () => ({
 
 // Mock UI components
 vi.mock('../../components/ui/card', () => ({
-  Card: ({ children, className }: any) => <div className={className}>{children}</div>,
-  CardContent: ({ children, className }: any) => <div className={className}>{children}</div>,
-  CardHeader: ({ children }: any) => <div>{children}</div>,
-  CardTitle: ({ children, className }: any) => <h2 className={className}>{children}</h2>,
+  Card: ({ children, className }: React.HTMLAttributes<HTMLDivElement>) => <div className={className}>{children}</div>,
+  CardContent: ({ children, className }: React.HTMLAttributes<HTMLDivElement>) => <div className={className}>{children}</div>,
+  CardHeader: ({ children }: React.HTMLAttributes<HTMLDivElement>) => <div>{children}</div>,
+  CardTitle: ({ children, className }: React.HTMLAttributes<HTMLHeadingElement>) => <h2 className={className}>{children}</h2>,
 }));
 
 vi.mock('../../components/ui/button', () => ({
-  Button: ({ children, onClick, variant, ...props }: any) => (
-    <button onClick={onClick} data-variant={variant} {...props}>{children}</button>
+  Button: ({ children, onClick, ...props }: React.ButtonHTMLAttributes<HTMLButtonElement> & { variant?: string }) => (
+    <button onClick={onClick} data-variant={props.variant} {...props}>{children}</button>
   ),
 }));
 
 vi.mock('../../components/ui/badge', () => ({
-  Badge: ({ children, variant }: any) => <span data-variant={variant}>{children}</span>,
+  Badge: ({ children, ...props }: React.HTMLAttributes<HTMLSpanElement> & { variant?: string }) => <span data-variant={props.variant}>{children}</span>,
 }));
 
 vi.mock('../../components/ui/alert', () => ({
-  Alert: ({ children, variant }: any) => <div data-variant={variant}>{children}</div>,
-  AlertTitle: ({ children }: any) => <h3>{children}</h3>,
-  AlertDescription: ({ children }: any) => <p>{children}</p>,
+  Alert: ({ children, ...props }: React.HTMLAttributes<HTMLDivElement> & { variant?: string }) => <div data-variant={props.variant}>{children}</div>,
+  AlertTitle: ({ children }: React.HTMLAttributes<HTMLDivElement>) => <h3>{children}</h3>,
+  AlertDescription: ({ children }: React.HTMLAttributes<HTMLDivElement>) => <p>{children}</p>,
 }));
 
 vi.mock('../../lib/utils', () => ({
-  cn: (...args: any[]) => args.filter(Boolean).join(' '),
+  cn: (...args: string[]) => args.filter(Boolean).join(' '),
 }));
 
 // Component that throws an error

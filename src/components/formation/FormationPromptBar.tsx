@@ -285,7 +285,7 @@ export function FormationPromptBar({
         }
       }, 100);
     },
-    [prompt, performers, currentPositions, selectedPerformerIds, fieldConfig, ghostPreview, onSandboxLimit, generateLocal],
+    [prompt, performers, ghostPreview, onSandboxLimit, generateLocal],
   );
 
   // Auto-submit when initialPrompt is provided (e.g. from ?prompt= query param)

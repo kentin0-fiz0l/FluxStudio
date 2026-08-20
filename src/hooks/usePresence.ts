@@ -124,6 +124,7 @@ export function usePresence({
     if (awareness || context.type !== 'conversation') return;
 
     const cleanups: Array<() => void> = [];
+    const typingTimeouts = typingTimeoutsRef.current;
 
     // Listen for typing events
     const onUserTyping = (data: unknown) => {
@@ -195,8 +196,8 @@ export function usePresence({
 
     return () => {
       cleanups.forEach((fn) => fn());
-      typingTimeoutsRef.current.forEach((t) => clearTimeout(t));
-      typingTimeoutsRef.current.clear();
+      typingTimeouts.forEach((t) => clearTimeout(t));
+      typingTimeouts.clear();
     };
   }, [awareness, context.type, context.id, user?.id]);
 

@@ -151,6 +151,9 @@ const { Component: Referrals } = lazyLoadWithRetry(() => import('./pages/Referra
 // AI Agent Panel
 const { Component: AgentPanel } = lazyLoadWithRetry(() => import('./components/agent/AgentPanel'));
 
+// AudioForge Plugin Marketplace - Public
+const { Component: AudioForge } = lazyLoadWithRetry(() => import('./pages/AudioForge'));
+
 // Public pages (no auth required)
 const { Component: TryEditor } = lazyLoadWithRetry(() => import('./pages/TryEditor'));
 const { Component: SharedFormation } = lazyLoadWithRetry(() => import('./pages/SharedFormation'));
@@ -347,6 +350,9 @@ function AuthenticatedRoutes() {
                   {/* Blog pages - public */}
                   <Route path="/blog" element={<BlogList />} />
                   <Route path="/blog/:slug" element={<BlogPost />} />
+
+                  {/* AudioForge DAW plugin marketplace - public */}
+                  <Route path="/audioforge" element={<AudioForge />} />
 
                   {/* Help & Support pages - public but with optional auth */}
                   <Route path="/help" element={<HelpCenter />} />

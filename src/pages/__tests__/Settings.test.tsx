@@ -2,10 +2,12 @@
  * Settings Page Tests
  */
 
+import type { ReactNode } from 'react';
 import { render, screen } from '@testing-library/react';
 import { describe, test, expect, vi, beforeEach } from 'vitest';
 import { MemoryRouter } from 'react-router-dom';
 import { HelmetProvider } from 'react-helmet-async';
+
 
 // Mock dependencies
 const mockNavigate = vi.fn();
@@ -51,12 +53,12 @@ vi.mock('@/lib/toast', () => ({
 
 // Mock DashboardLayout
 vi.mock('@/components/templates', () => ({
-  DashboardLayout: ({ children }: any) => <div data-testid="dashboard-layout">{children}</div>,
+  DashboardLayout: ({ children }: { children: ReactNode }) => <div data-testid="dashboard-layout">{children}</div>,
 }));
 
 // Mock UI components
 vi.mock('@/components/ui/switch', () => ({
-  Switch: ({ checked, onCheckedChange, ...props }: any) => (
+  Switch: ({ checked, onCheckedChange, ...props }: { checked?: boolean; onCheckedChange?: (val: boolean) => void; [key: string]: unknown }) => (
     <button
       role="switch"
       aria-checked={checked}
@@ -83,7 +85,7 @@ vi.mock('@/components/ui/LanguageSwitcher', () => ({
 }));
 
 vi.mock('@/components/settings/TwoFactorSetup', () => ({
-  TwoFactorSetup: ({ is2FAEnabled }: any) => (
+  TwoFactorSetup: ({ is2FAEnabled }: { is2FAEnabled: boolean; onStatusChange?: (enabled: boolean) => void }) => (
     <div data-testid="two-factor-setup">
       <p>Two-Factor Authentication</p>
       <p>{is2FAEnabled ? 'Enabled' : 'Disabled'}</p>
@@ -162,7 +164,7 @@ describe('Settings', () => {
       isAuthenticated: false,
       isLoading: false,
       logout: vi.fn(),
-    } as any);
+    } as unknown as ReturnType<typeof useAuth>);
 
     const { container } = renderSettings();
     expect(container.innerHTML).toBe('');

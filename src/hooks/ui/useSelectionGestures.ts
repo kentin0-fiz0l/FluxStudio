@@ -144,6 +144,7 @@ export function useSelectionGestures({
   useEffect(() => {
     const el = targetRef.current;
     if (!el || !isActive) return;
+    const fingers = fingersRef.current;
 
     const handlePointerDown = (e: PointerEvent) => {
       if (e.pointerType !== 'touch') return;
@@ -237,7 +238,7 @@ export function useSelectionGestures({
       el.removeEventListener('pointerup', handlePointerUp);
       el.removeEventListener('pointercancel', handlePointerCancel);
       el.removeEventListener('touchstart', handleTouchStart);
-      fingersRef.current.clear();
+      fingers.clear();
       resetGesture();
     };
   }, [targetRef, isActive, onPinchScale, onRotateGesture, resetGesture]);

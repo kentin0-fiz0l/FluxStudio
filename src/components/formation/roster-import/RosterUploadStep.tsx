@@ -44,7 +44,7 @@ export function RosterUploadStep({ onFileLoaded, fileName }: RosterUploadStepPro
       };
       reader.readAsText(file);
     },
-    [onFileLoaded],
+    [onFileLoaded, t],
   );
 
   const handleDrop = useCallback(

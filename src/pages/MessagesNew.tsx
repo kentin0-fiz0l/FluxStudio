@@ -70,16 +70,7 @@ function MessagesNew() {
   const navigate = useNavigate();
   const state = useMessagesPageState();
 
-  // Guard: If auth context indicates no user, return null
-  if (!state.user) {
-    return null;
-  }
-
-  const handleViewInFiles = (assetId: string) => {
-    navigate(`/assets?highlight=${assetId}`);
-  };
-
-  // Slash command dialog state
+  // Slash command dialog state — must be above the early return guard
   const [showGiphyDialog, setShowGiphyDialog] = useState(false);
   const [showPollDialog, setShowPollDialog] = useState(false);
 
@@ -95,17 +86,24 @@ function MessagesNew() {
   }, []);
 
   const handleGiphySelect = useCallback((gifUrl: string) => {
-    // Send the GIF URL as a message
     state.handleInputChange(gifUrl);
     setTimeout(() => state.handleSendMessage(), 0);
   }, [state]);
 
   const handleCreatePoll = useCallback((poll: PollData) => {
-    // Format poll as a structured message
     const pollText = `📊 **Poll: ${poll.question}**\n${poll.options.map((opt, i) => `${i + 1}. ${opt}`).join('\n')}`;
     state.handleInputChange(pollText);
     setTimeout(() => state.handleSendMessage(), 0);
   }, [state]);
+
+  // Guard: If auth context indicates no user, return null
+  if (!state.user) {
+    return null;
+  }
+
+  const handleViewInFiles = (assetId: string) => {
+    navigate(`/assets?highlight=${assetId}`);
+  };
 
   return (
     <DashboardLayout

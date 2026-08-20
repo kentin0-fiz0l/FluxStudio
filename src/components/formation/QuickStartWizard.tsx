@@ -8,7 +8,7 @@
  * 4. Generate and preview
  */
 
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useMemo, useCallback, useRef } from 'react';
 import { Wand2, Plus, Trash2, Check, X, ChevronRight, ChevronLeft, Music } from 'lucide-react';
 import type { FieldConfig, Performer } from '../../services/formationTypes';
 import { getFieldPresetList } from '../../services/fieldConfigService';
@@ -65,7 +65,7 @@ export const QuickStartWizard: React.FC<QuickStartWizardProps> = ({
 
   // Step 2: Sections
   const [sections, setSections] = useState<SectionEntry[]>(DEFAULT_SECTIONS);
-  let nextId = 20;
+  const nextIdRef = useRef(20);
 
   // Step 3: Duration
   const [showDuration, setShowDuration] = useState(6);
@@ -79,7 +79,7 @@ export const QuickStartWizard: React.FC<QuickStartWizardProps> = ({
   const addSection = useCallback(() => {
     setSections((prev) => [
       ...prev,
-      { id: String(nextId++), name: 'Brass', instrument: '', count: 4 },
+      { id: String(nextIdRef.current++), name: 'Brass', instrument: '', count: 4 },
     ]);
   }, []);
 

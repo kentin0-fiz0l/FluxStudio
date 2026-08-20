@@ -101,7 +101,7 @@ export function GhostPreviewControls({
       top: `${top}px`,
       zIndex: 25,
     };
-  }, [position, canvasWidth, canvasHeight]);
+  }, [position, canvasWidth]);
 
   const sourceColor = getSourceColor(preview.source);
 

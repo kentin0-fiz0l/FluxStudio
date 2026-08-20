@@ -69,7 +69,7 @@ jobs:
         run: pnpm --filter @fluxstudio/database db:generate
 
       - name: Run unit tests
-        run: npx vitest run --exclude '**/SearchWidget.test.*' --shard=${{ matrix.shard }}
+        run: npx vitest run --shard=${{ matrix.shard }}
         timeout-minutes: 10
 
   build:
@@ -311,7 +311,26 @@ jobs:
 
       - name: Run integration tests
         run: npm run test:integration
-    continue-on-error: true
+
+  python:
+    name: Python Tests (Automation)
+    runs-on: ubuntu-latest
+    if: >-
+      github.event_name == 'push' ||
+      contains(join(github.event.pull_request.*.filename, ' '), 'automation/')
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install automation package
+        run: pip install -e "automation[dev]"
+
+      - name: Run pytest
+        run: cd automation && pytest -v
 
   security:
     name: Security Audit

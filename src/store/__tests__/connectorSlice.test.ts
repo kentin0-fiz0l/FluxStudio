@@ -4,9 +4,17 @@ import { immer } from 'zustand/middleware/immer';
 
 vi.mock('../store', () => ({ useStore: vi.fn() }));
 
-import { createConnectorSlice, type ConnectorSlice } from '../slices/connectorSlice';
+const mockApiService = vi.hoisted(() => ({
+  get: vi.fn(),
+  post: vi.fn(),
+  delete: vi.fn(),
+}));
 
-const mockFetch = vi.fn();
+vi.mock('@/services/apiService', () => ({
+  apiService: mockApiService,
+}));
+
+import { createConnectorSlice, type ConnectorSlice } from '../slices/connectorSlice';
 
 function createTestStore() {
   return create<ConnectorSlice>()(
@@ -16,32 +24,13 @@ function createTestStore() {
   );
 }
 
-/** Helper: mock a successful JSON fetch response */
-function mockJsonResponse(data: unknown) {
-  return { ok: true, json: () => Promise.resolve(data) };
-}
-
-/** Helper: mock a CSRF token fetch followed by a real response */
-function mockWithCsrf(data: unknown) {
-  mockFetch
-    .mockResolvedValueOnce(mockJsonResponse({ csrfToken: 'test-csrf' }))
-    .mockResolvedValueOnce(mockJsonResponse(data));
-}
-
 describe('connectorSlice', () => {
   let store: ReturnType<typeof createTestStore>;
-  const originalFetch = global.fetch;
 
   beforeEach(() => {
     store = createTestStore();
     localStorage.clear();
     vi.clearAllMocks();
-    mockFetch.mockReset();
-    global.fetch = mockFetch;
-  });
-
-  afterEach(() => {
-    global.fetch = originalFetch;
   });
 
   describe('initial state', () => {
@@ -124,8 +113,7 @@ describe('connectorSlice', () => {
   describe('fetchConnectors', () => {
     it('should fetch and set connector list', async () => {
       const connectors = [{ id: 'github', name: 'GitHub', status: 'connected' }];
-      // GET doesn't need CSRF
-      mockFetch.mockResolvedValueOnce(mockJsonResponse({ connectors }));
+      mockApiService.get.mockResolvedValue({ success: true, data: { connectors } });
 
       await store.getState().connectors.fetchConnectors();
 
@@ -134,7 +122,7 @@ describe('connectorSlice', () => {
     });
 
     it('should set error on failure', async () => {
-      mockFetch.mockRejectedValueOnce(new Error('network error'));
+      mockApiService.get.mockRejectedValue(new Error('network error'));
 
       await store.getState().connectors.fetchConnectors();
 
@@ -145,7 +133,7 @@ describe('connectorSlice', () => {
   describe('fetchFiles', () => {
     it('should fetch files for a provider', async () => {
       const files = [{ id: 'f1', name: 'readme.md', type: 'file' }];
-      mockFetch.mockResolvedValueOnce(mockJsonResponse({ files }));
+      mockApiService.get.mockResolvedValue({ success: true, data: { files } });
 
       await store.getState().connectors.fetchFiles('github', { owner: 'user', repo: 'repo' });
 
@@ -157,8 +145,7 @@ describe('connectorSlice', () => {
   describe('importFile', () => {
     it('should import file and add to importedFiles', async () => {
       const file = { id: 'imp-1', name: 'design.fig', provider: 'figma' };
-      // POST needs CSRF token first
-      mockWithCsrf({ file });
+      mockApiService.post.mockResolvedValue({ success: true, data: { file } });
 
       const result = await store.getState().connectors.importFile('figma', 'ext-id-1');
 
@@ -166,16 +153,22 @@ describe('connectorSlice', () => {
       expect(store.getState().connectors.importedFiles).toHaveLength(1);
     });
 
-    // TODO: fix flaky in CI (importFile returns undefined instead of null)
-    it.skip('should return null on failure', async () => {
-      mockFetch
-        .mockResolvedValueOnce(mockJsonResponse({ csrfToken: 'test-csrf' }))
-        .mockResolvedValueOnce({ ok: false, status: 404, json: () => Promise.resolve({ message: 'Not found' }) });
+    it('should return null on failure', async () => {
+      mockApiService.post.mockResolvedValue({ success: false, error: 'Not found' });
 
       const result = await store.getState().connectors.importFile('figma', 'bad-id');
 
       expect(result).toBeNull();
       expect(store.getState().connectors.error).toBe('Not found');
+    });
+
+    it('should return null on network error', async () => {
+      mockApiService.post.mockRejectedValue(new Error('Network error'));
+
+      const result = await store.getState().connectors.importFile('figma', 'bad-id');
+
+      expect(result).toBeNull();
+      expect(store.getState().connectors.error).toBe('Network error');
     });
   });
 
@@ -186,8 +179,7 @@ describe('connectorSlice', () => {
       ] as any[]);
       store.getState().connectors.setCurrentProvider('github');
 
-      // DELETE needs CSRF
-      mockWithCsrf({ success: true });
+      mockApiService.delete.mockResolvedValue({ success: true });
 
       await store.getState().connectors.disconnect('github');
 

@@ -9,6 +9,7 @@ import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { AuthProvider } from '@/contexts/AuthContext';
 import { useAuth } from '@/store/slices/authSlice';
+import type { User } from '@/store/slices/authSlice';
 
 // Mock apiService
 vi.mock('../../services/apiService', () => ({
@@ -196,7 +197,7 @@ describe('AuthContext', () => {
         },
       });
 
-      let signupUser: any = null;
+      let signupUser: User | null = null;
 
       function SignupTestComponent() {
         const { signup } = useAuth();
@@ -221,7 +222,7 @@ describe('AuthContext', () => {
 
       await waitFor(() => {
         expect(signupUser).not.toBeNull();
-        expect(signupUser.email).toBe('test@example.com');
+        expect(signupUser!.email).toBe('test@example.com');
       });
     });
   });
@@ -274,7 +275,7 @@ describe('AuthContext', () => {
         },
       });
 
-      let googleUser: any = null;
+      let googleUser: User | null = null;
 
       function GoogleTestComponent() {
         const { loginWithGoogle } = useAuth();

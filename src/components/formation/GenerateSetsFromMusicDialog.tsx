@@ -535,6 +535,7 @@ export const GenerateSetsFromMusicDialog: React.FC<GenerateSetsFromMusicDialogPr
     } else {
       setCheckedIndices(new Set(suggestions.map((_, i) => i)));
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- only uses suggestions.length and index mapping
   }, [checkedIndices.size, suggestions.length]);
 
   // Generate sets from checked suggestions

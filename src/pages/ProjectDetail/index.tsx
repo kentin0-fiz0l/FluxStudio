@@ -487,16 +487,13 @@ export const ProjectDetail = () => {
                     status: 'review' as const,
                     annotations: [],
                   }))}
-                  onAnnotationAdd={(annotation) => {
-                    console.log('Annotation added:', annotation);
+                  onAnnotationAdd={() => {
                     toast.success('Annotation added');
                   }}
-                  onStatusChange={(fileId, status) => {
-                    console.log('Status changed:', fileId, status);
+                  onStatusChange={(_fileId, status) => {
                     toast.success(`File status changed to ${status}`);
                   }}
                   onFileUpload={(file) => {
-                    console.log('File uploaded:', file.name);
                     toast.success(`File "${file.name}" uploaded`);
                   }}
                 />

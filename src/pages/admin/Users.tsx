@@ -4,7 +4,7 @@
  * User management interface with search, filtering, and bulk actions.
  */
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -107,7 +107,7 @@ export function AdminUsers() {
     },
   });
 
-  const users = data?.users ?? [];
+  const users = useMemo(() => data?.users ?? [], [data?.users]);
   const total = data?.total ?? 0;
   const totalPages = Math.ceil(total / pageSize);
 

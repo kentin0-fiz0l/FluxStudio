@@ -569,6 +569,10 @@ const pluginRoutes = require('./routes/plugins');
 app.use('/plugins', pluginRoutes);
 app.use('/api/plugins', pluginRoutes);
 
+// AudioForge DAW plugin marketplace
+const audioforgeRoutes = require('./routes/audioforge');
+app.use('/api/audioforge', audioforgeRoutes);
+
 // Mount Template routes (Sprint 37)
 const templateRoutes = require('./routes/templates');
 app.use('/templates', templateRoutes);

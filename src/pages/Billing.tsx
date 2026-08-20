@@ -36,7 +36,7 @@ interface SubscriptionData {
 
 export function Billing() {
   const navigate = useNavigate();
-  const { user, token } = useAuth();
+  const { user } = useAuth();
   const [loading, setLoading] = useState(true);
   const [portalLoading, setPortalLoading] = useState(false);
   const [error, setError] = useState('');
@@ -68,7 +68,7 @@ export function Billing() {
     } finally {
       setLoading(false);
     }
-  }, [token]);
+  }, []);
 
   useEffect(() => {
     if (!user) {

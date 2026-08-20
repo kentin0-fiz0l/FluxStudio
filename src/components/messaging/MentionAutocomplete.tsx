@@ -9,7 +9,7 @@
  * - Arrow keys to navigate, Enter to select, Escape to close
  */
 
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { Bot } from 'lucide-react';
 import { cn } from '../../lib/utils';
 
@@ -48,19 +48,20 @@ export function MentionAutocomplete({
   const [selectedIndex, setSelectedIndex] = useState(0);
   const listRef = useRef<HTMLDivElement>(null);
 
-  const queryLower = query.toLowerCase();
+  const filteredUsers = useMemo(() => {
+    const queryLower = query.toLowerCase();
+    const result: MentionUser[] = [];
 
-  // Build filtered list with AI at top when matching
-  const filteredUsers: MentionUser[] = [];
+    if (!query || 'ai'.startsWith(queryLower) || 'a'.startsWith(queryLower)) {
+      result.push(AI_USER);
+    }
 
-  if (!query || 'ai'.startsWith(queryLower) || 'a'.startsWith(queryLower)) {
-    filteredUsers.push(AI_USER);
-  }
-
-  const matchingUsers = users.filter(
-    (u) => u.name.toLowerCase().includes(queryLower)
-  );
-  filteredUsers.push(...matchingUsers);
+    const matchingUsers = users.filter(
+      (u) => u.name.toLowerCase().includes(queryLower)
+    );
+    result.push(...matchingUsers);
+    return result;
+  }, [query, users]);
 
   // Reset selection when results change
   useEffect(() => {

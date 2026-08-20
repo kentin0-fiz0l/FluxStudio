@@ -170,7 +170,6 @@ describe('useActivitiesQuery', () => {
 describe('useRecentActivitiesQuery', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.resetModules();
     vi.stubGlobal('localStorage', {
       getItem: vi.fn(() => 'mock-token'),
       setItem: vi.fn(),
@@ -182,8 +181,7 @@ describe('useRecentActivitiesQuery', () => {
     });
   });
 
-  // TODO: fix flaky timing in CI (waitFor never resolves isSuccess)
-  it.skip('should fetch recent activities with date filter', async () => {
+  it('should fetch recent activities with date filter', async () => {
     const { useRecentActivitiesQuery } = await import('../useActivities');
     const { result } = renderHook(
       () => useRecentActivitiesQuery('proj-1', 5),

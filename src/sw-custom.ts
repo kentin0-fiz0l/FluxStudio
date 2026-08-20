@@ -1,11 +1,27 @@
 /// <reference lib="webworker" />
 declare const self: ServiceWorkerGlobalScope;
 
+// Background Sync API types (not in default TS lib)
+interface SyncManager { register(tag: string): Promise<void> }
+interface SyncEvent extends ExtendableEvent { readonly tag: string }
+interface ServiceWorkerRegistrationWithSync extends ServiceWorkerRegistration {
+  readonly sync: SyncManager;
+}
+
 import { precacheAndRoute, cleanupOutdatedCaches } from 'workbox-precaching';
 import { registerRoute } from 'workbox-routing';
 import { StaleWhileRevalidate, CacheFirst } from 'workbox-strategies';
 import { ExpirationPlugin } from 'workbox-expiration';
 import { CacheableResponsePlugin } from 'workbox-cacheable-response';
+
+interface PendingMutation {
+  id: string;
+  endpoint: string;
+  method?: string;
+  payload?: unknown;
+  token?: string;
+  retryCount?: number;
+}
 
 // ============================================================
 // Workbox precaching (injected by vite-plugin-pwa at build time)
@@ -83,11 +99,11 @@ function openFluxDatabase(): Promise<IDBDatabase> {
   });
 }
 
-function getAllFromStore(store: IDBObjectStore): Promise<any[]> {
+function getAllFromStore<T = unknown>(store: IDBObjectStore): Promise<T[]> {
   return new Promise((resolve, reject) => {
     const request = store.getAll();
     request.onerror = () => reject(request.error);
-    request.onsuccess = () => resolve(request.result);
+    request.onsuccess = () => resolve(request.result as T[]);
   });
 }
 
@@ -96,15 +112,16 @@ async function syncPendingMutations() {
   try {
     database = await openFluxDatabase();
   } catch (err) {
-    console.debug('[SW] IndexedDB unavailable for sync:', (err as Error).message);
+    console.warn('[SW] IndexedDB unavailable for sync:', (err as Error).message);
     return;
   }
 
   try {
     const tx = database.transaction('pendingMutations', 'readonly');
     const store = tx.objectStore('pendingMutations');
-    const actions = await getAllFromStore(store);
+    const actions = await getAllFromStore<PendingMutation>(store);
 
+    // eslint-disable-next-line no-console -- Service worker sync logging
     console.log('[SW] Syncing', actions.length, 'pending mutations');
     let needsRetry = false;
 
@@ -130,10 +147,12 @@ async function syncPendingMutations() {
         if (response.ok) {
           const deleteTx = database.transaction('pendingMutations', 'readwrite');
           deleteTx.objectStore('pendingMutations').delete(action.id);
+          // eslint-disable-next-line no-console -- Service worker sync logging
           console.log('[SW] Synced mutation:', action.id);
         } else if (response.status === 409) {
           const deleteTx = database.transaction('pendingMutations', 'readwrite');
           deleteTx.objectStore('pendingMutations').delete(action.id);
+          // eslint-disable-next-line no-console -- Service worker sync logging
           console.log('[SW] Conflict for mutation:', action.id);
         } else {
           const newRetryCount = retryCount + 1;
@@ -161,7 +180,7 @@ async function syncPendingMutations() {
     }
 
     if (needsRetry && 'sync' in self.registration) {
-      (self.registration as any).sync.register('sync-pending-actions');
+      (self.registration as ServiceWorkerRegistrationWithSync).sync.register('sync-pending-actions');
     }
 
     const allClients = await self.clients.matchAll();
@@ -173,11 +192,11 @@ async function syncPendingMutations() {
   }
 }
 
-self.addEventListener('sync', (event: any) => {
+self.addEventListener('sync', ((event: SyncEvent) => {
   if (event.tag === 'sync-pending-actions') {
     event.waitUntil(syncPendingMutations());
   }
-});
+}) as EventListener);
 
 // ============================================================
 // Push notifications — type-aware with action buttons
@@ -190,7 +209,7 @@ self.addEventListener('push', (event) => {
     const data = event.data.json();
     const type = data.type || 'general';
 
-    const options: NotificationOptions & { data: any; actions: any[]; renotify?: boolean } = {
+    const options: NotificationOptions & { data: { url: string; type: string }; actions: Array<{ action: string; title: string }>; renotify?: boolean } = {
       body: data.body || '',
       icon: '/icons/icon-192.png',
       badge: '/icons/icon-72.png',
@@ -305,7 +324,7 @@ self.addEventListener('message', (event) => {
 
     case 'TRIGGER_SYNC':
       if ('sync' in self.registration) {
-        (self.registration as any).sync.register('sync-pending-actions');
+        (self.registration as ServiceWorkerRegistrationWithSync).sync.register('sync-pending-actions');
       }
       break;
   }

@@ -45,6 +45,45 @@ jest.mock('../../database/config', () => ({
   query: (...args) => mockQuery(...args),
 }));
 
+// ���── Mock secondary dependencies (logger, rate limiter, etc.) ───
+
+jest.mock('../../lib/logger', () => ({
+  createLogger: () => ({
+    info: jest.fn(),
+    warn: jest.fn(),
+    error: jest.fn(),
+    debug: jest.fn(),
+  }),
+}));
+
+jest.mock('../../middleware/advancedRateLimiter', () => ({
+  createLimiter: () => (req, res, next) => next(),
+}));
+
+jest.mock('../../lib/circuitBreaker', () => ({
+  createCircuitBreaker: () => ({
+    execute: (fn) => fn(),
+  }),
+}));
+
+jest.mock('../../lib/auditLog', () => ({
+  logAction: jest.fn(),
+}));
+
+jest.mock('../../lib/analytics/funnelTracker', () => ({
+  ingestEvent: jest.fn().mockResolvedValue(undefined),
+}));
+
+jest.mock('../../lib/email/emailService', () => ({
+  emailService: {
+    sendTrialStartedEmail: jest.fn().mockResolvedValue(true),
+  },
+}));
+
+jest.mock('../../middleware/zodValidate', () => ({
+  zodValidate: () => (req, res, next) => next(),
+}));
+
 // ─── Mock lib/payments with realistic PaymentService behavior ───
 
 // We need the PaymentService to actually call through to handleWebhook logic,
@@ -1112,6 +1151,245 @@ describe('Payment Flow Integration Tests', () => {
         expect(res.status).toBe(400);
         expect(res.body.error).toContain('Webhook verification failed');
       });
+    });
+  });
+
+  // ═══════════════════════════════════════════════════════
+  // 7. SUBSCRIPTION UPGRADE (subscription.updated webhook)
+  // ═══════════════════════════════════════════════════════
+
+  describe('POST /api/payments/webhooks/stripe - subscription.updated (upgrade)', () => {
+    it('should update subscription period and status on plan change', async () => {
+      const updatedSubscription = {
+        ...FIXTURES.stripeSubscription,
+        status: 'active',
+        current_period_start: Math.floor(Date.now() / 1000),
+        current_period_end: Math.floor(Date.now() / 1000) + 365 * 24 * 60 * 60, // yearly
+      };
+
+      const event = {
+        id: 'evt_sub_updated',
+        type: 'customer.subscription.updated',
+        data: { object: updatedSubscription },
+      };
+
+      mockStripeWebhooksConstructEvent.mockReturnValue(event);
+      mockQuery.mockResolvedValueOnce({ rowCount: 1 }); // UPDATE subscriptions
+
+      const res = await request(app)
+        .post('/api/payments/webhooks/stripe')
+        .set('stripe-signature', 'valid_sig_upgrade')
+        .send(event);
+
+      expect(res.status).toBe(200);
+      expect(res.body).toEqual({ received: true, type: 'customer.subscription.updated' });
+      expect(paymentServiceInstance.handleSubscriptionUpdated).toHaveBeenCalledWith(
+        updatedSubscription
+      );
+
+      expect(mockQuery).toHaveBeenCalledWith(
+        expect.stringContaining('UPDATE subscriptions SET'),
+        expect.arrayContaining([
+          updatedSubscription.status,
+          expect.any(Date),
+          expect.any(Date),
+          updatedSubscription.id,
+        ])
+      );
+    });
+
+    it('should handle subscription downgrade (status change)', async () => {
+      const downgradedSubscription = {
+        ...FIXTURES.stripeSubscription,
+        status: 'past_due',
+      };
+
+      const event = {
+        id: 'evt_sub_downgrade',
+        type: 'customer.subscription.updated',
+        data: { object: downgradedSubscription },
+      };
+
+      mockStripeWebhooksConstructEvent.mockReturnValue(event);
+      mockQuery.mockResolvedValueOnce({ rowCount: 1 });
+
+      const res = await request(app)
+        .post('/api/payments/webhooks/stripe')
+        .set('stripe-signature', 'valid_sig_downgrade')
+        .send(event);
+
+      expect(res.status).toBe(200);
+      expect(mockQuery).toHaveBeenCalledWith(
+        expect.stringContaining('UPDATE subscriptions SET'),
+        expect.arrayContaining(['past_due'])
+      );
+    });
+  });
+
+  // ═══════════════════════════════════════════════════════
+  // 8. FREE TRIAL FLOW
+  // ═══════════════════════════════════════════════════════
+
+  describe('POST /api/payments/start-trial', () => {
+    it('should start a 14-day Pro trial for eligible user', async () => {
+      // User has no existing plan or trial
+      mockQuery.mockResolvedValueOnce({
+        rows: [{ plan_id: 'free', trial_ends_at: null }],
+      });
+      // No previous trial in subscriptions table
+      mockQuery.mockResolvedValueOnce({ rows: [] });
+      // UPDATE users SET plan_id, trial_ends_at
+      mockQuery.mockResolvedValueOnce({ rowCount: 1 });
+      // INSERT INTO subscriptions (may fail gracefully)
+      mockQuery.mockResolvedValueOnce({ rowCount: 1 });
+      // SELECT email, name for trial email
+      mockQuery.mockResolvedValueOnce({
+        rows: [{ email: 'test@fluxstudio.art', name: 'Test User' }],
+      });
+
+      const res = await request(app)
+        .post('/api/payments/start-trial')
+        .set('Authorization', `Bearer ${validToken}`)
+        .send({});
+
+      expect(res.status).toBe(200);
+      expect(res.body.success).toBe(true);
+      expect(res.body.trial.plan).toBe('pro');
+      expect(res.body.trial.daysRemaining).toBe(14);
+      expect(res.body.trial.trialEndsAt).toBeDefined();
+
+      // Verify trial was set in DB
+      expect(mockQuery).toHaveBeenCalledWith(
+        'UPDATE users SET plan_id = $1, trial_ends_at = $2 WHERE id = $3',
+        ['pro', expect.any(String), FIXTURES.userId]
+      );
+    });
+
+    it('should reject trial when user already has a paid plan', async () => {
+      mockQuery.mockResolvedValueOnce({
+        rows: [{ plan_id: 'pro', trial_ends_at: null }],
+      });
+
+      const res = await request(app)
+        .post('/api/payments/start-trial')
+        .set('Authorization', `Bearer ${validToken}`)
+        .send({});
+
+      expect(res.status).toBe(400);
+      expect(res.body.error).toContain('already have an active subscription');
+      expect(res.body.code).toBe('PAYMENT_ALREADY_SUBSCRIBED');
+    });
+
+    it('should reject trial when user already used their trial', async () => {
+      mockQuery.mockResolvedValueOnce({
+        rows: [{ plan_id: 'free', trial_ends_at: '2025-01-15T00:00:00Z' }],
+      });
+
+      const res = await request(app)
+        .post('/api/payments/start-trial')
+        .set('Authorization', `Bearer ${validToken}`)
+        .send({});
+
+      expect(res.status).toBe(400);
+      expect(res.body.error).toContain('already used your free trial');
+      expect(res.body.code).toBe('PAYMENT_TRIAL_USED');
+    });
+
+    it('should reject trial when subscriptions table shows previous trial', async () => {
+      mockQuery.mockResolvedValueOnce({
+        rows: [{ plan_id: 'free', trial_ends_at: null }],
+      });
+      // subscriptions table has trial_used_at record
+      mockQuery.mockResolvedValueOnce({
+        rows: [{ trial_used_at: '2025-01-01T00:00:00Z' }],
+      });
+
+      const res = await request(app)
+        .post('/api/payments/start-trial')
+        .set('Authorization', `Bearer ${validToken}`)
+        .send({});
+
+      expect(res.status).toBe(400);
+      expect(res.body.code).toBe('PAYMENT_TRIAL_USED');
+    });
+
+    it('should return 404 when user is not found', async () => {
+      mockQuery.mockResolvedValueOnce({ rows: [] });
+
+      const res = await request(app)
+        .post('/api/payments/start-trial')
+        .set('Authorization', `Bearer ${validToken}`)
+        .send({});
+
+      expect(res.status).toBe(404);
+      expect(res.body.code).toBe('PAYMENT_USER_NOT_FOUND');
+    });
+
+    it('should return 401 without authentication', async () => {
+      const res = await request(app)
+        .post('/api/payments/start-trial')
+        .send({});
+
+      expect(res.status).toBe(401);
+    });
+  });
+
+  // ═══════════════════════════════════════════════════════
+  // 9. ACTIVE TRIAL SUBSCRIPTION STATUS
+  // ═══════════════════════════════════════════════════════
+
+  describe('GET /api/payments/subscription - active trial', () => {
+    it('should return trial info when user is on active trial without Stripe subscription', async () => {
+      const trialEndsAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(); // 7 days from now
+
+      // Query 1: trial check from users table
+      mockQuery.mockResolvedValueOnce({
+        rows: [{ plan_id: 'pro', trial_ends_at: trialEndsAt }],
+      });
+      // Query 2: no active Stripe subscription
+      mockQuery.mockResolvedValueOnce({ rows: [] });
+
+      const res = await request(app)
+        .get('/api/payments/subscription')
+        .set('Authorization', `Bearer ${validToken}`);
+
+      expect(res.status).toBe(200);
+      expect(res.body.hasSubscription).toBe(true);
+      expect(res.body.subscription.status).toBe('trialing');
+      expect(res.body.subscription.plan).toBe('pro');
+      expect(res.body.subscription.trialEndsAt).toBe(trialEndsAt);
+      expect(res.body.subscription.daysRemaining).toBeGreaterThan(0);
+      expect(res.body.subscription.daysRemaining).toBeLessThanOrEqual(7);
+      expect(res.body.canTrial).toBe(false);
+    });
+
+    it('should prefer active Stripe subscription over trial', async () => {
+      const trialEndsAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
+
+      // Query 1: trial check - user has active trial
+      mockQuery.mockResolvedValueOnce({
+        rows: [{ plan_id: 'pro', trial_ends_at: trialEndsAt }],
+      });
+      // Query 2: user also has active Stripe subscription
+      mockQuery.mockResolvedValueOnce({
+        rows: [{
+          stripe_subscription_id: 'sub_real',
+          status: 'active',
+          current_period_end: '2026-06-01T00:00:00Z',
+          cancelled_at: null,
+          stripe_customer_id: FIXTURES.customerId,
+        }],
+      });
+
+      const res = await request(app)
+        .get('/api/payments/subscription')
+        .set('Authorization', `Bearer ${validToken}`);
+
+      expect(res.status).toBe(200);
+      expect(res.body.hasSubscription).toBe(true);
+      // When both exist, the Stripe subscription takes priority
+      expect(res.body.subscription.id).toBe('sub_real');
+      expect(res.body.subscription.status).toBe('active');
     });
   });
 });

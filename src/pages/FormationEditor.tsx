@@ -205,7 +205,7 @@ export default function FormationEditor() {
         setCurrentPositions(new Map(formation.keyframes[0].positions));
       }
     },
-    [addNotification]
+    [addNotification, projectId]
   );
 
   // Handle close/back navigation

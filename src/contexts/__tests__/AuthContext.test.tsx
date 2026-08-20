@@ -6,20 +6,24 @@ const { mockCheckAuth, mockLogout } = vi.hoisted(() => ({
   mockLogout: vi.fn(),
 }));
 
+interface MockAuthStore {
+  auth: { checkAuth: typeof mockCheckAuth; logout: typeof mockLogout; isAuthenticated: boolean };
+}
+
+function createMockUseStore(state: MockAuthStore) {
+  const fn = vi.fn(<T,>(selector: (s: MockAuthStore) => T) => selector(state));
+  (fn as typeof fn & { getState: () => MockAuthStore }).getState = () => state;
+  return { useStore: fn };
+}
+
 // Mock the store module that AuthContext imports as '../store'
 vi.mock('../../store/store', () => {
-  const state = { auth: { checkAuth: mockCheckAuth, logout: mockLogout, isAuthenticated: true } };
-  const fn = vi.fn((selector: (s: any) => any) => selector(state));
-  (fn as any).getState = () => state;
-  return { useStore: fn };
+  return createMockUseStore({ auth: { checkAuth: mockCheckAuth, logout: mockLogout, isAuthenticated: true } });
 });
 
 // Also mock the barrel export
 vi.mock('../../store', () => {
-  const state = { auth: { checkAuth: mockCheckAuth, logout: mockLogout, isAuthenticated: true } };
-  const fn = vi.fn((selector: (s: any) => any) => selector(state));
-  (fn as any).getState = () => state;
-  return { useStore: fn };
+  return createMockUseStore({ auth: { checkAuth: mockCheckAuth, logout: mockLogout, isAuthenticated: true } });
 });
 
 import { AuthProvider } from '../AuthContext';

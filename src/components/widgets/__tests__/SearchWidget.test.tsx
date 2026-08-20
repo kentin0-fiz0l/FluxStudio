@@ -42,6 +42,23 @@ vi.mock('framer-motion', () => ({
   AnimatePresence: ({ children }: any) => <>{children}</>,
 }))
 
+// Mock fuse.js at the top level so dynamic import('fuse.js') resolves immediately
+// This prevents CI hangs caused by unresolved dynamic imports in worker pools
+vi.mock('fuse.js', () => ({
+  default: class MockFuse {
+    private items: any[]
+    constructor(items: any[]) {
+      this.items = items
+    }
+    search(query: string) {
+      const q = query.toLowerCase()
+      return this.items
+        .filter(item => item.title?.toLowerCase().includes(q) || item.description?.toLowerCase().includes(q))
+        .map(item => ({ item, score: 0.1 }))
+    }
+  },
+}))
+
 const mockConfig: WidgetConfig = {
   id: 'search-widget',
   title: 'Search',
@@ -79,7 +96,6 @@ describe('SearchWidget', () => {
     const { user } = render(<SearchWidget config={mockConfig} />)
     const input = screen.getByPlaceholderText('Search projects, actions...')
     await user.type(input, 'test')
-    // Clear button (X icon) should be in the DOM
     const clearButtons = screen.getAllByRole('button')
     const clearBtn = clearButtons.find(btn => btn.className.includes('absolute'))
     expect(clearBtn).toBeDefined()
@@ -90,7 +106,6 @@ describe('SearchWidget', () => {
     const input = screen.getByPlaceholderText('Search projects, actions...')
     await user.type(input, 'test')
 
-    // Find and click clear button (small button near input)
     const clearButtons = screen.getAllByRole('button')
     const clearBtn = clearButtons.find(btn =>
       btn.className.includes('absolute') && btn.className.includes('right')
@@ -114,7 +129,6 @@ describe('SearchWidget', () => {
 
   test('command palette button renders', () => {
     render(<SearchWidget config={mockConfig} />)
-    // The button label includes the keyboard shortcut
     const cmdKButton = screen.getAllByRole('button').find(
       btn => btn.textContent?.includes('K')
     )
@@ -130,10 +144,8 @@ describe('SearchWidget', () => {
 
   test('badge color mapping: high = red, medium = yellow, low = green', async () => {
     const { user } = render(<SearchWidget config={mockConfig} />)
-    // Focus the input to expand results
     const input = screen.getByPlaceholderText('Search projects, actions...')
     await user.click(input)
-    // Results should be expanded showing project badges
     const highBadge = screen.queryByText('high')
     if (highBadge) {
       expect(highBadge.className).toContain('red')
@@ -144,7 +156,6 @@ describe('SearchWidget', () => {
     const { user } = render(<SearchWidget config={mockConfig} />)
     const input = screen.getByPlaceholderText('Search projects, actions...')
     await user.click(input)
-    // Results should display project and action items
     expect(screen.queryByText('Project Alpha') || screen.queryByText('Advanced Search')).toBeDefined()
   })
 
@@ -159,24 +170,15 @@ describe('SearchWidget', () => {
     const { user } = render(<SearchWidget config={mockConfig} />)
     const input = screen.getByPlaceholderText('Search projects, actions...')
     await user.click(input)
-    // After focus, the advanced search link should appear (part of expanded results)
     expect(screen.getByText('Advanced Search')).toBeDefined()
   })
 
   test('shows "No results found" for unmatched query', async () => {
-    // Mock fuse.js to return empty results
-    vi.doMock('fuse.js', () => ({
-      default: class {
-        search() { return [] }
-      }
-    }))
     const { user } = render(<SearchWidget config={mockConfig} />)
     const input = screen.getByPlaceholderText('Search projects, actions...')
     await user.type(input, 'xyznonexistent')
-    // The "No results found" may appear once fuse returns empty
-    // Due to async loading, we check if it eventually shows
+    // MockFuse does substring matching — 'xyznonexistent' won't match anything
     const noResults = screen.queryByText('No results found')
-    // This is acceptable whether or not fuse.js fully loads in test
     expect(noResults !== null || screen.queryByText('Advanced Search') !== null).toBe(true)
   })
 
@@ -191,7 +193,6 @@ describe('SearchWidget', () => {
         await user.click(clickableParent)
       }
     }
-    // Navigation or action should have been triggered
-    expect(true).toBe(true) // Result click was attempted
+    expect(true).toBe(true)
   })
 })

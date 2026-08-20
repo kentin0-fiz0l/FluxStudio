@@ -14,11 +14,15 @@ import type { ChatMessageListProps } from '../ChatMessageList';
 import type { Message, MessageUser } from '../types';
 
 // Mock react-virtuoso to render items directly (no virtualization in jsdom)
+const { hoistedReact } = vi.hoisted(() => {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  return { hoistedReact: require('react') };
+});
+
 vi.mock('react-virtuoso', () => {
-  const React = require('react');
   return {
-    Virtuoso: React.forwardRef(function MockVirtuoso(props: any, ref: any) {
-      React.useImperativeHandle(ref, () => ({ scrollToIndex: vi.fn() }));
+    Virtuoso: hoistedReact.forwardRef(function MockVirtuoso(props: any, ref: any) {
+      hoistedReact.useImperativeHandle(ref, () => ({ scrollToIndex: vi.fn() }));
       const items = [];
       for (let i = 0; i < (props.totalCount ?? 0); i++) {
         items.push(

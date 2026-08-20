@@ -111,6 +111,7 @@ export function useFormationWorker() {
     };
 
     workerRef.current = worker;
+    const pendingMap = pendingRef.current;
 
     return () => {
       mountedRef.current = false;
@@ -118,10 +119,10 @@ export function useFormationWorker() {
       workerRef.current = null;
 
       // Reject any still-pending requests
-      for (const [, pending] of pendingRef.current) {
+      for (const [, pending] of pendingMap) {
         pending.reject(new Error('Worker terminated'));
       }
-      pendingRef.current.clear();
+      pendingMap.clear();
     };
   }, []);
 

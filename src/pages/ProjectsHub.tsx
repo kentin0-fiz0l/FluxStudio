@@ -362,7 +362,7 @@ export function ProjectsHub() {
       await apiService.patch('/projects/bulk', { action: 'archive', projectIds: ids });
       clearSelection();
       fetchProjects();
-    } catch (err) {
+    } catch (_err) {
       // Error handled by apiService
     }
   }, [selectedProjects, clearSelection, fetchProjects]);
@@ -373,7 +373,7 @@ export function ProjectsHub() {
       await apiService.patch('/projects/bulk', { action: 'status_change', projectIds: ids, status });
       clearSelection();
       fetchProjects();
-    } catch (err) {
+    } catch (_err) {
       // Error handled by apiService
     }
   }, [selectedProjects, clearSelection, fetchProjects]);
@@ -384,7 +384,7 @@ export function ProjectsHub() {
       await apiService.patch('/projects/bulk', { action: 'delete', projectIds: ids });
       clearSelection();
       fetchProjects();
-    } catch (err) {
+    } catch (_err) {
       // Error handled by apiService
     }
   }, [selectedProjects, clearSelection, fetchProjects]);

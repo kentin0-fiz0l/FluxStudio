@@ -3,6 +3,11 @@
  *
  * Provides real-time collaborative editing for formations using Yjs CRDTs.
  * Handles WebSocket connection, state synchronization, and mutation functions.
+ *
+ * Mutations are split into sub-hooks for maintainability:
+ * - useYjsMutations: performer, keyframe, position, meta, audio, pathCurve
+ * - useYjsSetMutations: drill set CRUD and reordering
+ * - useYjsAwareness: cursor, selection, dragging, undo/redo
  */
 
 import { useEffect, useState, useCallback, useRef, useMemo } from 'react';
@@ -14,9 +19,6 @@ import {
   Formation,
   Performer,
   Keyframe,
-  Position,
-  AudioTrack,
-  TransitionType,
   DrillSet,
 } from '@/services/formationService';
 import {
@@ -32,143 +34,21 @@ import {
   performerToYMapEntries,
   keyframeToYMapEntries,
   drillSetToYMapEntries,
-  YjsPosition,
 } from '@/services/formation/yjs/formationYjsTypes';
 import { createBatchingManager, type BatchingManager } from '@/services/formation/yjs/batchingManager';
+import { useYjsMutations } from './useYjsMutations';
+import { useYjsSetMutations } from './useYjsSetMutations';
+import { useYjsAwareness } from './useYjsAwareness';
 
 // ============================================================================
-// Types
+// Types (re-exported from useFormationYjsTypes for backward compatibility)
 // ============================================================================
 
-/** Conflict event types for UX-level conflict detection */
-export type ConflictType =
-  | 'simultaneous-move'    // Two users moving the same performer
-  | 'performer-deleted'    // Performer deleted while being dragged locally
-  | 'keyframe-deleted';    // Keyframe deleted while being edited locally
-
-/** Represents a detected UX-level conflict */
-export interface ConflictEvent {
-  /** Unique ID for this conflict event */
-  id: string;
-  /** The performer or keyframe involved */
-  entityId: string;
-  /** Type of conflict */
-  type: ConflictType;
-  /** When the conflict was detected */
-  timestamp: number;
-  /** Additional context (e.g., who caused the remote change) */
-  remoteUserId?: string;
-}
+export type { ConflictType, ConflictEvent, UseFormationYjsOptions, UseFormationYjsResult } from './useFormationYjsTypes';
+import type { ConflictType, ConflictEvent, UseFormationYjsOptions, UseFormationYjsResult } from './useFormationYjsTypes';
 
 /** Duration in ms before a conflict auto-clears */
 const CONFLICT_AUTO_CLEAR_MS = 3000;
-
-export interface UseFormationYjsOptions {
-  /** Project ID containing the formation */
-  projectId: string;
-  /** Formation ID to collaborate on */
-  formationId: string;
-  /** Enable collaborative editing */
-  enabled?: boolean;
-  /** Initial formation data (for new formations) */
-  initialData?: Formation;
-  /** Callback when formation changes */
-  onUpdate?: (formation: Formation) => void;
-  /** Callback when connection status changes */
-  onConnectionChange?: (connected: boolean) => void;
-}
-
-export interface UseFormationYjsResult {
-  /** Current formation state */
-  formation: Formation | null;
-  /** Is connected to collaboration server */
-  isConnected: boolean;
-  /** Is syncing initial state */
-  isSyncing: boolean;
-  /** Connection error if any */
-  error: string | null;
-  /** Other collaborators in the session */
-  collaborators: FormationAwarenessState[];
-  /** Has pending local changes waiting to sync */
-  hasPendingChanges: boolean;
-  /** Timestamp of last successful sync (null if never synced) */
-  lastSyncedAt: number | null;
-  /** Yjs document instance */
-  doc: Y.Doc | null;
-  /** WebSocket provider */
-  provider: WebsocketProvider | null;
-
-  // Mutation functions
-  /** Update formation metadata */
-  updateMeta: (updates: Partial<Pick<Formation, 'name' | 'description' | 'stageWidth' | 'stageHeight' | 'gridSize'>>) => void;
-  /** Add a new performer */
-  addPerformer: (performer: Omit<Performer, 'id'>, initialPosition?: Position) => Performer;
-  /** Update performer properties */
-  updatePerformer: (performerId: string, updates: Partial<Omit<Performer, 'id'>>) => void;
-  /** Remove a performer */
-  removePerformer: (performerId: string) => void;
-  /** Add a new keyframe */
-  addKeyframe: (timestamp: number, positions?: Map<string, Position>) => Keyframe;
-  /** Update keyframe properties */
-  updateKeyframe: (keyframeId: string, updates: Partial<Omit<Keyframe, 'id' | 'positions'>>) => void;
-  /** Remove a keyframe */
-  removeKeyframe: (keyframeId: string) => void;
-  /** Update a position in a keyframe */
-  updatePosition: (keyframeId: string, performerId: string, position: Position) => void;
-  /** Update multiple positions at once (batched) */
-  updatePositions: (keyframeId: string, positions: Map<string, Position>) => void;
-  /** Update path curve for a single performer in a keyframe */
-  updatePathCurve: (keyframeId: string, performerId: string, curve: import('@/services/formationTypes').PathCurve) => void;
-  /** Batch update path curves for multiple performers in a keyframe */
-  batchUpdatePathCurves: (keyframeId: string, updates: Map<string, import('@/services/formationTypes').PathCurve>) => void;
-  /** Set audio track */
-  setAudioTrack: (audioTrack: AudioTrack | null) => void;
-  /** Add a new drill set */
-  addSet: (keyframeId: string, counts: number, options?: Partial<Pick<DrillSet, 'name' | 'label' | 'notes' | 'rehearsalMark'>>) => DrillSet;
-  /** Update drill set properties */
-  updateSet: (setId: string, updates: Partial<Omit<DrillSet, 'id'>>) => void;
-  /** Remove a drill set */
-  removeSet: (setId: string) => void;
-  /** Reorder drill sets by moving from one index to another */
-  reorderSets: (fromIndex: number, toIndex: number) => void;
-
-  // Awareness functions
-  /** Update local cursor position */
-  updateCursor: (x: number, y: number) => void;
-  /** Clear local cursor */
-  clearCursor: () => void;
-  /** Update selected performers */
-  setSelectedPerformers: (performerIds: string[]) => void;
-  /** Set performer being dragged */
-  setDraggingPerformer: (performerId: string | null) => void;
-  /** Set the keyframe currently being edited locally */
-  setActiveKeyframe: (keyframeId: string | null) => void;
-  /** Check if another user is dragging a performer */
-  isPerformerBeingDragged: (performerId: string) => { dragging: boolean; by?: FormationAwarenessState };
-
-  // Y.UndoManager (per-user undo/redo in collaborative mode)
-  /** Raw Y.UndoManager instance (for unified undo integration) */
-  undoManager: Y.UndoManager | null;
-  /** Undo last local change */
-  yUndo: () => void;
-  /** Redo last undone local change */
-  yRedo: () => void;
-  /** Whether collaborative undo is available */
-  canYUndo: boolean;
-  /** Whether collaborative redo is available */
-  canYRedo: boolean;
-
-  // Conflict tracking
-  // Document size
-  /** Approximate size of the Yjs document in bytes */
-  documentSize: number;
-
-  // Conflict tracking
-  /** Active conflict events (auto-clear after 3 seconds) */
-  conflicts: ConflictEvent[];
-  /** Manually clear a conflict event by ID */
-  clearConflict: (conflictId: string) => void;
-}
 
 // ============================================================================
 // Hook Implementation
@@ -200,16 +80,13 @@ export function useFormationYjs({
   // Conflict tracking state
   const [conflicts, setConflicts] = useState<ConflictEvent[]>([]);
   const conflictTimersRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
-  // Track which performer the local user is currently dragging (via awareness)
   const localDraggingRef = useRef<string | null>(null);
-  // Track which keyframe the local user is currently editing (via awareness)
   const localActiveKeyframeRef = useRef<string | null>(null);
 
   // Refs for Yjs instances
   const docRef = useRef<Y.Doc | null>(null);
   const providerRef = useRef<WebsocketProvider | null>(null);
   const persistenceRef = useRef<IndexeddbPersistence | null>(null);
-  // Ref to track syncing state (avoids stale closure in persistence callback)
   const isSyncingRef = useRef(true);
   const undoManagerRef = useRef<Y.UndoManager | null>(null);
   const batcherRef = useRef<BatchingManager | null>(null);
@@ -220,12 +97,23 @@ export function useFormationYjs({
   const userColor = useMemo(() => getUserColor(user?.id || 'anonymous'), [user?.id]);
 
   // ============================================================================
+  // Compose Sub-Hooks
+  // ============================================================================
+
+  const mutations = useYjsMutations({ docRef, batcherRef });
+  const setMutations = useYjsSetMutations({ docRef });
+  const awareness = useYjsAwareness(
+    { providerRef, undoManagerRef, localDraggingRef, localActiveKeyframeRef },
+    collaborators,
+  );
+
+  // ============================================================================
   // Conflict Management Helpers
   // ============================================================================
 
   const addConflict = useCallback((entityId: string, type: ConflictType, remoteUserId?: string) => {
     const conflict: ConflictEvent = {
-      id: `conflict-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      id: `conflict-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`,
       entityId,
       type,
       timestamp: Date.now(),
@@ -234,7 +122,6 @@ export function useFormationYjs({
 
     setConflicts((prev) => [...prev, conflict]);
 
-    // Auto-clear after CONFLICT_AUTO_CLEAR_MS
     const timer = setTimeout(() => {
       setConflicts((prev) => prev.filter((c) => c.id !== conflict.id));
       conflictTimersRef.current.delete(conflict.id);
@@ -256,10 +143,129 @@ export function useFormationYjs({
 
   // Cleanup all conflict timers on unmount
   useEffect(() => {
+    const timers = conflictTimersRef.current;
     return () => {
-      conflictTimersRef.current.forEach((timer) => clearTimeout(timer));
-      conflictTimersRef.current.clear();
+      timers.forEach((timer) => clearTimeout(timer));
+      timers.clear();
     };
+  }, []);
+
+  // ============================================================================
+  // Sync Yjs to React State
+  // ============================================================================
+
+  const syncYjsToReact = useCallback((ydoc: Y.Doc) => {
+    const meta = ydoc.getMap(FORMATION_YJS_TYPES.META);
+    const performersMap = ydoc.getMap(FORMATION_YJS_TYPES.PERFORMERS);
+    const keyframesArray = ydoc.getArray(FORMATION_YJS_TYPES.KEYFRAMES);
+    const setsArray = ydoc.getArray(FORMATION_YJS_TYPES.SETS);
+
+    if (!meta.get('id')) return;
+
+    const performers: Performer[] = [];
+    performersMap.forEach((yPerformer) => {
+      performers.push(yMapToPerformer(yPerformer as Y.Map<unknown>));
+    });
+
+    const keyframes: Keyframe[] = [];
+    keyframesArray.forEach((yKeyframe) => {
+      keyframes.push(yMapToKeyframe(yKeyframe as Y.Map<unknown>));
+    });
+    keyframes.sort((a, b) => a.timestamp - b.timestamp);
+
+    const sets: DrillSet[] = [];
+    setsArray.forEach((ySet) => {
+      sets.push(yMapToDrillSet(ySet as Y.Map<unknown>));
+    });
+    sets.sort((a, b) => a.sortOrder - b.sortOrder);
+
+    const formationMeta = yMapToFormationMeta(meta);
+    const audioTrackMap = meta.get(FORMATION_YJS_TYPES.AUDIO) as Y.Map<unknown> | undefined;
+
+    const newFormation: Formation = {
+      ...formationMeta,
+      performers,
+      keyframes,
+      sets,
+      audioTrack: yMapToAudioTrack(audioTrackMap),
+      createdAt: formationMeta.createdAt || new Date().toISOString(),
+      updatedAt: formationMeta.updatedAt || new Date().toISOString(),
+      createdBy: formationMeta.createdBy || '',
+    };
+
+    setFormation(newFormation);
+    onUpdate?.(newFormation);
+  }, [onUpdate]);
+
+  // ============================================================================
+  // Initialize Yjs from Formation Data
+  // ============================================================================
+
+  const initializeYjsFromFormation = useCallback((ydoc: Y.Doc, data: Formation) => {
+    ydoc.transact(() => {
+      const meta = ydoc.getMap(FORMATION_YJS_TYPES.META);
+      const performers = ydoc.getMap(FORMATION_YJS_TYPES.PERFORMERS);
+      const keyframes = ydoc.getArray(FORMATION_YJS_TYPES.KEYFRAMES);
+      const sets = ydoc.getArray(FORMATION_YJS_TYPES.SETS);
+
+      if (meta.get('id')) return;
+
+      meta.set('id', data.id);
+      meta.set('name', data.name);
+      meta.set('projectId', data.projectId);
+      meta.set('description', data.description || '');
+      meta.set('stageWidth', data.stageWidth);
+      meta.set('stageHeight', data.stageHeight);
+      meta.set('gridSize', data.gridSize);
+      meta.set('createdBy', data.createdBy);
+      meta.set('createdAt', data.createdAt);
+      meta.set('updatedAt', data.updatedAt);
+
+      if (data.audioTrack) {
+        const audioMap = new Y.Map();
+        audioMap.set('id', data.audioTrack.id);
+        audioMap.set('url', data.audioTrack.url);
+        audioMap.set('filename', data.audioTrack.filename);
+        audioMap.set('duration', data.audioTrack.duration);
+        if (data.audioTrack.waveformData) {
+          audioMap.set('waveformData', data.audioTrack.waveformData);
+        }
+        meta.set(FORMATION_YJS_TYPES.AUDIO, audioMap);
+      }
+
+      data.performers.forEach((performer) => {
+        const yPerformer = new Y.Map();
+        performerToYMapEntries(performer).forEach(([key, value]) => {
+          yPerformer.set(key, value);
+        });
+        performers.set(performer.id, yPerformer);
+      });
+
+      data.keyframes.forEach((keyframe) => {
+        const yKeyframe = new Y.Map();
+        keyframeToYMapEntries(keyframe).forEach(([key, value]) => {
+          yKeyframe.set(key, value);
+        });
+
+        const yPositions = new Y.Map();
+        keyframe.positions.forEach((pos, performerId) => {
+          yPositions.set(performerId, { x: pos.x, y: pos.y, rotation: pos.rotation ?? 0 });
+        });
+        yKeyframe.set(FORMATION_YJS_TYPES.POSITIONS, yPositions);
+
+        keyframes.push([yKeyframe]);
+      });
+
+      if (data.sets) {
+        data.sets.forEach((drillSet) => {
+          const ySet = new Y.Map();
+          drillSetToYMapEntries(drillSet).forEach(([key, value]) => {
+            ySet.set(key, value);
+          });
+          sets.push([ySet]);
+        });
+      }
+    });
   }, []);
 
   // ============================================================================
@@ -272,10 +278,8 @@ export function useFormationYjs({
     const ydoc = new Y.Doc({ gc: true });
     docRef.current = ydoc;
 
-    // Get room name
     const roomName = getFormationRoomName(projectId, formationId);
 
-    // Setup WebSocket provider
     const wsUrl = import.meta.env.VITE_COLLAB_URL ||
               `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}`;
     const token = localStorage.getItem('auth_token') || '';
@@ -285,41 +289,30 @@ export function useFormationYjs({
     });
     providerRef.current = wsProvider;
 
-    // Setup IndexedDB persistence for offline support
     const persistence = new IndexeddbPersistence(roomName, ydoc);
     persistenceRef.current = persistence;
 
-    // Track connection status
     wsProvider.on('status', ({ status }: { status: string }) => {
       const connected = status === 'connected';
       setIsConnected(connected);
       onConnectionChange?.(connected);
-
-      if (connected) {
-        setError(null);
-      }
+      if (connected) setError(null);
     });
 
-    // Track sync completion
     wsProvider.on('sync', (synced: boolean) => {
       if (synced) {
-        isSyncingRef.current = false; // Update ref for persistence callback
+        isSyncingRef.current = false;
         setIsSyncing(false);
         setHasPendingChanges(false);
         setLastSyncedAt(Date.now());
-        // Sync initial state to React
         syncYjsToReact(ydoc);
       }
     });
 
-    // Track local document updates for pending changes indicator
     const updateTracker = (_update: Uint8Array, origin: unknown) => {
-      // If the update originated locally (not from remote), mark as pending
       if (origin === null || origin === undefined || origin === 'local') {
         setHasPendingChanges(true);
       } else {
-        // Remote update received and applied means we're synced
-        // Use providerRef to check connection status (avoids stale closure)
         if (providerRef.current?.wsconnected) {
           setHasPendingChanges(false);
           setLastSyncedAt(Date.now());
@@ -328,24 +321,18 @@ export function useFormationYjs({
     };
     ydoc.on('update', updateTracker);
 
-    // Also sync when IndexedDB is loaded (for offline support)
     persistence.on('synced', () => {
-      // If WebSocket hasn't synced yet, use local data
-      // Use ref to avoid stale closure issue
       if (isSyncingRef.current) {
         syncYjsToReact(ydoc);
       }
     });
 
-    // Handle errors
     wsProvider.on('connection-error', (event: Event) => {
       console.error('Formation collaboration connection error:', event);
       setError('Failed to connect to collaboration server');
     });
 
-    // Set initial awareness state with ALL fields to ensure proper sync
     if (user) {
-      // Use setLocalState to set all fields atomically for proper broadcast
       wsProvider.awareness.setLocalState({
         user: {
           id: user.id,
@@ -362,13 +349,10 @@ export function useFormationYjs({
       });
     }
 
-    // Periodic heartbeat to prevent cursor staleness while user is active
-    // Refreshes lastActivity every 5 seconds to keep presence visible
     const heartbeatInterval = setInterval(() => {
       if (user && wsProvider.awareness && !document.hidden) {
         const currentState = wsProvider.awareness.getLocalState();
         if (currentState && currentState.isActive) {
-          // Only refresh if there's a cursor (user is actively viewing)
           if (currentState.cursor) {
             wsProvider.awareness.setLocalStateField('cursor', {
               ...currentState.cursor,
@@ -378,36 +362,24 @@ export function useFormationYjs({
           wsProvider.awareness.setLocalStateField('lastActivity', Date.now());
         }
       }
-    }, 5000); // 5 second heartbeat
+    }, 5000);
 
-    // Handle visibility change to manage presence when user switches tabs
     const handleVisibilityChange = () => {
       if (!wsProvider.awareness) return;
-
       const currentState = wsProvider.awareness.getLocalState() || {};
       if (document.hidden) {
-        // User switched away - mark as inactive but keep cursor
-        wsProvider.awareness.setLocalState({
-          ...currentState,
-          isActive: false,
-        });
+        wsProvider.awareness.setLocalState({ ...currentState, isActive: false });
       } else {
-        // User returned - mark as active and refresh timestamp
         wsProvider.awareness.setLocalState({
           ...currentState,
           isActive: true,
           lastActivity: Date.now(),
-          cursor: currentState.cursor ? {
-            ...currentState.cursor,
-            timestamp: Date.now(),
-          } : null,
+          cursor: currentState.cursor ? { ...currentState.cursor, timestamp: Date.now() } : null,
         });
       }
     };
-
     document.addEventListener('visibilitychange', handleVisibilityChange);
 
-    // Track other collaborators
     wsProvider.awareness.on('change', () => {
       const states = Array.from(wsProvider.awareness.getStates().entries());
       const others = states
@@ -417,7 +389,6 @@ export function useFormationYjs({
       setCollaborators(others);
     });
 
-    // Initialize document with initial data if provided and document is empty
     if (initialData) {
       initializeYjsFromFormation(ydoc, initialData);
     }
@@ -430,8 +401,6 @@ export function useFormationYjs({
 
     const observer = () => {
       syncYjsToReact(ydoc);
-
-      // Throttled document size recalculation (~every 5 seconds)
       if (!documentSizeTimerRef.current) {
         documentSizeTimerRef.current = setTimeout(() => {
           documentSizeTimerRef.current = null;
@@ -450,19 +419,12 @@ export function useFormationYjs({
     keyframes.observeDeep(observer);
     sets.observeDeep(observer);
 
-    // ---------------------------------------------------------------
-    // Conflict Detection via Snapshots
-    // ---------------------------------------------------------------
-    // Before each remote update, snapshot the relevant state so we can
-    // compare after the update to detect conflicts with local interactions.
-
-    // Take a snapshot of performer IDs and keyframe IDs present in the doc
+    // Conflict detection via snapshots
     const snapshotPerformerIds = (): Set<string> => {
       const ids = new Set<string>();
       performers.forEach((_, key) => ids.add(key as string));
       return ids;
     };
-
     const snapshotKeyframeIds = (): Set<string> => {
       const ids = new Set<string>();
       for (let i = 0; i < keyframes.length; i++) {
@@ -476,14 +438,11 @@ export function useFormationYjs({
     let prevPerformerIds = snapshotPerformerIds();
     let prevKeyframeIds = snapshotKeyframeIds();
 
-    // Conflict-aware observer that runs on every change (local or remote)
-    // Uses the update tracker origin to distinguish local vs remote
     const conflictCheckObserver = () => {
       const dragging = localDraggingRef.current;
       const activeKeyframe = localActiveKeyframeRef.current;
 
       if (!dragging && !activeKeyframe) {
-        // Update snapshots even when not interacting
         prevPerformerIds = snapshotPerformerIds();
         prevKeyframeIds = snapshotKeyframeIds();
         return;
@@ -492,53 +451,31 @@ export function useFormationYjs({
       const currentPerformerIds = snapshotPerformerIds();
       const currentKeyframeIds = snapshotKeyframeIds();
 
-      // Check if the performer we're dragging was deleted
       if (dragging && prevPerformerIds.has(dragging) && !currentPerformerIds.has(dragging)) {
         addConflict(dragging, 'performer-deleted');
-        // Cancel the local drag
         localDraggingRef.current = null;
-        const currentState = wsProvider.awareness.getLocalState() || {};
-        wsProvider.awareness.setLocalState({
-          ...currentState,
-          draggingPerformerId: null,
-          lastActivity: Date.now(),
-        });
+        const cs = wsProvider.awareness.getLocalState() || {};
+        wsProvider.awareness.setLocalState({ ...cs, draggingPerformerId: null, lastActivity: Date.now() });
       }
 
-      // Check if the active keyframe was deleted
       if (activeKeyframe && prevKeyframeIds.has(activeKeyframe) && !currentKeyframeIds.has(activeKeyframe)) {
         addConflict(activeKeyframe, 'keyframe-deleted');
         localActiveKeyframeRef.current = null;
-        const currentState = wsProvider.awareness.getLocalState() || {};
-        wsProvider.awareness.setLocalState({
-          ...currentState,
-          activeKeyframeId: null,
-          lastActivity: Date.now(),
-        });
+        const cs = wsProvider.awareness.getLocalState() || {};
+        wsProvider.awareness.setLocalState({ ...cs, activeKeyframeId: null, lastActivity: Date.now() });
       }
 
       prevPerformerIds = currentPerformerIds;
       prevKeyframeIds = currentKeyframeIds;
     };
-
     performers.observeDeep(conflictCheckObserver);
     keyframes.observeDeep(conflictCheckObserver);
 
-    // Detect simultaneous move: when a remote update changes position of
-    // the performer we are currently dragging. We use doc.on('update') because
-    // it gives us origin information to distinguish local vs remote.
     const simultaneousMoveTracker = (_update: Uint8Array, origin: unknown) => {
       const dragging = localDraggingRef.current;
       if (!dragging) return;
-
-      // Only check remote updates (origin is not null/undefined/'local')
       const isLocal = origin === null || origin === undefined || origin === 'local';
       if (isLocal) return;
-
-      // A remote update came in while we're dragging. We can't easily
-      // inspect the Yjs update contents without decoding, so instead we
-      // check awareness: if another user is also dragging the same performer,
-      // that's a simultaneous move conflict.
       const states = wsProvider.awareness.getStates();
       states.forEach((state, clientId) => {
         if (clientId === wsProvider.awareness.clientID) return;
@@ -550,11 +487,9 @@ export function useFormationYjs({
     };
     ydoc.on('update', simultaneousMoveTracker);
 
-    // Setup BatchingManager for position update batching
     const batcher = createBatchingManager(ydoc);
     batcherRef.current = batcher;
 
-    // Setup Y.UndoManager for per-user undo/redo
     const undoManager = new Y.UndoManager([performers, keyframes, sets], {
       trackedOrigins: new Set([null, undefined]),
     });
@@ -566,7 +501,6 @@ export function useFormationYjs({
     undoManager.on('stack-item-added', updateUndoState);
     undoManager.on('stack-item-popped', updateUndoState);
 
-    // Cleanup
     return () => {
       clearInterval(heartbeatInterval);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
@@ -578,7 +512,6 @@ export function useFormationYjs({
 
       batcher.destroy();
       batcherRef.current = null;
-
       undoManager.destroy();
       undoManagerRef.current = null;
 
@@ -608,745 +541,6 @@ export function useFormationYjs({
   }, [collaborators.length]);
 
   // ============================================================================
-  // Sync Yjs to React State
-  // ============================================================================
-
-  const syncYjsToReact = useCallback((ydoc: Y.Doc) => {
-    const meta = ydoc.getMap(FORMATION_YJS_TYPES.META);
-    const performersMap = ydoc.getMap(FORMATION_YJS_TYPES.PERFORMERS);
-    const keyframesArray = ydoc.getArray(FORMATION_YJS_TYPES.KEYFRAMES);
-    const setsArray = ydoc.getArray(FORMATION_YJS_TYPES.SETS);
-
-    // Check if document has data
-    if (!meta.get('id')) return;
-
-    // Convert performers
-    const performers: Performer[] = [];
-    performersMap.forEach((yPerformer) => {
-      performers.push(yMapToPerformer(yPerformer as Y.Map<unknown>));
-    });
-
-    // Convert keyframes
-    const keyframes: Keyframe[] = [];
-    keyframesArray.forEach((yKeyframe) => {
-      keyframes.push(yMapToKeyframe(yKeyframe as Y.Map<unknown>));
-    });
-
-    // Sort keyframes by timestamp
-    keyframes.sort((a, b) => a.timestamp - b.timestamp);
-
-    // Convert drill sets
-    const sets: DrillSet[] = [];
-    setsArray.forEach((ySet) => {
-      sets.push(yMapToDrillSet(ySet as Y.Map<unknown>));
-    });
-
-    // Sort sets by sortOrder
-    sets.sort((a, b) => a.sortOrder - b.sortOrder);
-
-    // Build formation object
-    const formationMeta = yMapToFormationMeta(meta);
-    const audioTrackMap = meta.get(FORMATION_YJS_TYPES.AUDIO) as Y.Map<unknown> | undefined;
-
-    const newFormation: Formation = {
-      ...formationMeta,
-      performers,
-      keyframes,
-      sets,
-      audioTrack: yMapToAudioTrack(audioTrackMap),
-      // Provide defaults for required fields
-      createdAt: formationMeta.createdAt || new Date().toISOString(),
-      updatedAt: formationMeta.updatedAt || new Date().toISOString(),
-      createdBy: formationMeta.createdBy || '',
-    };
-
-    setFormation(newFormation);
-    onUpdate?.(newFormation);
-  }, [onUpdate]);
-
-  // ============================================================================
-  // Initialize Yjs from Formation Data
-  // ============================================================================
-
-  const initializeYjsFromFormation = useCallback((ydoc: Y.Doc, data: Formation) => {
-    ydoc.transact(() => {
-      const meta = ydoc.getMap(FORMATION_YJS_TYPES.META);
-      const performers = ydoc.getMap(FORMATION_YJS_TYPES.PERFORMERS);
-      const keyframes = ydoc.getArray(FORMATION_YJS_TYPES.KEYFRAMES);
-      const sets = ydoc.getArray(FORMATION_YJS_TYPES.SETS);
-
-      // Only initialize if empty
-      if (meta.get('id')) return;
-
-      // Set metadata
-      meta.set('id', data.id);
-      meta.set('name', data.name);
-      meta.set('projectId', data.projectId);
-      meta.set('description', data.description || '');
-      meta.set('stageWidth', data.stageWidth);
-      meta.set('stageHeight', data.stageHeight);
-      meta.set('gridSize', data.gridSize);
-      meta.set('createdBy', data.createdBy);
-      meta.set('createdAt', data.createdAt);
-      meta.set('updatedAt', data.updatedAt);
-
-      // Set audio track
-      if (data.audioTrack) {
-        const audioMap = new Y.Map();
-        audioMap.set('id', data.audioTrack.id);
-        audioMap.set('url', data.audioTrack.url);
-        audioMap.set('filename', data.audioTrack.filename);
-        audioMap.set('duration', data.audioTrack.duration);
-        if (data.audioTrack.waveformData) {
-          audioMap.set('waveformData', data.audioTrack.waveformData);
-        }
-        meta.set(FORMATION_YJS_TYPES.AUDIO, audioMap);
-      }
-
-      // Add performers
-      data.performers.forEach((performer) => {
-        const yPerformer = new Y.Map();
-        performerToYMapEntries(performer).forEach(([key, value]) => {
-          yPerformer.set(key, value);
-        });
-        performers.set(performer.id, yPerformer);
-      });
-
-      // Add keyframes
-      data.keyframes.forEach((keyframe) => {
-        const yKeyframe = new Y.Map();
-        keyframeToYMapEntries(keyframe).forEach(([key, value]) => {
-          yKeyframe.set(key, value);
-        });
-
-        // Add positions as nested Y.Map
-        const yPositions = new Y.Map();
-        keyframe.positions.forEach((pos, performerId) => {
-          yPositions.set(performerId, { x: pos.x, y: pos.y, rotation: pos.rotation ?? 0 });
-        });
-        yKeyframe.set(FORMATION_YJS_TYPES.POSITIONS, yPositions);
-
-        keyframes.push([yKeyframe]);
-      });
-
-      // Add drill sets
-      if (data.sets) {
-        data.sets.forEach((drillSet) => {
-          const ySet = new Y.Map();
-          drillSetToYMapEntries(drillSet).forEach(([key, value]) => {
-            ySet.set(key, value);
-          });
-          sets.push([ySet]);
-        });
-      }
-    });
-  }, []);
-
-  // ============================================================================
-  // Mutation Functions
-  // ============================================================================
-
-  const updateMeta = useCallback((updates: Partial<Pick<Formation, 'name' | 'description' | 'stageWidth' | 'stageHeight' | 'gridSize'>>) => {
-    const ydoc = docRef.current;
-    if (!ydoc) return;
-
-    const meta = ydoc.getMap(FORMATION_YJS_TYPES.META);
-
-    ydoc.transact(() => {
-      if (updates.name !== undefined) meta.set('name', updates.name);
-      if (updates.description !== undefined) meta.set('description', updates.description);
-      if (updates.stageWidth !== undefined) meta.set('stageWidth', updates.stageWidth);
-      if (updates.stageHeight !== undefined) meta.set('stageHeight', updates.stageHeight);
-      if (updates.gridSize !== undefined) meta.set('gridSize', updates.gridSize);
-      meta.set('updatedAt', new Date().toISOString());
-    });
-  }, []);
-
-  const addPerformer = useCallback((performerData: Omit<Performer, 'id'>, initialPosition?: Position): Performer => {
-    const ydoc = docRef.current;
-    if (!ydoc) throw new Error('Yjs document not initialized');
-
-    const performers = ydoc.getMap(FORMATION_YJS_TYPES.PERFORMERS);
-    const keyframes = ydoc.getArray(FORMATION_YJS_TYPES.KEYFRAMES);
-
-    const performer: Performer = {
-      ...performerData,
-      id: `performer-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-    };
-
-    ydoc.transact(() => {
-      // Add performer
-      const yPerformer = new Y.Map();
-      performerToYMapEntries(performer).forEach(([key, value]) => {
-        yPerformer.set(key, value);
-      });
-      performers.set(performer.id, yPerformer);
-
-      // Add initial position to first keyframe (or all keyframes)
-      if (initialPosition && keyframes.length > 0) {
-        const yKeyframe = keyframes.get(0) as Y.Map<unknown>;
-        const positions = yKeyframe.get(FORMATION_YJS_TYPES.POSITIONS) as Y.Map<YjsPosition>;
-        if (positions) {
-          positions.set(performer.id, {
-            x: initialPosition.x,
-            y: initialPosition.y,
-            rotation: initialPosition.rotation ?? 0,
-          });
-        }
-      }
-    });
-
-    return performer;
-  }, []);
-
-  const updatePerformer = useCallback((performerId: string, updates: Partial<Omit<Performer, 'id'>>) => {
-    const ydoc = docRef.current;
-    if (!ydoc) return;
-
-    const performers = ydoc.getMap(FORMATION_YJS_TYPES.PERFORMERS);
-    const yPerformer = performers.get(performerId) as Y.Map<unknown> | undefined;
-    if (!yPerformer) return;
-
-    ydoc.transact(() => {
-      if (updates.name !== undefined) yPerformer.set('name', updates.name);
-      if (updates.label !== undefined) yPerformer.set('label', updates.label);
-      if (updates.color !== undefined) yPerformer.set('color', updates.color);
-      if (updates.group !== undefined) yPerformer.set('group', updates.group);
-      if (updates.instrument !== undefined) yPerformer.set('instrument', updates.instrument);
-      if (updates.section !== undefined) yPerformer.set('section', updates.section);
-      if (updates.drillNumber !== undefined) yPerformer.set('drillNumber', updates.drillNumber);
-    });
-  }, []);
-
-  const removePerformer = useCallback((performerId: string) => {
-    const ydoc = docRef.current;
-    if (!ydoc) return;
-
-    const performers = ydoc.getMap(FORMATION_YJS_TYPES.PERFORMERS);
-    const keyframes = ydoc.getArray(FORMATION_YJS_TYPES.KEYFRAMES);
-
-    ydoc.transact(() => {
-      // Remove performer
-      performers.delete(performerId);
-
-      // Remove from all keyframe positions
-      keyframes.forEach((yKeyframe) => {
-        const positions = (yKeyframe as Y.Map<unknown>).get(FORMATION_YJS_TYPES.POSITIONS) as Y.Map<YjsPosition>;
-        if (positions) {
-          positions.delete(performerId);
-        }
-      });
-    });
-  }, []);
-
-  const addKeyframe = useCallback((timestamp: number, positions?: Map<string, Position>): Keyframe => {
-    const ydoc = docRef.current;
-    if (!ydoc) throw new Error('Yjs document not initialized');
-
-    const keyframes = ydoc.getArray(FORMATION_YJS_TYPES.KEYFRAMES);
-    const performers = ydoc.getMap(FORMATION_YJS_TYPES.PERFORMERS);
-
-    const keyframe: Keyframe = {
-      id: `keyframe-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-      timestamp,
-      transition: 'linear' as TransitionType,
-      duration: 500,
-      positions: positions || new Map(),
-    };
-
-    ydoc.transact(() => {
-      const yKeyframe = new Y.Map();
-      keyframeToYMapEntries(keyframe).forEach(([key, value]) => {
-        yKeyframe.set(key, value);
-      });
-
-      // Create positions map
-      const yPositions = new Y.Map();
-
-      if (positions) {
-        // Use provided positions
-        positions.forEach((pos, performerId) => {
-          yPositions.set(performerId, { x: pos.x, y: pos.y, rotation: pos.rotation ?? 0 });
-        });
-      } else {
-        // Initialize all performers at center
-        performers.forEach((_, performerId) => {
-          yPositions.set(performerId as string, { x: 50, y: 50, rotation: 0 });
-        });
-      }
-
-      yKeyframe.set(FORMATION_YJS_TYPES.POSITIONS, yPositions);
-
-      // Insert at correct position based on timestamp
-      let insertIndex = keyframes.length;
-      for (let i = 0; i < keyframes.length; i++) {
-        const kf = keyframes.get(i) as Y.Map<unknown>;
-        if ((kf.get('timestamp') as number) > timestamp) {
-          insertIndex = i;
-          break;
-        }
-      }
-
-      keyframes.insert(insertIndex, [yKeyframe]);
-    });
-
-    return keyframe;
-  }, []);
-
-  const updateKeyframe = useCallback((keyframeId: string, updates: Partial<Omit<Keyframe, 'id' | 'positions'>>) => {
-    const ydoc = docRef.current;
-    if (!ydoc) return;
-
-    const keyframes = ydoc.getArray(FORMATION_YJS_TYPES.KEYFRAMES);
-
-    ydoc.transact(() => {
-      for (let i = 0; i < keyframes.length; i++) {
-        const yKeyframe = keyframes.get(i) as Y.Map<unknown>;
-        if (yKeyframe.get('id') === keyframeId) {
-          if (updates.timestamp !== undefined) yKeyframe.set('timestamp', updates.timestamp);
-          if (updates.transition !== undefined) yKeyframe.set('transition', updates.transition);
-          if (updates.duration !== undefined) yKeyframe.set('duration', updates.duration);
-          break;
-        }
-      }
-    });
-  }, []);
-
-  const removeKeyframe = useCallback((keyframeId: string) => {
-    const ydoc = docRef.current;
-    if (!ydoc) return;
-
-    const keyframes = ydoc.getArray(FORMATION_YJS_TYPES.KEYFRAMES);
-
-    ydoc.transact(() => {
-      for (let i = 0; i < keyframes.length; i++) {
-        const yKeyframe = keyframes.get(i) as Y.Map<unknown>;
-        if (yKeyframe.get('id') === keyframeId) {
-          keyframes.delete(i, 1);
-          break;
-        }
-      }
-    });
-  }, []);
-
-  const updatePosition = useCallback((keyframeId: string, performerId: string, position: Position) => {
-    const batcher = batcherRef.current;
-    if (batcher) {
-      // Use batching manager for coalesced, rAF-aligned updates
-      batcher.enqueue(keyframeId, performerId, {
-        x: position.x,
-        y: position.y,
-        rotation: position.rotation ?? 0,
-      });
-      return;
-    }
-
-    // Fallback: direct transact if batcher is not available
-    const ydoc = docRef.current;
-    if (!ydoc) return;
-
-    const keyframes = ydoc.getArray(FORMATION_YJS_TYPES.KEYFRAMES);
-
-    ydoc.transact(() => {
-      for (let i = 0; i < keyframes.length; i++) {
-        const yKeyframe = keyframes.get(i) as Y.Map<unknown>;
-        if (yKeyframe.get('id') === keyframeId) {
-          const positions = yKeyframe.get(FORMATION_YJS_TYPES.POSITIONS) as Y.Map<YjsPosition>;
-          if (positions) {
-            positions.set(performerId, {
-              x: position.x,
-              y: position.y,
-              rotation: position.rotation ?? 0,
-            });
-          }
-          break;
-        }
-      }
-    });
-  }, []);
-
-  const updatePositions = useCallback((keyframeId: string, positions: Map<string, Position>) => {
-    const batcher = batcherRef.current;
-    if (batcher) {
-      // Use batching manager for coalesced, rAF-aligned updates
-      const batchMap = new Map<string, { x: number; y: number; rotation: number }>();
-      positions.forEach((pos, performerId) => {
-        batchMap.set(performerId, {
-          x: pos.x,
-          y: pos.y,
-          rotation: pos.rotation ?? 0,
-        });
-      });
-      batcher.enqueueBatch(keyframeId, batchMap);
-      return;
-    }
-
-    // Fallback: direct transact if batcher is not available
-    const ydoc = docRef.current;
-    if (!ydoc) return;
-
-    const keyframes = ydoc.getArray(FORMATION_YJS_TYPES.KEYFRAMES);
-
-    ydoc.transact(() => {
-      for (let i = 0; i < keyframes.length; i++) {
-        const yKeyframe = keyframes.get(i) as Y.Map<unknown>;
-        if (yKeyframe.get('id') === keyframeId) {
-          const yPositions = yKeyframe.get(FORMATION_YJS_TYPES.POSITIONS) as Y.Map<YjsPosition>;
-          if (yPositions) {
-            positions.forEach((pos, performerId) => {
-              yPositions.set(performerId, {
-                x: pos.x,
-                y: pos.y,
-                rotation: pos.rotation ?? 0,
-              });
-            });
-          }
-          break;
-        }
-      }
-    });
-  }, []);
-
-  /** Update path curve for a single performer in a keyframe */
-  const updatePathCurve = useCallback((keyframeId: string, performerId: string, curve: import('@/services/formationTypes').PathCurve) => {
-    const ydoc = docRef.current;
-    if (!ydoc) return;
-
-    const keyframes = ydoc.getArray(FORMATION_YJS_TYPES.KEYFRAMES);
-
-    ydoc.transact(() => {
-      for (let i = 0; i < keyframes.length; i++) {
-        const yKeyframe = keyframes.get(i) as Y.Map<unknown>;
-        if (yKeyframe.get('id') === keyframeId) {
-          let yPathCurves = yKeyframe.get('pathCurves') as Y.Map<unknown> | undefined;
-          if (!yPathCurves) {
-            yPathCurves = new Y.Map();
-            yKeyframe.set('pathCurves', yPathCurves);
-          }
-          const yCurve = new Y.Map();
-          yCurve.set('cp1', { x: curve.cp1.x, y: curve.cp1.y });
-          yCurve.set('cp2', { x: curve.cp2.x, y: curve.cp2.y });
-          if (curve.easingControlPoints) {
-            yCurve.set('easingControlPoints', { ...curve.easingControlPoints });
-          }
-          yPathCurves.set(performerId, yCurve);
-          break;
-        }
-      }
-    });
-  }, []);
-
-  /** Batch update path curves for multiple performers in a keyframe */
-  const batchUpdatePathCurves = useCallback((keyframeId: string, updates: Map<string, import('@/services/formationTypes').PathCurve>) => {
-    const ydoc = docRef.current;
-    if (!ydoc) return;
-
-    const keyframes = ydoc.getArray(FORMATION_YJS_TYPES.KEYFRAMES);
-
-    ydoc.transact(() => {
-      for (let i = 0; i < keyframes.length; i++) {
-        const yKeyframe = keyframes.get(i) as Y.Map<unknown>;
-        if (yKeyframe.get('id') === keyframeId) {
-          let yPathCurves = yKeyframe.get('pathCurves') as Y.Map<unknown> | undefined;
-          if (!yPathCurves) {
-            yPathCurves = new Y.Map();
-            yKeyframe.set('pathCurves', yPathCurves);
-          }
-          updates.forEach((curve, performerId) => {
-            const yCurve = new Y.Map();
-            yCurve.set('cp1', { x: curve.cp1.x, y: curve.cp1.y });
-            yCurve.set('cp2', { x: curve.cp2.x, y: curve.cp2.y });
-            if (curve.easingControlPoints) {
-              yCurve.set('easingControlPoints', { ...curve.easingControlPoints });
-            }
-            yPathCurves!.set(performerId, yCurve);
-          });
-          break;
-        }
-      }
-    });
-  }, []);
-
-  const setAudioTrack = useCallback((audioTrack: AudioTrack | null) => {
-    const ydoc = docRef.current;
-    if (!ydoc) return;
-
-    const meta = ydoc.getMap(FORMATION_YJS_TYPES.META);
-
-    ydoc.transact(() => {
-      if (audioTrack) {
-        const audioMap = new Y.Map();
-        audioMap.set('id', audioTrack.id);
-        audioMap.set('url', audioTrack.url);
-        audioMap.set('filename', audioTrack.filename);
-        audioMap.set('duration', audioTrack.duration);
-        if (audioTrack.waveformData) {
-          audioMap.set('waveformData', audioTrack.waveformData);
-        }
-        meta.set(FORMATION_YJS_TYPES.AUDIO, audioMap);
-      } else {
-        meta.delete(FORMATION_YJS_TYPES.AUDIO);
-      }
-      meta.set('updatedAt', new Date().toISOString());
-    });
-  }, []);
-
-  // ============================================================================
-  // Set Mutation Functions
-  // ============================================================================
-
-  const addSet = useCallback((
-    keyframeId: string,
-    counts: number,
-    options?: Partial<Pick<DrillSet, 'name' | 'label' | 'notes' | 'rehearsalMark'>>,
-  ): DrillSet => {
-    const ydoc = docRef.current;
-    if (!ydoc) throw new Error('Yjs document not initialized');
-
-    const setsArray = ydoc.getArray(FORMATION_YJS_TYPES.SETS);
-
-    // Determine sortOrder based on existing sets
-    let maxSortOrder = -1;
-    for (let i = 0; i < setsArray.length; i++) {
-      const ySet = setsArray.get(i) as Y.Map<unknown>;
-      const order = ySet.get('sortOrder') as number;
-      if (order > maxSortOrder) maxSortOrder = order;
-    }
-
-    const drillSet: DrillSet = {
-      id: `set-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-      name: options?.name || `Set ${setsArray.length + 1}`,
-      counts,
-      keyframeId,
-      sortOrder: maxSortOrder + 1,
-    };
-    if (options?.label) drillSet.label = options.label;
-    if (options?.notes) drillSet.notes = options.notes;
-    if (options?.rehearsalMark) drillSet.rehearsalMark = options.rehearsalMark;
-
-    ydoc.transact(() => {
-      const ySet = new Y.Map();
-      drillSetToYMapEntries(drillSet).forEach(([key, value]) => {
-        ySet.set(key, value);
-      });
-
-      // Insert at correct position based on sortOrder
-      let insertIndex = setsArray.length;
-      for (let i = 0; i < setsArray.length; i++) {
-        const existing = setsArray.get(i) as Y.Map<unknown>;
-        if ((existing.get('sortOrder') as number) > drillSet.sortOrder) {
-          insertIndex = i;
-          break;
-        }
-      }
-
-      setsArray.insert(insertIndex, [ySet]);
-    });
-
-    return drillSet;
-  }, []);
-
-  const updateSet = useCallback((setId: string, updates: Partial<Omit<DrillSet, 'id'>>) => {
-    const ydoc = docRef.current;
-    if (!ydoc) return;
-
-    const setsArray = ydoc.getArray(FORMATION_YJS_TYPES.SETS);
-
-    ydoc.transact(() => {
-      for (let i = 0; i < setsArray.length; i++) {
-        const ySet = setsArray.get(i) as Y.Map<unknown>;
-        if (ySet.get('id') === setId) {
-          if (updates.name !== undefined) ySet.set('name', updates.name);
-          if (updates.label !== undefined) ySet.set('label', updates.label);
-          if (updates.counts !== undefined) ySet.set('counts', updates.counts);
-          if (updates.keyframeId !== undefined) ySet.set('keyframeId', updates.keyframeId);
-          if (updates.notes !== undefined) ySet.set('notes', updates.notes);
-          if (updates.rehearsalMark !== undefined) ySet.set('rehearsalMark', updates.rehearsalMark);
-          if (updates.sortOrder !== undefined) ySet.set('sortOrder', updates.sortOrder);
-          break;
-        }
-      }
-    });
-  }, []);
-
-  const removeSet = useCallback((setId: string) => {
-    const ydoc = docRef.current;
-    if (!ydoc) return;
-
-    const setsArray = ydoc.getArray(FORMATION_YJS_TYPES.SETS);
-
-    ydoc.transact(() => {
-      for (let i = 0; i < setsArray.length; i++) {
-        const ySet = setsArray.get(i) as Y.Map<unknown>;
-        if (ySet.get('id') === setId) {
-          setsArray.delete(i, 1);
-          break;
-        }
-      }
-    });
-  }, []);
-
-  const reorderSets = useCallback((fromIndex: number, toIndex: number) => {
-    const ydoc = docRef.current;
-    if (!ydoc) return;
-
-    const setsArray = ydoc.getArray(FORMATION_YJS_TYPES.SETS);
-    if (fromIndex < 0 || fromIndex >= setsArray.length) return;
-    if (toIndex < 0 || toIndex >= setsArray.length) return;
-    if (fromIndex === toIndex) return;
-
-    ydoc.transact(() => {
-      // Read the set being moved
-      const movingSet = setsArray.get(fromIndex) as Y.Map<unknown>;
-      const movingData: [string, unknown][] = [];
-      movingSet.forEach((value, key) => {
-        movingData.push([key, value]);
-      });
-
-      // Delete from old position
-      setsArray.delete(fromIndex, 1);
-
-      // Create a new Y.Map with the same data
-      const ySet = new Y.Map();
-      movingData.forEach(([key, value]) => {
-        ySet.set(key, value);
-      });
-
-      // Insert at new position
-      setsArray.insert(toIndex, [ySet]);
-
-      // Update sortOrder for all sets to match their array positions
-      for (let i = 0; i < setsArray.length; i++) {
-        const s = setsArray.get(i) as Y.Map<unknown>;
-        s.set('sortOrder', i);
-      }
-    });
-  }, []);
-
-  // ============================================================================
-  // Awareness Functions
-  // ============================================================================
-
-  // Refs for cursor throttling (50ms interval per UX spec)
-  const cursorThrottleRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const pendingCursorRef = useRef<{ x: number; y: number } | null>(null);
-
-  // Cleanup cursor throttle timer on unmount to prevent memory leak
-  useEffect(() => {
-    return () => {
-      if (cursorThrottleRef.current !== null) {
-        clearTimeout(cursorThrottleRef.current);
-        cursorThrottleRef.current = null;
-      }
-    };
-  }, []);
-
-  const updateCursor = useCallback((x: number, y: number) => {
-    const provider = providerRef.current;
-    if (!provider) return;
-
-    // Store pending position
-    pendingCursorRef.current = { x, y };
-
-    // If throttle timer is active, let it handle the update
-    if (cursorThrottleRef.current !== null) return;
-
-    // Send immediately for first update
-    provider.awareness.setLocalStateField('cursor', {
-      x,
-      y,
-      timestamp: Date.now(),
-    });
-    provider.awareness.setLocalStateField('lastActivity', Date.now());
-
-    // Set up throttle for subsequent updates (50ms)
-    cursorThrottleRef.current = setTimeout(() => {
-      cursorThrottleRef.current = null;
-      if (pendingCursorRef.current) {
-        const pending = pendingCursorRef.current;
-        provider.awareness.setLocalStateField('cursor', {
-          x: pending.x,
-          y: pending.y,
-          timestamp: Date.now(),
-        });
-      }
-    }, 50);
-  }, []);
-
-  const clearCursor = useCallback(() => {
-    const provider = providerRef.current;
-    if (!provider) return;
-
-    provider.awareness.setLocalStateField('cursor', null);
-  }, []);
-
-  const setSelectedPerformers = useCallback((performerIds: string[]) => {
-    const provider = providerRef.current;
-    if (!provider) return;
-
-    // Get current state and update atomically to ensure proper broadcast
-    const currentState = provider.awareness.getLocalState() || {};
-    provider.awareness.setLocalState({
-      ...currentState,
-      selectedPerformerIds: performerIds,
-      lastActivity: Date.now(),
-    });
-  }, []);
-
-  const setDraggingPerformer = useCallback((performerId: string | null) => {
-    const provider = providerRef.current;
-    if (!provider) return;
-
-    // Track locally for conflict detection
-    localDraggingRef.current = performerId;
-
-    // Use atomic state update for proper broadcast
-    const currentState = provider.awareness.getLocalState() || {};
-    provider.awareness.setLocalState({
-      ...currentState,
-      draggingPerformerId: performerId,
-      lastActivity: Date.now(),
-    });
-  }, []);
-
-  const setActiveKeyframe = useCallback((keyframeId: string | null) => {
-    const provider = providerRef.current;
-
-    // Track locally for conflict detection
-    localActiveKeyframeRef.current = keyframeId;
-
-    if (!provider) return;
-
-    // Broadcast to other users
-    const currentState = provider.awareness.getLocalState() || {};
-    provider.awareness.setLocalState({
-      ...currentState,
-      activeKeyframeId: keyframeId,
-      lastActivity: Date.now(),
-    });
-  }, []);
-
-  const isPerformerBeingDragged = useCallback((performerId: string): { dragging: boolean; by?: FormationAwarenessState } => {
-    const other = collaborators.find((c) => c.draggingPerformerId === performerId);
-    return {
-      dragging: !!other,
-      by: other,
-    };
-  }, [collaborators]);
-
-  // ============================================================================
-  // Y.UndoManager Functions
-  // ============================================================================
-
-  const yUndo = useCallback(() => {
-    undoManagerRef.current?.undo();
-  }, []);
-
-  const yRedo = useCallback(() => {
-    undoManagerRef.current?.redo();
-  }, []);
-
-  // ============================================================================
   // Return Hook Result
   // ============================================================================
 
@@ -1361,36 +555,15 @@ export function useFormationYjs({
     doc: docRef.current,
     provider: providerRef.current,
 
-    // Mutations
-    updateMeta,
-    addPerformer,
-    updatePerformer,
-    removePerformer,
-    addKeyframe,
-    updateKeyframe,
-    removeKeyframe,
-    updatePosition,
-    updatePositions,
-    updatePathCurve,
-    batchUpdatePathCurves,
-    setAudioTrack,
-    addSet,
-    updateSet,
-    removeSet,
-    reorderSets,
-
-    // Awareness
-    updateCursor,
-    clearCursor,
-    setSelectedPerformers,
-    setDraggingPerformer,
-    setActiveKeyframe,
-    isPerformerBeingDragged,
+    // Mutations (from useYjsMutations)
+    ...mutations,
+    // Set mutations (from useYjsSetMutations)
+    ...setMutations,
+    // Awareness (from useYjsAwareness)
+    ...awareness,
 
     // Y.UndoManager
     undoManager: undoManagerRef.current,
-    yUndo,
-    yRedo,
     canYUndo,
     canYRedo,
 
