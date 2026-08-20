@@ -17,7 +17,18 @@ router.get('/plugins', async (req, res) => {
 
         let sql = `
             SELECT
-                p.*
+                p.*,
+                (SELECT json_agg(json_build_object(
+                    'version', pv.version,
+                    'downloadUrlMac', pv.download_url_mac,
+                    'downloadUrlWindows', pv.download_url_windows,
+                    'fileSizeMac', pv.file_size_mac,
+                    'fileSizeWindows', pv.file_size_windows,
+                    'isLatest', pv.is_latest,
+                    'releasedAt', pv.released_at
+                ) ORDER BY pv.released_at DESC)
+                FROM plugin_versions pv
+                WHERE pv.plugin_id = p.id) as versions
             FROM plugins p
             WHERE p.is_published = true
         `;
