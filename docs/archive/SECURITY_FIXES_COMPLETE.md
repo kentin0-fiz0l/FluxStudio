@@ -394,7 +394,7 @@ For questions about these security fixes:
 
 **Documentation:**
 - Environment Setup: `/Users/kentino/FluxStudio/.env.app-platform.example`
-- Secret Generation: `/Users/kentino/FluxStudio/scripts/generate-production-secrets.sh`
+- Secret Generation: `REDACTED-production-secrets.sh`
 - OAuth Rotation Guide: `/Users/kentino/FluxStudio/OAUTH_ROTATION_GUIDE.md`
 
 ---

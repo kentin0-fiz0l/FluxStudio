@@ -157,8 +157,8 @@ Phase: ERROR
 
 1. Verify all 5 components are running
 2. Set Spaces secrets in console:
-   - SPACES_ACCESS_KEY = `DO00LDT2QPKYNQUCWPCF`
-   - SPACES_SECRET_KEY = `saDBqMWvsMNM/Rew1c/4zoA7OpaEU0J+d6FVbo5XWiY`
+   - SPACES_ACCESS_KEY = `DO_SPACES_KEY_REDACTED`
+   - SPACES_SECRET_KEY = `REDACTED`
 3. Test HLS transcoding workflow
 4. Document the solution
 

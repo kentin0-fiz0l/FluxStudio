@@ -80,7 +80,7 @@ All missing dependencies were identified and deployed to production:
 **Credentials Configured in Production .env**:
 ```bash
 GITHUB_CLIENT_ID=Ov23ctlOKOZ4tAEMsrEQ
-GITHUB_CLIENT_SECRET=81e7c2dfdc0e3590d5d1caddc5db5b3c0956780d
+GITHUB_CLIENT_SECRET=REDACTED
 GITHUB_REDIRECT_URI=https://fluxstudio.art/api/integrations/github/callback
 ```
 

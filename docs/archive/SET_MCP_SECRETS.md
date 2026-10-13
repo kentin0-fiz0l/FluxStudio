@@ -10,7 +10,7 @@ I've generated all the required secret values for you. **Copy these values and p
 
 ### 1. GITHUB_TOKEN
 ```
-ghp_hdLJC1gxJVOjWUZrFGxalyD5l3oN0a0pMEjk
+ghp_REDACTED
 ```
 *(Your current GitHub CLI token - has repo and workflow permissions)*
 
@@ -45,7 +45,7 @@ a9cd8060a732386357a8b8104311d60bbd3dcfe69111d02fea84941805f7aa00
 
    **Secret 1: GITHUB_TOKEN**
    - Key: `GITHUB_TOKEN`
-   - Value: `ghp_hdLJC1gxJVOjWUZrFGxalyD5l3oN0a0pMEjk`
+   - Value: `ghp_REDACTED`
    - Type: ✅ Check "Encrypt" checkbox
    - Scope: Runtime
 

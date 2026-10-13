@@ -54,7 +54,7 @@ The Spaces credentials need to be configured as secrets in the DigitalOcean App 
 2. **Configure `unified-backend` service**:
    - Navigate to: unified-backend → Environment Variables
    - Click "Edit" for `SPACES_ACCESS_KEY`
-   - Change value to: `DO00XA2RXWP8TEMN27G7`
+   - Change value to: `DO_SPACES_KEY_REDACTED`
    - Ensure "Encrypt" checkbox is checked
    - Click "Edit" for `SPACES_SECRET_KEY`
    - Change value to: `B11sZ2UeKhlzU9ex/0IDLKyUdSSGkRLkolzSfqgHFRE`
@@ -64,7 +64,7 @@ The Spaces credentials need to be configured as secrets in the DigitalOcean App 
 3. **Configure `ffmpeg-worker` service**:
    - Navigate to: ffmpeg-worker → Environment Variables
    - Click "Edit" for `SPACES_ACCESS_KEY`
-   - Change value to: `DO00XA2RXWP8TEMN27G7`
+   - Change value to: `DO_SPACES_KEY_REDACTED`
    - Ensure "Encrypt" checkbox is checked
    - Click "Edit" for `SPACES_SECRET_KEY`
    - Change value to: `B11sZ2UeKhlzU9ex/0IDLKyUdSSGkRLkolzSfqgHFRE`

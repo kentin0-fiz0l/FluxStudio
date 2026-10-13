@@ -57,7 +57,7 @@ REDIS_PASSWORD=your_secure_redis_password
 
 **After:**
 ```bash
-JWT_SECRET=720630e2126867ec9663bfffbd643595ea20d10133bf880659f8ad6bbaf611af473feb47b04e9f8a124c43d301bba06697c5fae5a13b8dec0932f0319cc3b2d2
+JWT_SECRET=REDACTED
 POSTGRES_PASSWORD=s9XlLhIX0QhBH1WJVrj5zsaJX4w372V+
 REDIS_PASSWORD=pQGGljnTBtAGzky1RkuUSkiS3p8J5I0uV2QltV9Tcpw=
 ```
@@ -87,7 +87,7 @@ Security: ⚠️ WEAK (predictable pattern)
 
 **After:**
 ```
-Secret: 720630e2126867ec9663bfffbd643595ea20d10133bf880659f8ad6bbaf611af473feb47b04e9f8a124c43d301bba06697c5fae5a13b8dec0932f0319cc3b2d2
+Secret: REDACTED
 Length: 128 characters (64 bytes hex)
 Entropy: 512 bits (cryptographically random)
 Security: ✅ STRONG (NSA Suite B compliant)
@@ -115,7 +115,7 @@ Security: ✅ STRONG (NSA Suite B compliant)
 
 ```bash
 # JWT Configuration
-JWT_SECRET=720630e2126867ec9663bfffbd643595ea20d10133bf880659f8ad6bbaf611af473feb47b04e9f8a124c43d301bba06697c5fae5a13b8dec0932f0319cc3b2d2
+JWT_SECRET=REDACTED
 
 # Database Configuration
 POSTGRES_PASSWORD=s9XlLhIX0QhBH1WJVrj5zsaJX4w372V+
