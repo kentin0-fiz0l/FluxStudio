@@ -360,8 +360,8 @@ doctl apps get $APP_ID --format "Spec.Services,Spec.Workers,Spec.StaticSites"
 **URL**: https://cloud.digitalocean.com/apps/bd400c99-683f-4d84-ac17-e7130fef0781/settings
 
 For **both** `unified-backend` AND `ffmpeg-worker`:
-- `SPACES_ACCESS_KEY` = `DO00LDT2QPKYNQUCWPCF`
-- `SPACES_SECRET_KEY` = `saDBqMWvsMNM/Rew1c/4zoA7OpaEU0J+d6FVbo5XWiY`
+- `SPACES_ACCESS_KEY` = `DO_SPACES_KEY_REDACTED`
+- `SPACES_SECRET_KEY` = `REDACTED`
 
 ---
 

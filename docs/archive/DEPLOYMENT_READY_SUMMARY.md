@@ -35,14 +35,14 @@ Navigate to: https://cloud.digitalocean.com/apps → fluxstudio → Settings
 
 **For `flux-mcp` service:**
 ```
-MCP_AUTH_TOKEN (Secret) = 81014aba878ef97a4f3dc9d964647f7e9ee00c6c6d1ddfd7a56b5fb9312e2f10
+MCP_AUTH_TOKEN (Secret) = REDACTED
 GITHUB_TOKEN (Secret) = <your-github-pat>
 GITHUB_OWNER (Secret) = kentin0-fiz0l
 ```
 
 **For `frontend` service:**
 ```
-VITE_MCP_AUTH_TOKEN (Secret) = 81014aba878ef97a4f3dc9d964647f7e9ee00c6c6d1ddfd7a56b5fb9312e2f10
+VITE_MCP_AUTH_TOKEN (Secret) = REDACTED
 ```
 
 **GitHub PAT Requirements:**

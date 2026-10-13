@@ -43,7 +43,7 @@
    - ✅ Docker image builds in ~167 seconds
 
 3. **Secret Generation:**
-   - ✅ GITHUB_TOKEN: ghp_hdLJC1gxJVOjWUZrFGxalyD5l3oN0a0pMEjk
+   - ✅ GITHUB_TOKEN: ghp_REDACTED
    - ✅ GITHUB_OWNER: kentin0-fiz0l
    - ✅ MCP_AUTH_TOKEN: a9cd8060a732386357a8b8104311d60bbd3dcfe69111d02fea84941805f7aa00
 
@@ -67,7 +67,7 @@
 
    **GITHUB_TOKEN:**
    - Key: `GITHUB_TOKEN`
-   - Value: `ghp_hdLJC1gxJVOjWUZrFGxalyD5l3oN0a0pMEjk`
+   - Value: `ghp_REDACTED`
    - ✅ Check "Encrypt" checkbox
    - Scope: Runtime
 

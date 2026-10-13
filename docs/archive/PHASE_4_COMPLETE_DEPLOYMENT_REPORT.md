@@ -144,10 +144,10 @@ Phase 4 (Designer-First Quick Print Integration) is now **100% complete** and re
 Location: `/tmp/fluxprint_secrets.txt`
 
 ```
-SECRET_KEY=8ffafe2df2ef4b2efabd4cf149dc1d6f2ab8df77ecf9cdacfa083e27a5c60dae
+SECRET_KEY=REDACTED
 FLUXPRINT_API_KEY=uvnNTiUW5yY24IHACrUlcYJcTsQxRfhKcB34jM2TAOw
 BRIDGE_AUTH_TOKEN=InIaxkmgNpQ9LgpOMyJgNCR2I0Uf5P5hZyEQgN2-fSk
-JWT_SECRET=220e16441c0d95178d1f54bb6b251da7979c5da50886344536545827c373b2fe
+JWT_SECRET=REDACTED
 ```
 
 **CRITICAL**: `JWT_SECRET` must be shared with FluxStudio for authentication.
@@ -359,7 +359,7 @@ chmod 600 .env.bridge
 ```bash
 # In DigitalOcean console for FluxStudio app:
 # Add environment variable:
-JWT_SECRET=220e16441c0d95178d1f54bb6b251da7979c5da50886344536545827c373b2fe
+JWT_SECRET=REDACTED
 ```
 
 **Step 5: Create GitHub Repository** (5 minutes)
