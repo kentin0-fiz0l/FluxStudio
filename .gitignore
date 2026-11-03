@@ -82,3 +82,7 @@ users.json
 /package-lock.json
 yarn.lock
 bun.lock
+
+# Local data files: never commit (they hold user accounts and password hashes)
+fluxstudio.db
+*.db-journal
